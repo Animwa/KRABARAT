@@ -33,3 +33,134 @@ img, svg, canvas {
 header button {
   -webkit-tap-highlight-color: transparent;
 }
+
+header button:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 767px) {
+  header .flex.items-center.space-x-2 {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+  }
+
+  #nav-menu-container {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    padding-top: 0.5rem;
+    gap: 0.25rem;
+  }
+
+  #nav-menu-container.show-mobile-menu {
+    display: flex !important;
+    animation: fadeInDown 0.25s ease-out forwards;
+  }
+
+  .nav-tab {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 0.65rem 1rem;
+    border-radius: 0.5rem;
+  }
+
+  .modal-form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+@media (min-width: 768px) {
+  #nav-menu-container {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  #hamburger-btn {
+    display: none !important;
+  }
+
+  .modal-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+/* Safe Area Insets iOS Safari Notch */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Status Navigasi Aktif */
+.nav-tab.active {
+  background-color: #047857;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 0 #34d399;
+}
+
+.subnav-btn.active {
+  background-color: #059669;
+  color: #ffffff;
+  border-color: #059669;
+}
+
+.classnav-btn.active {
+  background-color: #0d9488;
+  color: #ffffff;
+  border-color: #0d9488;
+}
+
+/* Keyframe Animations */
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.view-section {
+  animation: fadeIn 0.25s ease-out;
+}
+
+.animate-scaleUp {
+  animation: scaleUp 0.2s ease-out forwards;
+}
+
+/* Baris Tombol Kelas Usia */
+#class-buttons {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+
+#class-buttons button {
+  flex-shrink: 0;
+  white-space: nowrap;
+  scroll-snap-align: start;
+}
