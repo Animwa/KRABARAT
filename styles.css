@@ -1,7 +1,8 @@
 /* ==========================================
-   FLUID STYLING, RESPONSIVE UTILITIES & PRINT
+   CUSTOM STYLESHEET SISTEM MONITORING DAERAH
    ========================================== */
 
+/* 1. Reset Dasar & Safe Area Inset iOS */
 html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -9,138 +10,59 @@ html, body {
   touch-action: manipulation;
 }
 
-img, svg, canvas {
-  max-width: 100%;
-  height: auto;
-  display: block;
-}
-
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-
-@media (max-width: 768px) {
-  .stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-#nav-menu-container {
-  display: flex;
-  transition: all 0.3s ease-in-out;
-}
-
-header button {
-  -webkit-tap-highlight-color: transparent;
-}
-
-header button:active {
-  transform: scale(0.96);
-}
-
-@media (max-width: 767px) {
-  header .flex.items-center.space-x-2 {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-  }
-
-  #nav-menu-container {
-    display: none;
-    flex-direction: column;
-    width: 100%;
-    padding-top: 0.5rem;
-    gap: 0.25rem;
-  }
-
-  #nav-menu-container.show-mobile-menu {
-    display: flex !important;
-    animation: fadeInDown 0.25s ease-out forwards;
-  }
-
-  .nav-tab {
-    width: 100%;
-    justify-content: flex-start;
-    padding: 0.65rem 1rem;
-    border-radius: 0.5rem;
-  }
-}
-
-@media (min-width: 768px) {
-  #nav-menu-container {
-    display: flex !important;
-    flex-direction: row;
-    align-items: center;
-  }
-
-  #hamburger-btn {
-    display: none !important;
-  }
-}
-
 .pt-safe {
   padding-top: env(safe-area-inset-top, 0px);
 }
+
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* 2. Utilitas Scrollbar */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
+/* 3. Status Aktif Komponen Navigasi */
 .nav-tab.active {
-  background-color: #047857;
-  color: #ffffff;
+  background-color: #047857 !important;
+  color: #ffffff !important;
   font-weight: 700;
   box-shadow: inset 0 -2px 0 0 #34d399;
 }
 
 .subnav-btn.active {
-  background-color: #059669;
-  color: #ffffff;
-  border-color: #059669;
+  background-color: #0f766e !important;
+  color: #ffffff !important;
+  border-color: #0f766e !important;
 }
 
-@keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
+/* 4. Animasi Transisi Halus */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(3px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes scaleUp {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .view-section {
-  animation: fadeIn 0.25s ease-out;
+  animation: fadeIn 0.2s ease-out forwards;
 }
 
-.animate-scaleUp {
-  animation: scaleUp 0.2s ease-out forwards;
+/* 5. Interaktivitas Elemen & Sentuhan */
+button {
+  -webkit-tap-highlight-color: transparent;
 }
 
-.spinner {
-  border: 2.5px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: #ffffff;
-  width: 1.15rem;
-  height: 1.15rem;
-  animation: spin 0.8s linear infinite;
-  display: inline-block;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+button:active {
+  transform: scale(0.98);
 }
