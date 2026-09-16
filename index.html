@@ -3,109 +3,153 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistem Monitoring Jamaah & Presensi Terpadu</title>
+  <title>Portal Monitoring Jamaah & Presensi Terpadu</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col antialiased">
 
-  <!-- Toast Notifikasi -->
-  <div id="toast" class="fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-[-150%] opacity-0 bg-slate-900 text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-3">
+  <!-- Toast Notifikasi Global -->
+  <div id="toast" class="fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-[-150%] opacity-0 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs sm:text-sm">
     <span id="toastMsg">Notifikasi</span>
   </div>
 
-  <!-- Layer Login -->
-  <div id="loginSection" class="flex-grow flex items-center justify-center p-4">
-    <div class="bg-white border border-slate-200 rounded-2xl shadow-lg w-full max-w-md p-8">
-      <div class="text-center mb-6">
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Sistem Presensi & Sapaan</h1>
-        <p class="text-sm text-slate-500 mt-1">Portal Terpadu Pembinaan Jamaah 4 Desa</p>
+  <!-- TOP BAR: AREA LOGIN & STATUS USER DI BAGIAN PALING ATAS -->
+  <aside class="bg-slate-900 text-slate-100 border-b border-slate-800 sticky top-0 z-50 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 py-2.5 sm:py-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2.5">
+      
+      <!-- Identitas Singkat Portal -->
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-xs font-semibold tracking-wide uppercase text-slate-300">Portal Monitoring Pembinaan Daerah</span>
+        </div>
+        <!-- Status Label Akses -->
+        <span id="guestNotice" class="text-[11px] bg-slate-800 text-amber-300 px-2 py-0.5 rounded border border-slate-700 md:hidden">Mode Tamu (Publik)</span>
       </div>
-      <form id="loginForm" class="space-y-4">
-        <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Username</label>
-          <input type="text" id="usernameInput" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Password</label>
-          <input type="password" id="passwordInput" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
-        </div>
-        <button type="submit" id="btnLogin" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition flex justify-center items-center gap-2">
-          <span>Masuk Sistem</span>
+
+      <!-- State 1: Form Login Inline (Tampil Jika Belum Login) -->
+      <form id="topLoginForm" class="flex flex-wrap sm:flex-nowrap items-center gap-2 text-xs">
+        <span class="hidden lg:inline text-slate-400 text-[11px]">Masuk untuk akses aksi:</span>
+        <input type="text" id="topUsername" placeholder="Username" required class="w-full sm:w-36 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500">
+        <input type="password" id="topPassword" placeholder="Password" required class="w-full sm:w-36 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500">
+        <button type="submit" id="btnTopLogin" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-1.5 rounded-lg transition flex items-center justify-center gap-1.5">
+          <span>Masuk</span>
         </button>
       </form>
-    </div>
-  </div>
 
-  <!-- Layer Utama Aplikasi -->
-  <div id="appSection" class="hidden flex-grow flex flex-col">
-    <!-- Navbar Utama -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
-      <div class="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
-        <div class="flex items-center gap-4">
-          <span class="text-lg font-bold text-slate-900">PresensiDaerah</span>
-          <span id="roleBadge" class="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded-full font-semibold">Role</span>
+      <!-- State 2: Panel Sesi User (Tampil Jika Sudah Login) -->
+      <div id="topUserPanel" class="hidden flex items-center justify-between sm:justify-end gap-3 text-xs w-full sm:w-auto">
+        <div class="flex items-center gap-2">
+          <div class="text-right">
+            <div id="topUserName" class="font-bold text-white leading-tight">Nama Pengguna</div>
+            <div id="topUserRole" class="text-[10px] text-blue-300 font-medium leading-none mt-0.5">Role - Scope</div>
+          </div>
+          <span id="topRolePill" class="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Role</span>
         </div>
+        <button onclick="logout()" class="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 px-3 py-1.5 rounded-lg font-semibold transition">
+          Keluar
+        </button>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- NAVBAR UTAMA & NAVIGASI MOBILE -->
+  <header class="bg-white border-b border-slate-200 shadow-sm sticky top-[49px] md:top-[45px] z-40">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex items-center justify-between h-14">
         
-        <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-          <button onclick="navigate('dashboard')" class="hover:text-blue-600">Dashboard</button>
-          <button onclick="navigate('jamaah')" class="hover:text-blue-600">Data Jamaah</button>
-          <button id="navPresensi" onclick="navigate('presensi')" class="hover:text-blue-600">Input Presensi</button>
-          <button onclick="navigate('status')" class="hover:text-blue-600">Status 44 Kelompok</button>
-          <button onclick="navigate('penyapaan')" class="hover:text-blue-600 flex items-center gap-2">
-            <span>Penyapaan</span>
-            <span id="badgeSapaanNavbar" class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-bold">0 Sapaan</span>
-          </button>
-          <button id="navAdmin" onclick="navigate('admin')" class="hover:text-blue-600">Admin Control</button>
+        <div class="flex items-center gap-3">
+          <h1 class="text-base sm:text-lg font-black text-slate-900 tracking-tight">PresensiDaerah</h1>
+          <span id="badgeSapaanNavbar" class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-bold">0 Sapaan</span>
+        </div>
+
+        <!-- Tombol Hamburger (Layar HP) -->
+        <button onclick="toggleMobileNav()" class="md:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+
+        <!-- Menu Desktop -->
+        <nav class="hidden md:flex items-center gap-6 text-xs sm:text-sm font-medium text-slate-600">
+          <button onclick="navigate('dashboard')" id="nav-dashboard" class="py-4 hover:text-blue-600 transition">Dashboard</button>
+          <button onclick="navigate('jamaah')" id="nav-jamaah" class="py-4 hover:text-blue-600 transition">Data Jamaah</button>
+          <button onclick="navigate('status')" id="nav-status" class="py-4 hover:text-blue-600 transition">Status 44 Kelompok</button>
+          <button onclick="navigate('penyapaan')" id="nav-penyapaan" class="py-4 hover:text-blue-600 transition">Penyapaan Daerah</button>
+          <button onclick="navigate('presensi')" id="nav-presensi" class="py-4 hover:text-blue-600 transition">Input Presensi</button>
+          <button onclick="navigate('admin')" id="nav-admin" class="py-4 hover:text-blue-600 transition hidden">Admin Control</button>
         </nav>
 
-        <div class="flex items-center gap-3">
-          <span id="userDisplayName" class="text-xs text-slate-500 hidden sm:inline">User</span>
-          <button onclick="logout()" class="text-xs border border-slate-200 hover:bg-slate-100 px-3 py-1.5 rounded-lg text-red-600 font-semibold">Keluar</button>
+      </div>
+
+      <!-- Dropdown Navigasi Mobile -->
+      <nav id="mobileNavMenu" class="hidden md:hidden border-t border-slate-100 py-2 flex flex-col text-xs font-medium text-slate-700 space-y-1">
+        <button onclick="navigate('dashboard'); toggleMobileNav();" class="text-left px-3 py-2 rounded-lg hover:bg-slate-50">Dashboard</button>
+        <button onclick="navigate('jamaah'); toggleMobileNav();" class="text-left px-3 py-2 rounded-lg hover:bg-slate-50">Data Jamaah</button>
+        <button onclick="navigate('status'); toggleMobileNav();" class="text-left px-3 py-2 rounded-lg hover:bg-slate-50">Status 44 Kelompok</button>
+        <button onclick="navigate('penyapaan'); toggleMobileNav();" class="text-left px-3 py-2 rounded-lg hover:bg-slate-50">Penyapaan Daerah</button>
+        <button onclick="navigate('presensi'); toggleMobileNav();" id="m-nav-presensi" class="text-left px-3 py-2 rounded-lg hover:bg-slate-50">Input Presensi</button>
+        <button onclick="navigate('admin'); toggleMobileNav();" id="m-nav-admin" class="text-left px-3 py-2 rounded-lg hover:bg-slate-50 hidden">Admin Control</button>
+      </nav>
+
+    </div>
+  </header>
+
+  <!-- KONTEN APLIKASI SPA -->
+  <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+
+    <!-- VIEW 1: DASHBOARD (AKSES PUBLIK) -->
+    <section id="view-dashboard" class="space-y-6">
+      <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h2 class="text-lg sm:text-xl font-black text-slate-900">Rekapitulasi Global Wilayah</h2>
+          <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Monitoring kehadiran agregat dan pemerataan pembinaan di 4 Desa.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+            Realtime Google Sheets API
+          </span>
         </div>
       </div>
-    </header>
 
-    <!-- Area Konten Dinamis -->
-    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
-      
-      <!-- VIEW: DASHBOARD -->
-      <section id="view-dashboard" class="space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="bg-white p-5 rounded-xl border border-slate-200">
-            <div class="text-xs font-semibold text-slate-500">Total Desa</div>
-            <div class="text-2xl font-bold text-slate-800 mt-1">4 Wilayah</div>
-          </div>
-          <div class="bg-white p-5 rounded-xl border border-slate-200">
-            <div class="text-xs font-semibold text-slate-500">Total Kelompok Binaan</div>
-            <div class="text-2xl font-bold text-slate-800 mt-1">44 Masjid</div>
-          </div>
-          <div class="bg-white p-5 rounded-xl border border-slate-200">
-            <div class="text-xs font-semibold text-slate-500">Sesi Kegiatan Aktif</div>
-            <div id="statKegiatanAktif" class="text-2xl font-bold text-blue-600 mt-1">0</div>
-          </div>
-          <div class="bg-white p-5 rounded-xl border border-slate-200">
-            <div class="text-xs font-semibold text-slate-500">Akumulasi Penyapaan</div>
-            <div id="statTotalSapaan" class="text-2xl font-bold text-amber-600 mt-1">0 Kunjungan</div>
-          </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-[11px] uppercase font-bold text-slate-400">Total Wilayah</span>
+          <div class="text-xl sm:text-2xl font-black text-slate-900 mt-1">4 Desa</div>
         </div>
-      </section>
-
-      <!-- VIEW: DATA JAMAAH MASTER -->
-      <section id="view-jamaah" class="hidden space-y-6">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200">
-          <div>
-            <h2 class="text-lg font-bold text-slate-900">Data Jamaah & Target Kapasitas</h2>
-            <p class="text-xs text-slate-500">Master profil individu sebagai parameter target presensi agregat</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <select id="filterKelompokJamaah" onchange="loadJamaahData()" class="text-xs border rounded-lg px-3 py-2 bg-slate-50"></select>
-          </div>
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-[11px] uppercase font-bold text-slate-400">Binaan Kelompok</span>
+          <div class="text-xl sm:text-2xl font-black text-slate-900 mt-1">44 Masjid</div>
         </div>
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-[11px] uppercase font-bold text-slate-400">Kegiatan Aktif</span>
+          <div id="statKegiatanAktif" class="text-xl sm:text-2xl font-black text-blue-600 mt-1">0</div>
+        </div>
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-[11px] uppercase font-bold text-slate-400">Total Kunjungan</span>
+          <div id="statTotalSapaan" class="text-xl sm:text-2xl font-black text-amber-600 mt-1">0</div>
+        </div>
+      </div>
+    </section>
 
-        <div class="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+    <!-- VIEW 2: DATA JAMAAH RUJUKAN (AKSES PUBLIK) -->
+    <section id="view-jamaah" class="hidden space-y-6">
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-slate-900">Data Master & Target Usia Jamaah</h2>
+          <p class="text-xs text-slate-500">Pilih kelompok binaan untuk meninjau rujukan nama dan kapasitas kuota.</p>
+        </div>
+        <div class="w-full sm:w-auto">
+          <select id="filterKelompokJamaah" onchange="loadJamaahData()" class="w-full text-xs border border-slate-300 rounded-xl px-3 py-2 bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:outline-none"></select>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
-            <thead class="bg-slate-50 border-b text-slate-600 uppercase font-semibold">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase">
               <tr>
                 <th class="p-3">Nama Lengkap</th>
                 <th class="p-3">Tgl Lahir / Usia</th>
@@ -116,235 +160,253 @@
               </tr>
             </thead>
             <tbody id="jamaahTableBody" class="divide-y divide-slate-100">
-              <tr><td colspan="6" class="p-4 text-center text-slate-400">Pilih kelompok untuk memuat data.</td></tr>
+              <tr><td colspan="6" class="p-5 text-center text-slate-400">Pilih salah satu kelompok binaan di dropdown atas.</td></tr>
             </tbody>
           </table>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- VIEW: INPUT PRESENSI AGREGAT -->
-      <section id="view-presensi" class="hidden space-y-6 max-w-4xl mx-auto">
-        <div class="bg-white p-6 rounded-2xl border border-slate-200">
-          <h2 class="text-lg font-bold text-slate-900 mb-1">Form Input Presensi Agregat</h2>
-          <p class="text-xs text-slate-500 mb-6">Input rekapitulasi kehadiran berdasarkan 5 kategori usia jamaah.</p>
-
-          <form id="presensiForm" class="space-y-6">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Kegiatan Aktif</label>
-                <select id="selectKegiatanPresensi" required class="w-full text-xs border rounded-lg p-2.5 bg-slate-50"></select>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Kelompok</label>
-                <input type="text" id="inputKelompokLocked" readonly class="w-full text-xs border rounded-lg p-2.5 bg-slate-100 font-semibold text-slate-700">
-              </div>
-            </div>
-
-            <div class="overflow-x-auto">
-              <table class="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr class="bg-slate-50 border-y text-slate-600">
-                    <th class="py-2.5 px-3">Kategori Usia</th>
-                    <th class="py-2.5 px-3 text-center">Hadir</th>
-                    <th class="py-2.5 px-3 text-center">Izin</th>
-                    <th class="py-2.5 px-3 text-center">Sakit</th>
-                    <th class="py-2.5 px-3 text-center">Alpa</th>
-                    <th class="py-2.5 px-3 text-center">Target</th>
-                  </tr>
-                </thead>
-                <tbody id="presensiInputRows" class="divide-y divide-slate-100">
-                  <!-- Baris 5 Kategori Usia dirender via script.js -->
-                </tbody>
-              </table>
-            </div>
-
-            <button type="submit" id="btnSubmitPresensi" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition flex justify-center items-center gap-2">
-              <span>Kirim Laporan Presensi</span>
-            </button>
-          </form>
+    <!-- VIEW 3: STATUS MONITORING 44 KELOMPOK (AKSES PUBLIK) -->
+    <section id="view-status" class="hidden space-y-6">
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-slate-900">Matriks Pelaporan 44 Kelompok</h2>
+          <p class="text-xs text-slate-500">Visual kelengkapan input presensi kegiatan aktif per kelompok binaan.</p>
         </div>
-      </section>
+        <div class="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto">
+          <select id="filterKegiatanStatus" onchange="loadMonitoringGrid()" class="text-xs border rounded-xl px-3 py-2 bg-slate-50 w-full sm:w-auto"></select>
+          <select id="filterDesaStatus" onchange="filterMonitoringDisplay()" class="text-xs border rounded-xl px-3 py-2 bg-slate-50 w-full sm:w-auto">
+            <option value="ALL">Semua Desa</option>
+          </select>
+        </div>
+      </div>
 
-      <!-- VIEW: STATUS MONITORING 44 KELOMPOK -->
-      <section id="view-status" class="hidden space-y-6">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200">
-          <div>
-            <h2 class="text-lg font-bold text-slate-900">Matriks Monitoring Presensi</h2>
-            <p class="text-xs text-slate-500">Status kelengkapan pelaporan presensi seluruh 44 kelompok binaan.</p>
-          </div>
-          <div class="flex gap-2">
-            <select id="filterKegiatanStatus" onchange="loadMonitoringGrid()" class="text-xs border rounded-lg px-3 py-2 bg-slate-50"></select>
-            <select id="filterDesaStatus" onchange="filterMonitoringDisplay()" class="text-xs border rounded-lg px-3 py-2 bg-slate-50">
-              <option value="ALL">Semua Desa</option>
-            </select>
-          </div>
+      <div id="monitoringGridContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <!-- Kartu Indikator Hijau/Merah -->
+      </div>
+    </section>
+
+    <!-- VIEW 4: MODUL PENYAPAAN DAERAH (AKSES PUBLIK & FORM ADMIN) -->
+    <section id="view-penyapaan" class="hidden space-y-6">
+      <!-- Sub Navigasi -->
+      <div class="flex border-b border-slate-200 gap-4 sm:gap-8 text-xs sm:text-sm font-semibold text-slate-500 overflow-x-auto">
+        <button onclick="switchSapaanTab('tab-pemetaan')" id="btnTabPemetaan" class="pb-3 tab-sapaan-active whitespace-nowrap">Status & Pemetaan</button>
+        <button onclick="switchSapaanTab('tab-riwayat')" id="btnTabRiwayat" class="pb-3 whitespace-nowrap">Rekap Agenda & Riwayat</button>
+        <button onclick="switchSapaanTab('tab-input')" id="btnTabInput" class="pb-3 whitespace-nowrap">Input Sapaan Baru</button>
+      </div>
+
+      <!-- Sub-Tab 1: Status Pemetaan & Rekomendasi 4 Desa -->
+      <div id="tab-pemetaan" class="space-y-6">
+        <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 p-4 sm:p-5 rounded-2xl">
+          <h3 class="text-xs sm:text-sm font-bold text-amber-900 uppercase tracking-wide">Prioritas Rekomendasi Penyapaan Daerah</h3>
+          <p class="text-xs text-amber-700 mt-1 mb-3">1 Kelompok dengan frekuensi kunjungan terendah dari masing-masing desa:</p>
+          <div id="rekomendasiCardsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"></div>
         </div>
 
-        <div id="monitoringGridContainer" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-          <!-- Render Indikator Hijau/Merah -->
-        </div>
-      </section>
-
-      <!-- VIEW: MODUL PENYAPAAN DAERAH -->
-      <section id="view-penyapaan" class="hidden space-y-6">
-        <!-- Sub-Navigasi Sapaan -->
-        <div class="flex border-b border-slate-200 gap-6 text-sm font-medium text-slate-500">
-          <button onclick="switchSapaanTab('tab-pemetaan')" id="btnTabPemetaan" class="pb-3 tab-active">Status & Pemetaan</button>
-          <button onclick="switchSapaanTab('tab-riwayat')" id="btnTabRiwayat" class="pb-3">Rekap Agenda & Riwayat</button>
-          <button onclick="switchSapaanTab('tab-input')" id="btnTabInput" class="pb-3">Input Sapaan Baru</button>
+        <div class="flex items-center gap-2 overflow-x-auto pb-1">
+          <button onclick="filterSapaanMap('ALL')" class="px-3 py-1.5 rounded-lg border text-xs font-semibold bg-white text-slate-700 hover:bg-slate-50">Semua</button>
+          <button onclick="filterSapaanMap('SUDAH')" class="px-3 py-1.5 rounded-lg border text-xs font-semibold bg-white text-emerald-600 hover:bg-emerald-50">Sudah Disapa</button>
+          <button onclick="filterSapaanMap('BELUM')" class="px-3 py-1.5 rounded-lg border text-xs font-semibold bg-white text-rose-600 hover:bg-rose-50">Belum Disapa</button>
         </div>
 
-        <!-- Sub-Tab 1: Status & Pemetaan -->
-        <div id="tab-pemetaan" class="space-y-6">
-          <!-- Banner Rekomendasi Prioritas (1 per Desa) -->
-          <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-5 rounded-2xl">
-            <h3 class="text-sm font-bold text-amber-900 mb-2">Prioritas Rekomendasi Penyapaan Daerah</h3>
-            <p class="text-xs text-amber-700 mb-4">Kelompok dengan frekuensi kunjungan terendah dari masing-masing desa binaan:</p>
-            <div id="rekomendasiCardsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              <!-- Render 4 Kartu Rekomendasi -->
-            </div>
-          </div>
+        <div id="desaGridContainer" class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"></div>
+      </div>
 
-          <!-- Filter Status Sapaan -->
-          <div class="flex items-center gap-2">
-            <button onclick="filterSapaanMap('ALL')" class="px-3 py-1.5 rounded-lg border text-xs font-semibold bg-white">Semua Kelompok</button>
-            <button onclick="filterSapaanMap('SUDAH')" class="px-3 py-1.5 rounded-lg border text-xs font-semibold bg-white text-emerald-600">Sudah Disapa</button>
-            <button onclick="filterSapaanMap('BELUM')" class="px-3 py-1.5 rounded-lg border text-xs font-semibold bg-white text-rose-600">Belum Disapa</button>
-          </div>
-
-          <!-- Kontainer 4 Desa -->
-          <div id="desaGridContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- 4 Desa & Kartu Kelompok dirender via JS -->
-          </div>
+      <!-- Sub-Tab 2: Riwayat Kunjungan -->
+      <div id="tab-riwayat" class="hidden space-y-4">
+        <div class="bg-white p-3 sm:p-4 rounded-xl border border-slate-200">
+          <input type="text" id="searchRiwayatInput" onkeyup="filterRiwayatTable()" placeholder="Cari desa, kelompok, agenda pembinaan, petugas..." class="w-full text-xs border rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
         </div>
-
-        <!-- Sub-Tab 2: Riwayat Agenda -->
-        <div id="tab-riwayat" class="hidden space-y-6">
-          <div class="bg-white p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row gap-3">
-            <input type="text" id="searchRiwayatInput" onkeyup="filterRiwayatTable()" placeholder="Cari kelompok, petugas, agenda..." class="w-full text-xs border rounded-lg p-2.5">
-          </div>
-          <div class="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
-              <thead class="bg-slate-50 border-b text-slate-600 font-semibold">
+              <thead class="bg-slate-50 border-b text-slate-600 font-bold uppercase">
                 <tr>
                   <th class="p-3">Tanggal</th>
-                  <th class="p-3">Wilayah</th>
+                  <th class="p-3">Kelompok & Desa</th>
                   <th class="p-3">Agenda Sapaan</th>
                   <th class="p-3">Petugas</th>
-                  <th class="p-3">Catatan & Solusi</th>
+                  <th class="p-3">Catatan Solusi</th>
                 </tr>
               </thead>
               <tbody id="riwayatTableBody" class="divide-y divide-slate-100"></tbody>
             </table>
           </div>
         </div>
+      </div>
 
-        <!-- Sub-Tab 3: Form Input Sapaan Baru (Super Admin) -->
-        <div id="tab-input" class="hidden max-w-xl mx-auto bg-white p-6 rounded-2xl border border-slate-200">
-          <h3 class="text-base font-bold text-slate-900 mb-4">Input Log Penyapaan Daerah</h3>
+      <!-- Sub-Tab 3: Form Input Sapaan Baru (Membutuhkan Hak Super Admin) -->
+      <div id="tab-input" class="hidden max-w-xl mx-auto">
+        <!-- Peringatan Jika Bukan Super Admin -->
+        <div id="sapaanAuthWarning" class="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-center space-y-2">
+          <p class="text-xs font-semibold text-amber-900">Akses Dibatasi</p>
+          <p class="text-xs text-amber-700">Form input sapaan hanya dapat diisi oleh <strong>Super Admin (Admin Daerah)</strong>. Silakan masuk melalui bilah login di bagian atas.</p>
+        </div>
+
+        <!-- Form Input Sapaan -->
+        <div id="sapaanFormContainer" class="hidden bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 class="text-base font-bold text-slate-900 mb-4">Tambah Catatan Penyapaan Daerah</h3>
           <form id="sapaanForm" class="space-y-4">
             <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Desa</label>
-              <select id="sapaanDesaSelect" onchange="syncKelompokDropdown(this.value)" required class="w-full text-xs border rounded-lg p-2 bg-slate-50"></select>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Desa Binaan</label>
+              <select id="sapaanDesaSelect" onchange="syncKelompokDropdown(this.value)" required class="w-full text-xs border rounded-lg p-2.5 bg-slate-50"></select>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Kelompok</label>
-              <select id="sapaanKelompokSelect" required class="w-full text-xs border rounded-lg p-2 bg-slate-50"></select>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Kelompok / Masjid</label>
+              <select id="sapaanKelompokSelect" required class="w-full text-xs border rounded-lg p-2.5 bg-slate-50"></select>
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Kunjungan</label>
-              <input type="date" id="sapaanTanggal" required class="w-full text-xs border rounded-lg p-2">
+              <input type="date" id="sapaanTanggal" required class="w-full text-xs border rounded-lg p-2.5">
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Petugas / Tim Penyapa</label>
-              <input type="text" id="sapaanPetugas" required class="w-full text-xs border rounded-lg p-2">
+              <input type="text" id="sapaanPetugas" required class="w-full text-xs border rounded-lg p-2.5">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Agenda Sapaan</label>
-              <input type="text" id="sapaanAgenda" placeholder="Misal: Konsolidasi Pengurus, Evaluasi Generus" required class="w-full text-xs border rounded-lg p-2">
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Kegiatan Sapaan</label>
+              <input type="text" id="sapaanAgenda" placeholder="Misal: Konsolidasi Pengurus, Pembinaan Generus" required class="w-full text-xs border rounded-lg p-2.5">
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan Hasil & Solusi Kendala</label>
-              <textarea id="sapaanCatatan" rows="3" required class="w-full text-xs border rounded-lg p-2"></textarea>
+              <textarea id="sapaanCatatan" rows="3" required class="w-full text-xs border rounded-lg p-2.5"></textarea>
             </div>
-            <button type="submit" id="btnSubmitSapaan" class="w-full py-2.5 bg-blue-600 text-white rounded-lg text-xs font-semibold">Simpan Catatan Penyapaan</button>
+            <button type="submit" id="btnSubmitSapaan" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition">
+              Simpan Laporan Sapaan
+            </button>
           </form>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- VIEW: ADMIN CONTROL -->
-      <section id="view-admin" class="hidden space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Buka Sesi Kegiatan -->
-          <div class="bg-white p-6 rounded-2xl border border-slate-200">
-            <h3 class="text-sm font-bold text-slate-900 mb-4">Buka Kegiatan Baru</h3>
-            <form id="formKegiatan" class="space-y-3">
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Sesi</label>
-                <input type="text" id="kegiatanNama" required class="w-full text-xs border rounded-lg p-2">
-              </div>
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">Mulai</label>
-                  <input type="date" id="kegiatanMulai" required class="w-full text-xs border rounded-lg p-2">
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">Selesai</label>
-                  <input type="date" id="kegiatanSelesai" required class="w-full text-xs border rounded-lg p-2">
-                </div>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Target Usia</label>
-                <input type="text" id="kegiatanTarget" placeholder="Semua Usia / Pra Remaja & REMAJA" required class="w-full text-xs border rounded-lg p-2">
-              </div>
-              <button type="submit" id="btnSubmitKegiatan" class="w-full py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold">Buka Sesi</button>
-            </form>
+    <!-- VIEW 5: INPUT PRESENSI AGREGAT (MEMBUTUHKAN LOGIN ADMIN KELOMPOK) -->
+    <section id="view-presensi" class="hidden space-y-6 max-w-4xl mx-auto">
+      <div id="presensiAuthWarning" class="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center space-y-2">
+        <h3 class="text-sm font-bold text-amber-900">Akses Terkunci</h3>
+        <p class="text-xs text-amber-700">Form input presensi agregat hanya dapat diisi oleh <strong>Admin Kelompok</strong>. Silakan masuk menggunakan akun kelompok Anda melalui form login di bilah atas.</p>
+      </div>
+
+      <div id="presensiFormContainer" class="hidden bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <h2 class="text-base sm:text-lg font-bold text-slate-900 mb-1">Form Input Presensi Agregat</h2>
+        <p class="text-xs text-slate-500 mb-5">Input total angka kehadiran jamaah per kategori usia untuk kegiatan yang sedang aktif.</p>
+
+        <form id="presensiForm" class="space-y-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Kegiatan Aktif</label>
+              <select id="selectKegiatanPresensi" required class="w-full text-xs border rounded-lg p-2.5 bg-slate-50"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Kelompok Anda</label>
+              <input type="text" id="inputKelompokLocked" readonly class="w-full text-xs border rounded-lg p-2.5 bg-slate-100 font-semibold text-slate-700">
+            </div>
           </div>
 
-          <!-- Tambah User Baru -->
-          <div class="bg-white p-6 rounded-2xl border border-slate-200">
-            <h3 class="text-sm font-bold text-slate-900 mb-4">Registrasi Akun Admin</h3>
-            <form id="formUser" class="space-y-3">
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
-                <input type="text" id="userNama" required class="w-full text-xs border rounded-lg p-2">
-              </div>
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">Username</label>
-                  <input type="text" id="userUsername" required class="w-full text-xs border rounded-lg p-2">
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-                  <input type="password" id="userPassword" required class="w-full text-xs border rounded-lg p-2">
-                </div>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Role Akun</label>
-                <select id="userRole" onchange="adjustScopeInputs(this.value)" required class="w-full text-xs border rounded-lg p-2 bg-slate-50">
-                  <option value="Admin Kelompok">Admin Kelompok</option>
-                  <option value="Admin Desa">Admin Desa</option>
-                  <option value="Super Admin">Super Admin</option>
-                </select>
-              </div>
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">Scope Desa</label>
-                  <input type="text" id="userScopeDesa" placeholder="Nama Desa / ALL" class="w-full text-xs border rounded-lg p-2">
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">Scope Kelompok</label>
-                  <input type="text" id="userScopeKelompok" placeholder="ID Kelompok / ALL" class="w-full text-xs border rounded-lg p-2">
-                </div>
-              </div>
-              <button type="submit" id="btnSubmitUser" class="w-full py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold">Buat Pengguna</button>
-            </form>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-y text-slate-600">
+                  <th class="py-2.5 px-3">Kategori Usia</th>
+                  <th class="py-2.5 px-2 text-center">Hadir</th>
+                  <th class="py-2.5 px-2 text-center">Izin</th>
+                  <th class="py-2.5 px-2 text-center">Sakit</th>
+                  <th class="py-2.5 px-2 text-center">Alpa</th>
+                  <th class="py-2.5 px-2 text-center">Target</th>
+                </tr>
+              </thead>
+              <tbody id="presensiInputRows" class="divide-y divide-slate-100"></tbody>
+            </table>
           </div>
+
+          <button type="submit" id="btnSubmitPresensi" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs sm:text-sm transition flex justify-center items-center gap-2">
+            <span>Kirim Laporan Presensi</span>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- VIEW 6: ADMIN CONTROL (SUPER ADMIN SAJA) -->
+    <section id="view-admin" class="hidden space-y-6">
+      <div id="adminAuthWarning" class="bg-rose-50 border border-rose-200 rounded-2xl p-6 text-center space-y-2">
+        <h3 class="text-sm font-bold text-rose-900">Akses Ditolak</h3>
+        <p class="text-xs text-rose-700">Menu ini khusus <strong>Super Admin Daerah</strong> untuk registrasi pengguna dan pembukaan kegiatan baru.</p>
+      </div>
+
+      <div id="adminPanelContainer" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Buka Kegiatan Baru -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 class="text-sm font-bold text-slate-900 mb-3">Buka Kegiatan Baru</h3>
+          <form id="formKegiatan" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Kegiatan</label>
+              <input type="text" id="kegiatanNama" required class="w-full text-xs border rounded-lg p-2.5">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Mulai</label>
+                <input type="date" id="kegiatanMulai" required class="w-full text-xs border rounded-lg p-2.5">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Selesai</label>
+                <input type="date" id="kegiatanSelesai" required class="w-full text-xs border rounded-lg p-2.5">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Target Usia</label>
+              <input type="text" id="kegiatanTarget" placeholder="Semua Usia / Pra Remaja & REMAJA" required class="w-full text-xs border rounded-lg p-2.5">
+            </div>
+            <button type="submit" id="btnSubmitKegiatan" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition">
+              Buka Kegiatan
+            </button>
+          </form>
         </div>
-      </section>
 
-    </main>
-  </div>
+        <!-- Tambah Pengguna Baru -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 class="text-sm font-bold text-slate-900 mb-3">Registrasi Akun Admin</h3>
+          <form id="formUser" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Petugas</label>
+              <input type="text" id="userNama" required class="w-full text-xs border rounded-lg p-2.5">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Username</label>
+                <input type="text" id="userUsername" required class="w-full text-xs border rounded-lg p-2.5">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+                <input type="password" id="userPassword" required class="w-full text-xs border rounded-lg p-2.5">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Role Akun</label>
+              <select id="userRole" onchange="adjustScopeInputs(this.value)" required class="w-full text-xs border rounded-lg p-2.5 bg-slate-50">
+                <option value="Admin Kelompok">Admin Kelompok</option>
+                <option value="Admin Desa">Admin Desa</option>
+                <option value="Super Admin">Super Admin</option>
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Scope Desa</label>
+                <input type="text" id="userScopeDesa" placeholder="Nama Desa / ALL" class="w-full text-xs border rounded-lg p-2.5">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Scope Kelompok</label>
+                <input type="text" id="userScopeKelompok" placeholder="ID Kelompok / ALL" class="w-full text-xs border rounded-lg p-2.5">
+              </div>
+            </div>
+            <button type="submit" id="btnSubmitUser" class="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold transition">
+              Simpan Akun Pengguna
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+  </main>
 
   <script src="script.js"></script>
 </body>
