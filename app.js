@@ -313,8 +313,17 @@ function renderInventaris() {
 }
 
 // =========================================================================
-// SISTEM PILIHAN KELOMPOK PER DESA PADA DATA JAMAAH
+// SISTEM PILIHAN KELOMPOK PER DESA PADA DATA JAMAAH (DENGAN RELASI OTOMATIS)
 // =========================================================================
+
+// Mengambil nama desa dari Master_Kelompok jika kolom Desa pada baris jamaah kosong
+function getDesaByKelompok(namaKelompok) {
+  if (!namaKelompok || namaKelompok === "-") return "-";
+  const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
+  const found = mk.find(k => String(k.Nama_Kelompok || "").trim().toLowerCase() === String(namaKelompok).trim().toLowerCase());
+  return found ? String(found.Nama_Desa || "-").trim() : "-";
+}
+
 function initJamaahWilayahFilters() {
   const desaSelect = document.getElementById("jamaah-filter-desa");
   if (!desaSelect) return;
@@ -323,8 +332,18 @@ function initJamaahWilayahFilters() {
   const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
 
   let desas = new Set();
-  data.forEach(j => { if (j.Desa) desas.add(String(j.Desa).trim()); });
-  mk.forEach(m => { if (m.Nama_Desa) desas.add(String(m.Nama_Desa).trim()); });
+  
+  // 1. Ambil nama desa resmi dari Master_Kelompok
+  mk.forEach(m => {
+    if (m.Nama_Desa && m.Nama_Desa !== "-") desas.add(String(m.Nama_Desa).trim());
+  });
+
+  // 2. Ambil nama desa dari data jamaah (atau cari relasi dari kelompoknya)
+  data.forEach(j => {
+    const kel = j.Nama_Kelompok || j.KelompokBinaan;
+    const desa = (j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(kel);
+    if (desa && desa !== "-") desas.add(String(desa).trim());
+  });
 
   if (desas.size === 0) {
     desas = new Set(["Desa 1", "Desa 2", "Desa 3", "Desa 4"]);
@@ -350,19 +369,24 @@ function onJamaahDesaFilterChange() {
   if (selectedDesa === "Semua") {
     data.forEach(j => {
       const kel = j.Nama_Kelompok || j.KelompokBinaan;
-      if (kel) kelompokSet.add(String(kel).trim());
-    });
-    mk.forEach(m => { if (m.Nama_Kelompok) kelompokSet.add(String(m.Nama_Kelompok).trim()); });
-  } else {
-    data.forEach(j => {
-      if (String(j.Desa || "").trim().toLowerCase() === selectedDesa.toLowerCase()) {
-        const kel = j.Nama_Kelompok || j.KelompokBinaan;
-        if (kel) kelompokSet.add(String(kel).trim());
-      }
+      if (kel && kel !== "-") kelompokSet.add(String(kel).trim());
     });
     mk.forEach(m => {
+      if (m.Nama_Kelompok && m.Nama_Kelompok !== "-") kelompokSet.add(String(m.Nama_Kelompok).trim());
+    });
+  } else {
+    // Cari seluruh kelompok yang termasuk dalam desa yang dipilih
+    mk.forEach(m => {
       if (String(m.Nama_Desa || "").trim().toLowerCase() === selectedDesa.toLowerCase()) {
-        if (m.Nama_Kelompok) kelompokSet.add(String(m.Nama_Kelompok).trim());
+        if (m.Nama_Kelompok && m.Nama_Kelompok !== "-") kelompokSet.add(String(m.Nama_Kelompok).trim());
+      }
+    });
+
+    data.forEach(j => {
+      const kel = j.Nama_Kelompok || j.KelompokBinaan;
+      const desa = (j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(kel);
+      if (String(desa || "").trim().toLowerCase() === selectedDesa.toLowerCase()) {
+        if (kel && kel !== "-") kelompokSet.add(String(kel).trim());
       }
     });
   }
@@ -382,11 +406,12 @@ function renderJamaah() {
   const kelFilter = document.getElementById("jamaah-filter-kelompok") ? document.getElementById("jamaah-filter-kelompok").value : "Semua";
 
   const filtered = data.filter(j => {
-    const jDesa = String(j.Desa || "-").trim();
-    const jKelBinaan = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
+    const jKel = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
+    // Jika kolom Desa di baris jamaah kosong, lookup otomatis dari Master_Kelompok
+    const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKel)).trim();
 
     const matchDesa = (desaFilter === "Semua") || (jDesa.toLowerCase() === desaFilter.toLowerCase());
-    const matchKel = (kelFilter === "Semua") || (jKelBinaan.toLowerCase() === kelFilter.toLowerCase());
+    const matchKel = (kelFilter === "Semua") || (jKel.toLowerCase() === kelFilter.toLowerCase());
 
     return matchDesa && matchKel;
   });
@@ -402,13 +427,15 @@ function renderJamaah() {
   tbody.innerHTML = filtered.map(j => {
     const kelompokUsia = String(j.Kelas_Usia || j.Kelompok || "Unassigned").trim();
     let displayKelas = (kelompokUsia === "Caberawit") ? (j.Kelas || "Caberawit A") : "-";
+    const jKel = j.Nama_Kelompok || j.KelompokBinaan || '-';
+    const jDesa = (j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKel);
 
     return `
       <tr class="bg-white border-b hover:bg-slate-50">
         <td class="px-3 sm:px-4 py-3 text-xs font-mono text-slate-500">${j.ID_Jamaah || j.ID || '-'}</td>
         <td class="px-3 sm:px-4 py-3 font-semibold text-slate-800">${j.Nama_Lengkap || j.Nama || '-'}</td>
-        <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-700">${j.Desa || '-'}</td>
-        <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-900">${j.Nama_Kelompok || j.KelompokBinaan || '-'}</td>
+        <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-700">${jDesa}</td>
+        <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-900">${jKel}</td>
         <td class="px-3 sm:px-4 py-3 whitespace-nowrap">${j.TanggalLahir ? j.TanggalLahir.toString().split("T")[0] : '-'} <span class="text-xs text-emerald-600 font-bold">(${calculateAge(j.TanggalLahir)})</span></td>
         <td class="px-3 sm:px-4 py-3"><span class="px-2 py-1 rounded bg-teal-50 text-teal-700 font-semibold text-xs">${kelompokUsia}</span></td>
         <td class="px-3 sm:px-4 py-3"><span class="px-2 py-1 rounded bg-slate-100 text-slate-700 font-semibold text-xs">${displayKelas}</span></td>
