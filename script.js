@@ -1,12 +1,12 @@
 /**
- * FRONTEND CONTROLLER - PORTAL MONITORING & PRESENSI AGREGAT
- * Pure ES6 Architecture, Chart.js Visualizations, and Dynamic Modals
+ * FRONTEND SINGLE PAGE APPLICATION (SPA) ENGINE
+ * Terintegrasi dengan Google Apps Script Backend (Code.gs)
  */
 
+// Ganti nilai SCRIPT_URL di bawah ini jika telah mendistribusikan Apps Script baru
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6k1B4aoY4S9NAd3VSCPsWYNAqAe5wimrzAiEDRdIZKkZqChoAQXP-MM_rPNXS1wee/exec";
 
-const KATEGORI_USIA = ["Caberawit", "Pra Remaja", "REMAJA", "Bapak-bapak", "Ibu-ibu"];
-
+// Global Application State
 let appData = {
   users: [],
   kegiatan: [],
@@ -16,397 +16,498 @@ let appData = {
   penyapaan: []
 };
 
-let currentAdmin = null;
-let currentSapaanFilter = "ALL";
-let chartInstances = {};
+let currentUser = null;
+let analyticsData = null;
+let currentPetaFilter = "all";
 
-if (typeof ChartDataLabels !== 'undefined') {
-  Chart.register(ChartDataLabels);
-}
+// Konfigurasi Kategori Usia (Pra Remaja & Remaja)
+const USIA_CATEGORIES = [
+  { key: "Caberawit", label: "Caberawit (SD)", field: "Target_Caberawit" },
+  { key: "Pra Remaja", label: "Pra Remaja (SMP)", field: "Target_Pra_Remaja" },
+  { key: "Remaja", label: "Remaja (SMA)", field: "Target_REMAJA" },
+  { key: "Bapak-Bapak", label: "Bapak-Bapak", field: "Target_Bapak" },
+  { key: "Ibu-Ibu", label: "Ibu-Ibu", field: "Target_Ibu" }
+];
 
 document.addEventListener("DOMContentLoaded", () => {
-  const savedAdmin = sessionStorage.getItem("currentAdmin");
-  if (savedAdmin) {
+  const session = sessionStorage.getItem("activeUserSession");
+  if (session) {
     try {
-      currentAdmin = JSON.parse(savedAdmin);
+      currentUser = JSON.parse(session);
     } catch (e) {
-      currentAdmin = null;
+      currentUser = null;
     }
   }
 
-  loadAllData();
-  updateAdminUI();
-  switchTab("beranda");
+  loadAllSystemData();
+  updateUIForRole();
+  switchTab("dashboard");
 });
 
 // ==========================================
-// DATA FETCHING & SYNCHRONIZATION
+// 1. DATA FETCHING & SYNCHRONIZATION
 // ==========================================
 
-async function loadAllData() {
-  showMessage("Menghubungkan ke Google Apps Script...", "info");
+async function loadAllSystemData() {
+  showToast("Memperbarui data dari cloud...", "info");
   try {
     const res = await fetch(`${SCRIPT_URL}?action=get_all_data`);
     const json = await res.json();
     if (json.success) {
       appData = {
-        users: Array.isArray(json.users) ? json.users : [],
-        kegiatan: Array.isArray(json.kegiatan) ? json.kegiatan : [],
-        master_kelompok: Array.isArray(json.master_kelompok) ? json.master_kelompok : [],
-        jamaah: Array.isArray(json.jamaah) ? json.jamaah : [],
-        presensi: Array.isArray(json.presensi) ? json.presensi : [],
-        penyapaan: Array.isArray(json.penyapaan) ? json.penyapaan : []
+        users: json.users || [],
+        kegiatan: json.kegiatan || [],
+        master_kelompok: json.master_kelompok || [],
+        jamaah: json.jamaah || [],
+        presensi: json.presensi || [],
+        penyapaan: json.penyapaan || []
       };
 
-      setupDropdowns();
+      await loadPenyapaanAnalytics();
       renderAllViews();
-      hideMessage();
+      showToast("Data berhasil dimuat.", "success");
     } else {
-      showMessage("Gagal memuat data: " + (json.error || json.message), "error");
+      showToast("Gagal memuat data: " + (json.error || json.message), "error");
     }
   } catch (err) {
-    showMessage("Gagal terhubung ke Google Sheets API.", "error");
+    console.error(err);
+    showToast("Gagal terhubung ke Google Apps Script.", "error");
+  }
+}
+
+async function loadPenyapaanAnalytics() {
+  try {
+    const res = await fetch(`${SCRIPT_URL}?action=get_penyapaan_analytics`);
+    const json = await res.json();
+    if (json.success) {
+      analyticsData = json;
+      const badge = document.getElementById("badge-total-sapaan");
+      const grandStat = document.getElementById("stat-grand-sapaan");
+      if (badge) badge.innerText = json.totalSapaan || 0;
+      if (grandStat) grandStat.innerText = json.totalSapaan || 0;
+    }
+  } catch (e) {
+    console.warn("Gagal memuat analitik penyapaan:", e);
   }
 }
 
 function renderAllViews() {
-  renderBeranda();
-  renderJamaahTable();
-  renderMonitoringMatrix();
+  renderDashboardMetrics();
+  renderMasterTargetTable();
+  populatePresensiSelectors();
+  populateMatrixSelectors();
+  renderStatusMatrix();
   renderPenyapaanModule();
-  renderPresensiFormUI();
-  renderCharts();
-}
-
-function setupDropdowns() {
-  const desaSet = [...new Set(appData.master_kelompok.map(k => k.Nama_Desa))];
-
-  // Dropdown filter jamaah
-  const filterJamaah = document.getElementById("filter-jamaah-kelompok");
-  if (filterJamaah) {
-    filterJamaah.innerHTML = '<option value="ALL">Semua Kelompok</option>' +
-      appData.master_kelompok.map(k => `<option value="${k.ID_Kelompok}">${k.Nama_Desa} - ${k.Nama_Kelompok}</option>`).join("");
-  }
-
-  // Dropdown form modal jamaah
-  const formJmpKel = document.getElementById("form-jamaah-kelompok");
-  if (formJmpKel) {
-    formJmpKel.innerHTML = appData.master_kelompok.map(k => `<option value="${k.ID_Kelompok}">${k.Nama_Desa} - ${k.Nama_Kelompok}</option>`).join("");
-  }
-
-  // Dropdown monitoring status kegiatan
-  const monKeg = document.getElementById("filter-monitoring-kegiatan");
-  const aktifKegiatan = appData.kegiatan.filter(k => String(k.Status).toLowerCase() === "aktif");
-  if (monKeg) {
-    monKeg.innerHTML = aktifKegiatan.map(k => `<option value="${k.ID_Kegiatan}">${k.Nama_Kegiatan}</option>`).join("");
-  }
-
-  // Dropdown form input presensi
-  const inputPresKeg = document.getElementById("presensi-input-kegiatan");
-  if (inputPresKeg) {
-    inputPresKeg.innerHTML = aktifKegiatan.map(k => `<option value="${k.ID_Kegiatan}">${k.Nama_Kegiatan}</option>`).join("");
-  }
-
-  // Dropdown input sapaan
-  const sapaanDesa = document.getElementById("sapaan-form-desa");
-  if (sapaanDesa) {
-    sapaanDesa.innerHTML = '<option value="">Pilih Desa...</option>' +
-      desaSet.map(d => `<option value="${d}">${d}</option>`).join("");
-  }
-}
-
-function syncKelompokSapaanForm(desa) {
-  const selectKel = document.getElementById("sapaan-form-kelompok");
-  if (!selectKel) return;
-  const filtered = appData.master_kelompok.filter(k => k.Nama_Desa === desa);
-  selectKel.innerHTML = filtered.map(k => `<option value="${k.ID_Kelompok}">${k.Nama_Kelompok}</option>`).join("");
+  populateNewUserSelectors();
 }
 
 // ==========================================
-// TAB NAVIGATION & RBAC UI
+// 2. NAVIGASI TABS & RESPONSIVE MENU
 // ==========================================
 
 function switchTab(tabName) {
-  document.querySelectorAll(".view-section").forEach(s => s.classList.add("hidden"));
-  document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".view-section").forEach(el => el.classList.add("hidden"));
+  document.querySelectorAll(".nav-tab").forEach(el => el.classList.remove("active"));
 
   const targetView = document.getElementById(`view-${tabName}`);
   const targetTab = document.getElementById(`tab-${tabName}`);
   if (targetView) targetView.classList.remove("hidden");
   if (targetTab) targetTab.classList.add("active");
 
-  if (tabName === "rekapitulasi") renderCharts();
-  if (tabName === "status") renderMonitoringMatrix();
-
-  const menuContainer = document.getElementById("nav-menu-container");
-  const icon = document.getElementById("hamburger-icon");
-  if (window.innerWidth < 768 && menuContainer && menuContainer.classList.contains("show-mobile-menu")) {
-    menuContainer.classList.remove("show-mobile-menu");
-    if (icon) {
-      icon.classList.remove("fa-xmark");
-      icon.classList.add("fa-bars");
-    }
+  const menu = document.getElementById("nav-container");
+  if (window.innerWidth < 768 && menu && !menu.classList.contains("hidden")) {
+    menu.classList.add("hidden");
   }
 }
 
-function updateAdminUI() {
-  const adminElements = document.querySelectorAll(".admin-only");
-  const tabAdmin = document.getElementById("tab-admin");
-  const subSapaanInput = document.getElementById("sub-sapaan-input");
+function toggleMobileMenu() {
+  const menu = document.getElementById("nav-container");
+  if (menu) menu.classList.toggle("hidden");
+}
 
-  if (currentAdmin) {
-    adminElements.forEach(el => el.classList.remove("hidden"));
-    if (document.getElementById("btn-login-modal")) document.getElementById("btn-login-modal").classList.add("hidden");
-    if (document.getElementById("btn-logout")) document.getElementById("btn-logout").classList.remove("hidden");
-    if (document.getElementById("admin-badge")) document.getElementById("admin-badge").classList.remove("hidden");
-    if (document.getElementById("admin-name-display")) document.getElementById("admin-name-display").innerText = currentAdmin.nama;
+function switchPenyapaanSubTab(subTabName) {
+  ["status-peta", "rekap-riwayat", "input-sapaan"].forEach(name => {
+    const el = document.getElementById(`subtab-${name}`);
+    const btn = document.getElementById(`subtab-btn-${name}`);
+    if (el) el.classList.add("hidden");
+    if (btn) btn.classList.remove("active");
+  });
 
-    if (currentAdmin.role === "Super Admin") {
-      if (tabAdmin) tabAdmin.classList.remove("hidden");
-      if (subSapaanInput) subSapaanInput.classList.remove("hidden");
+  const activeEl = document.getElementById(`subtab-${subTabName}`);
+  const activeBtn = document.getElementById(`subtab-btn-${subTabName}`);
+  if (activeEl) activeEl.classList.remove("hidden");
+  if (activeBtn) activeBtn.classList.add("active");
+}
+
+// ==========================================
+// 3. ROLE-BASED ACCESS CONTROL (RBAC)
+// ==========================================
+
+function updateUIForRole() {
+  const btnOpenLogin = document.getElementById("btn-open-login");
+  const userProfileBadge = document.getElementById("user-profile-badge");
+  const userDisplayName = document.getElementById("user-display-name");
+  const userDisplayRole = document.getElementById("user-display-role");
+  const superOnlyElements = document.querySelectorAll(".admin-super-only");
+
+  if (currentUser) {
+    if (btnOpenLogin) btnOpenLogin.classList.add("hidden");
+    if (userProfileBadge) userProfileBadge.classList.remove("hidden");
+    if (userDisplayName) userDisplayName.innerText = currentUser.nama;
+    if (userDisplayRole) userDisplayRole.innerText = `${currentUser.role} (${currentUser.scopeDesa})`;
+
+    if (currentUser.role === "Super Admin") {
+      superOnlyElements.forEach(el => el.classList.remove("hidden"));
     } else {
-      if (tabAdmin) tabAdmin.classList.add("hidden");
-      if (subSapaanInput) subSapaanInput.classList.add("hidden");
+      superOnlyElements.forEach(el => el.classList.add("hidden"));
     }
   } else {
-    adminElements.forEach(el => el.classList.add("hidden"));
-    if (document.getElementById("btn-login-modal")) document.getElementById("btn-login-modal").classList.remove("hidden");
-    if (document.getElementById("btn-logout")) document.getElementById("btn-logout").classList.add("hidden");
-    if (document.getElementById("admin-badge")) document.getElementById("admin-badge").classList.add("hidden");
-    if (tabAdmin) tabAdmin.classList.add("hidden");
-    if (subSapaanInput) subSapaanInput.classList.add("hidden");
+    if (btnOpenLogin) btnOpenLogin.classList.remove("hidden");
+    if (userProfileBadge) userProfileBadge.classList.add("hidden");
+    superOnlyElements.forEach(el => el.classList.add("hidden"));
   }
-
-  renderPresensiFormUI();
 }
 
 // ==========================================
-// VIEW RENDERING LOGIC
+// 4. METRIK DASHBOARD & MASTER DATA
 // ==========================================
 
-function renderBeranda() {
-  const aktifKeg = appData.kegiatan.filter(k => String(k.Status).toLowerCase() === "aktif");
-  document.getElementById("dash-stat-kegiatan").innerText = aktifKeg.length;
-  document.getElementById("dash-stat-sapaan").innerText = appData.penyapaan.length;
-  document.getElementById("badge-sapaan-total").innerText = `${appData.penyapaan.length} Sapaan`;
+function renderDashboardMetrics() {
+  let totalTarget = 0;
+  appData.master_kelompok.forEach(k => {
+    totalTarget += Number(k.Target_Caberawit || 0) +
+                   Number(k.Target_Pra_Remaja || 0) +
+                   Number(k.Target_REMAJA || 0) +
+                   Number(k.Target_Bapak || 0) +
+                   Number(k.Target_Ibu || 0);
+  });
 
-  const container = document.getElementById("beranda-kegiatan-container");
-  if (!container) return;
+  let totalHadir = 0;
+  let totalIzinSakit = 0;
+  let totalAlpa = 0;
 
-  if (aktifKeg.length === 0) {
-    container.innerHTML = `<div class="col-span-full py-6 text-center text-slate-400 italic text-xs">Tidak ada kegiatan yang aktif saat ini.</div>`;
-    return;
+  const activeKegiatan = appData.kegiatan.find(k => String(k.Status).toLowerCase() === "aktif");
+  const activeEventLabel = document.getElementById("active-event-name");
+
+  if (activeKegiatan) {
+    if (activeEventLabel) activeEventLabel.innerText = `Kegiatan Aktif: ${activeKegiatan.Nama_Kegiatan}`;
+    const activeLogs = appData.presensi.filter(p => String(p.ID_Kegiatan) === String(activeKegiatan.ID_Kegiatan));
+    activeLogs.forEach(l => {
+      totalHadir += Number(l.Hadir || 0);
+      totalIzinSakit += Number(l.Izin || 0) + Number(l.Sakit || 0);
+      totalAlpa += Number(l.Alpa || 0);
+    });
+  } else {
+    if (activeEventLabel) activeEventLabel.innerText = "Tidak ada kegiatan aktif";
   }
 
-  container.innerHTML = aktifKeg.map(k => `
-    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
-      <div class="flex justify-between items-center text-xs font-bold text-slate-500">
-        <span class="text-emerald-700"><i class="fa-solid fa-calendar-day mr-1"></i> ${String(k.Tanggal_Mulai).slice(0, 10)}</span>
-        <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px]">Aktif</span>
-      </div>
-      <h4 class="font-bold text-slate-800 text-sm">${k.Nama_Kegiatan}</h4>
-      <p class="text-[11px] text-slate-500">Target Usia: <span class="font-semibold text-slate-700">${k.Target_Usia}</span></p>
-    </div>
-  `).join("");
+  document.getElementById("stat-total-target").innerText = totalTarget.toLocaleString();
+  document.getElementById("stat-total-hadir").innerText = totalHadir.toLocaleString();
+  document.getElementById("stat-total-izinsakit").innerText = totalIzinSakit.toLocaleString();
+  document.getElementById("stat-total-alpa").innerText = totalAlpa.toLocaleString();
+
+  const pct = totalTarget > 0 ? ((totalHadir / totalTarget) * 100).toFixed(1) : 0;
+  document.getElementById("stat-pct-hadir").innerText = `${pct}% Rasio Kehadiran Target`;
 }
 
-function renderJamaahTable() {
-  const tbody = document.getElementById("table-jamaah-body");
+function renderMasterTargetTable() {
+  const tbody = document.getElementById("table-target-body");
   if (!tbody) return;
+  const filterDesa = document.getElementById("filter-jamaah-desa").value;
 
-  const filterK = document.getElementById("filter-jamaah-kelompok") ? document.getElementById("filter-jamaah-kelompok").value : "ALL";
-  let list = appData.jamaah;
-  if (filterK && filterK !== "ALL") {
-    list = list.filter(j => String(j.ID_Kelompok) === String(filterK));
+  const list = appData.master_kelompok.filter(k => {
+    if (filterDesa === "ALL") return true;
+    return String(k.Nama_Desa).trim() === filterDesa.trim();
+  });
+
+  tbody.innerHTML = list.map(k => {
+    const subtotal = Number(k.Target_Caberawit || 0) +
+                     Number(k.Target_Pra_Remaja || 0) +
+                     Number(k.Target_REMAJA || 0) +
+                     Number(k.Target_Bapak || 0) +
+                     Number(k.Target_Ibu || 0);
+    return `
+      <tr class="bg-white hover:bg-slate-50 border-b">
+        <td class="px-3 py-2.5 font-mono text-slate-400 text-center">${k.ID_Kelompok}</td>
+        <td class="px-4 py-2.5 font-semibold text-slate-700">${k.Nama_Desa}</td>
+        <td class="px-4 py-2.5 font-bold text-slate-900">${k.Nama_Kelompok}</td>
+        <td class="px-3 py-2.5 text-center">${k.Target_Caberawit}</td>
+        <td class="px-3 py-2.5 text-center">${k.Target_Pra_Remaja}</td>
+        <td class="px-3 py-2.5 text-center">${k.Target_REMAJA}</td>
+        <td class="px-3 py-2.5 text-center">${k.Target_Bapak}</td>
+        <td class="px-3 py-2.5 text-center">${k.Target_Ibu}</td>
+        <td class="px-3 py-2.5 text-center font-extrabold text-emerald-700 bg-emerald-50/50">${subtotal}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+// ==========================================
+// 5. INPUT PRESENSI DENGAN SELECTOR PER DESA
+// ==========================================
+
+function populatePresensiSelectors() {
+  const actSelect = document.getElementById("presensi-kegiatan-select");
+  const desaSelect = document.getElementById("presensi-desa-select");
+
+  if (actSelect) {
+    actSelect.innerHTML = appData.kegiatan.map(k => `
+      <option value="${k.ID_Kegiatan}" ${String(k.Status).toLowerCase() === 'aktif' ? 'selected' : ''}>
+        ${k.Nama_Kegiatan} (${k.Status})
+      </option>
+    `).join("");
   }
 
-  if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-400 italic">Tidak ada data jamaah pada filter ini.</td></tr>`;
+  const desas = [...new Set(appData.master_kelompok.map(k => k.Nama_Desa))];
+  if (desaSelect) {
+    if (currentUser && currentUser.role === "Admin Kelompok") {
+      desaSelect.innerHTML = `<option value="${currentUser.scopeDesa}">${currentUser.scopeDesa}</option>`;
+      desaSelect.disabled = true;
+    } else if (currentUser && currentUser.role === "Admin Desa") {
+      desaSelect.innerHTML = `<option value="${currentUser.scopeDesa}">${currentUser.scopeDesa}</option>`;
+      desaSelect.disabled = true;
+    } else {
+      desaSelect.innerHTML = desas.map(d => `<option value="${d}">${d}</option>`).join("");
+      desaSelect.disabled = false;
+    }
+  }
+  handlePresensiDesaChange();
+}
+
+function handlePresensiDesaChange() {
+  const desaSelect = document.getElementById("presensi-desa-select");
+  const kelSelect = document.getElementById("presensi-kelompok-select");
+  if (!desaSelect || !kelSelect) return;
+
+  const selectedDesa = desaSelect.value;
+  const kelompokInDesa = appData.master_kelompok.filter(k => k.Nama_Desa === selectedDesa);
+
+  if (currentUser && currentUser.role === "Admin Kelompok") {
+    const myKel = kelompokInDesa.filter(k => String(k.ID_Kelompok) === String(currentUser.scopeKelompok));
+    kelSelect.innerHTML = myKel.map(k => `<option value="${k.ID_Kelompok}">${k.Nama_Kelompok}</option>`).join("");
+    kelSelect.disabled = true;
+  } else {
+    kelSelect.innerHTML = kelompokInDesa.map(k => `<option value="${k.ID_Kelompok}">${k.Nama_Kelompok}</option>`).join("");
+    kelSelect.disabled = false;
+  }
+  handlePresensiKelompokChange();
+}
+
+function handlePresensiKelompokChange() {
+  const kelSelect = document.getElementById("presensi-kelompok-select");
+  const tbody = document.getElementById("presensi-input-tbody");
+  if (!kelSelect || !tbody) return;
+
+  const selectedId = kelSelect.value;
+  const kelObj = appData.master_kelompok.find(k => String(k.ID_Kelompok) === String(selectedId));
+
+  tbody.innerHTML = USIA_CATEGORIES.map(cat => {
+    const targetVal = kelObj ? (kelObj[cat.field] || 0) : 0;
+    return `
+      <tr>
+        <td class="px-3 py-2.5 font-bold text-slate-800">${cat.label}</td>
+        <td class="px-3 py-2.5 text-center font-semibold text-slate-500">
+          <input type="hidden" id="target-${cat.key}" value="${targetVal}">
+          ${targetVal} Org
+        </td>
+        <td class="px-2 py-2 text-center">
+          <input type="number" id="hadir-${cat.key}" min="0" value="0" class="w-20 border rounded px-2 py-1 text-center font-bold text-emerald-700 bg-emerald-50 focus:bg-white">
+        </td>
+        <td class="px-2 py-2 text-center">
+          <input type="number" id="izin-${cat.key}" min="0" value="0" class="w-20 border rounded px-2 py-1 text-center font-semibold text-amber-700 bg-amber-50 focus:bg-white">
+        </td>
+        <td class="px-2 py-2 text-center">
+          <input type="number" id="sakit-${cat.key}" min="0" value="0" class="w-20 border rounded px-2 py-1 text-center font-semibold text-sky-700 bg-sky-50 focus:bg-white">
+        </td>
+        <td class="px-2 py-2 text-center">
+          <input type="number" id="alpa-${cat.key}" min="0" value="0" class="w-20 border rounded px-2 py-1 text-center font-semibold text-rose-700 bg-rose-50 focus:bg-white">
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+async function submitPresensiAgregat() {
+  if (!currentUser) {
+    showToast("Silakan login terlebih dahulu untuk mengisi presensi.", "error");
+    openModal("modal-login");
     return;
   }
 
-  tbody.innerHTML = list.map(j => `
-    <tr class="bg-white border-b hover:bg-slate-50">
-      <td class="px-4 py-3 font-semibold text-slate-800">${j.Nama_Lengkap}</td>
-      <td class="px-4 py-3 text-slate-500">${String(j.Tanggal_Lahir).slice(0, 10)} (${j.Usia || '-'} Thn)</td>
-      <td class="px-4 py-3">${j.Gender || '-'}</td>
-      <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold text-[10px]">${j.Kelas_Usia}</span></td>
-      <td class="px-4 py-3 text-slate-700">${j.Nama_Kelompok || '-'}</td>
-      <td class="px-4 py-3">
-        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${String(j.Keaktifan).toLowerCase() === 'aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
-          ${j.Keaktifan || 'Aktif'}
-        </span>
-      </td>
-      <td class="px-4 py-3 text-center admin-only ${currentAdmin ? '' : 'hidden'} space-x-1">
-        <button onclick="editJamaah('${j.ID_Jamaah}')" class="text-amber-600 hover:text-amber-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
-        <button onclick="deleteRow('Master_Jamaah', '${j.ID_Jamaah}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
-      </td>
-    </tr>
-  `).join("");
+  const idKegiatan = document.getElementById("presensi-kegiatan-select").value;
+  const idKelompok = document.getElementById("presensi-kelompok-select").value;
+  const btn = document.getElementById("btn-submit-presensi");
+
+  if (!idKegiatan || !idKelompok) {
+    showToast("Kegiatan atau kelompok tidak valid.", "error");
+    return;
+  }
+
+  const records = USIA_CATEGORIES.map(cat => ({
+    kategoriUsia: cat.key,
+    hadir: Number(document.getElementById(`hadir-${cat.key}`).value || 0),
+    izin: Number(document.getElementById(`izin-${cat.key}`).value || 0),
+    sakit: Number(document.getElementById(`sakit-${cat.key}`).value || 0),
+    alpa: Number(document.getElementById(`alpa-${cat.key}`).value || 0),
+    totalTarget: Number(document.getElementById(`target-${cat.key}`).value || 0)
+  }));
+
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`;
+  showToast("Menyimpan rekap presensi...", "info");
+
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "save_presensi_batch",
+        idKegiatan: idKegiatan,
+        idKelompok: idKelompok,
+        records: records,
+        inputBy: currentUser.nama
+      })
+    });
+    const json = await res.json();
+    if (json.success) {
+      showToast(json.message, "success");
+      await loadAllSystemData();
+      switchTab("status-presensi");
+    } else {
+      showToast("Gagal: " + json.message, "error");
+    }
+  } catch (err) {
+    showToast("Terjadi gangguan jaringan.", "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Simpan Rekap Kehadiran`;
+  }
 }
 
-function renderMonitoringMatrix() {
-  const kegSelect = document.getElementById("filter-monitoring-kegiatan");
-  if (!kegSelect || !kegSelect.value) return;
+// ==========================================
+// 6. MATRIKS STATUS PRESENSI 44 KELOMPOK
+// ==========================================
 
-  const targetKegiatanId = kegSelect.value;
-  const reportedSet = new Set(
-    appData.presensi.filter(p => String(p.ID_Kegiatan) === String(targetKegiatanId)).map(p => String(p.ID_Kelompok))
-  );
-
-  const container = document.getElementById("monitoring-matrix-grid");
-  if (!container) return;
-
-  const selectedDesa = document.getElementById("filter-monitoring-desa").value;
-  let targetKelompok = appData.master_kelompok;
-  if (selectedDesa !== "ALL") {
-    targetKelompok = targetKelompok.filter(k => k.Nama_Desa === selectedDesa);
+function populateMatrixSelectors() {
+  const filterKegiatan = document.getElementById("matrix-kegiatan-filter");
+  if (filterKegiatan) {
+    filterKegiatan.innerHTML = appData.kegiatan.map(k => `
+      <option value="${k.ID_Kegiatan}" ${String(k.Status).toLowerCase() === 'aktif' ? 'selected' : ''}>
+        ${k.Nama_Kegiatan}
+      </option>
+    `).join("");
   }
+}
 
-  if (currentAdmin && currentAdmin.role === "Admin Desa") {
-    targetKelompok = targetKelompok.filter(k => k.Nama_Desa === currentAdmin.scopeDesa);
-  }
+function renderStatusMatrix() {
+  const grid = document.getElementById("matrix-desa-grid");
+  if (!grid) return;
 
-  container.innerHTML = targetKelompok.map(k => {
-    const isReported = reportedSet.has(String(k.ID_Kelompok));
+  const actId = document.getElementById("matrix-kegiatan-filter").value;
+  const desaFilter = document.getElementById("matrix-desa-filter").value;
+
+  const logsInAct = appData.presensi.filter(p => String(p.ID_Kegiatan) === String(actId));
+  const reportedSet = new Set(logsInAct.map(l => String(l.ID_Kelompok)));
+
+  const desas = ["Desa 1", "Desa 2", "Desa 3", "Desa 4"].filter(d => {
+    if (desaFilter === "ALL") return true;
+    return d === desaFilter;
+  });
+
+  grid.innerHTML = desas.map(desaName => {
+    const kelompokList = appData.master_kelompok.filter(k => k.Nama_Desa === desaName);
+    const countSudah = kelompokList.filter(k => reportedSet.has(String(k.ID_Kelompok))).length;
+
     return `
-      <div class="p-3 rounded-xl border ${
-        isReported ? "bg-emerald-50 border-emerald-300 text-emerald-900" : "bg-rose-50 border-rose-300 text-rose-900"
-      } flex flex-col justify-between h-24 shadow-xs transition-all">
-        <div>
-          <span class="text-[9px] uppercase font-bold tracking-wider opacity-70">${k.Nama_Desa}</span>
-          <div class="text-xs font-bold leading-tight mt-0.5 truncate" title="${k.Nama_Kelompok}">${k.Nama_Kelompok}</div>
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-mosque text-emerald-700"></i> ${desaName}
+          </h3>
+          <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full ${countSudah === kelompokList.length ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+            ${countSudah}/${kelompokList.length} Lapor
+          </span>
         </div>
-        <div class="flex items-center gap-1.5 mt-2">
-          <span class="w-2.5 h-2.5 rounded-full ${isReported ? "bg-emerald-500" : "bg-rose-500"}"></span>
-          <span class="text-[10px] font-bold">${isReported ? "Sudah Lapor" : "Belum Lapor"}</span>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          ${kelompokList.map(k => {
+            const isReported = reportedSet.has(String(k.ID_Kelompok));
+            return `
+              <div class="p-2.5 rounded-xl border text-center transition-all ${isReported ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-700'}">
+                <p class="font-bold text-xs truncate">${k.Nama_Kelompok}</p>
+                <span class="text-[10px] block mt-0.5 font-semibold">
+                  ${isReported ? '<i class="fa-solid fa-circle-check"></i> Sudah' : '<i class="fa-solid fa-circle-xmark"></i> Belum'}
+                </span>
+              </div>
+            `;
+          }).join("")}
         </div>
       </div>
     `;
   }).join("");
 }
 
-function filterMonitoringDisplay() {
-  renderMonitoringMatrix();
-}
-
 // ==========================================
-// MODUL PENYAPAAN DAERAH
+// 7. PENYAPAAN DAERAH
 // ==========================================
-
-function switchSubSapaan(tab) {
-  document.getElementById("tab-sapaan-pemetaan").classList.add("hidden");
-  document.getElementById("tab-sapaan-riwayat").classList.add("hidden");
-  document.getElementById("tab-sapaan-input").classList.add("hidden");
-
-  document.querySelectorAll("#view-penyapaan .subnav-btn").forEach(b => b.classList.remove("active"));
-
-  if (tab === "pemetaan") {
-    document.getElementById("tab-sapaan-pemetaan").classList.remove("hidden");
-    document.getElementById("sub-sapaan-pemetaan").classList.add("active");
-  } else if (tab === "riwayat") {
-    document.getElementById("tab-sapaan-riwayat").classList.remove("hidden");
-    document.getElementById("sub-sapaan-riwayat").classList.add("active");
-  } else if (tab === "input") {
-    document.getElementById("tab-sapaan-input").classList.remove("hidden");
-    document.getElementById("sub-sapaan-input").classList.add("active");
-  }
-}
 
 function renderPenyapaanModule() {
-  const freqMap = {};
-  const lastDateMap = {};
+  if (!analyticsData) return;
 
-  appData.penyapaan.forEach(s => {
-    const kId = String(s.ID_Kelompok);
-    freqMap[kId] = (freqMap[kId] || 0) + 1;
-    const curDate = new Date(s.Tanggal);
-    if (!lastDateMap[kId] || curDate > new Date(lastDateMap[kId])) {
-      lastDateMap[kId] = s.Tanggal;
-    }
-  });
-
-  const kelompokMapping = appData.master_kelompok.map(k => {
-    const kId = String(k.ID_Kelompok);
-    const count = freqMap[kId] || 0;
-    return {
-      id_kelompok: kId,
-      nama_desa: k.Nama_Desa,
-      nama_kelompok: k.Nama_Kelompok,
-      frekuensi: count,
-      status_sapa: count > 0 ? "Sudah Disapa" : "Belum Disapa",
-      tanggal_terakhir: lastDateMap[kId] ? String(lastDateMap[kId]).slice(0, 10) : "-"
-    };
-  });
-
-  // 1. Rekomendasi 1 terendah per desa
-  const desaGroups = {};
-  kelompokMapping.forEach(k => {
-    if (!desaGroups[k.nama_desa]) desaGroups[k.nama_desa] = [];
-    desaGroups[k.nama_desa].push(k);
-  });
-
-  const rekomendasi = [];
-  Object.keys(desaGroups).forEach(d => {
-    desaGroups[d].sort((a, b) => a.frekuensi - b.frekuensi);
-    if (desaGroups[d].length > 0) rekomendasi.push(desaGroups[d][0]);
-  });
-
-  const rekomBox = document.getElementById("rekomendasi-cards-container");
-  if (rekomBox) {
-    rekomBox.innerHTML = rekomendasi.map(r => `
-      <div class="bg-white p-3 rounded-xl border border-amber-300 shadow-xs flex flex-col justify-between">
-        <div>
-          <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded">${r.nama_desa}</span>
-          <div class="text-xs font-bold text-slate-800 mt-1.5 truncate">${r.nama_kelompok}</div>
-        </div>
-        <div class="text-[11px] text-slate-500 mt-2 flex justify-between items-center">
-          <span>Kunjungan:</span>
-          <span class="font-bold text-rose-600">${r.frekuensi} Kali</span>
+  const recGrid = document.getElementById("rekomendasi-grid");
+  if (recGrid && analyticsData.rekomendasi) {
+    recGrid.innerHTML = analyticsData.rekomendasi.map(r => `
+      <div class="bg-white p-3 rounded-xl border border-amber-300 shadow-sm">
+        <span class="text-[10px] font-bold uppercase text-amber-700 block">${r.nama_desa}</span>
+        <p class="font-black text-slate-800 text-xs mt-0.5">${r.nama_kelompok}</p>
+        <div class="flex justify-between items-center mt-2 text-[10px]">
+          <span class="text-slate-500">Frekuensi: <b>${r.frekuensi}x</b></span>
+          <span class="px-2 py-0.5 rounded ${r.frekuensi === 0 ? 'bg-rose-100 text-rose-700 font-bold' : 'bg-amber-100 text-amber-800'}">
+            ${r.frekuensi === 0 ? 'Belum Pernah' : 'Kunjungan Minim'}
+          </span>
         </div>
       </div>
     `).join("");
   }
 
-  // 2. Peta Wilayah 4 Kontainer Desa
-  renderPetaDesaSapaan(desaGroups);
-
-  // 3. Tabel Riwayat
-  renderRiwayatSapaanTable(appData.penyapaan);
+  renderPetaCards();
+  renderRiwayatPenyapaanTable();
+  populateSapaanSelectors();
 }
 
-function filterSapaanDisplay(type) {
-  currentSapaanFilter = type;
-  document.querySelectorAll(".filter-sapaan-btn").forEach(b => b.classList.remove("active"));
-  event.target.classList.add("active");
-  renderPenyapaanModule();
+function filterPetaCards(filter) {
+  currentPetaFilter = filter;
+  renderPetaCards();
 }
 
-function renderPetaDesaSapaan(desaGroups) {
-  const container = document.getElementById("sapaan-desa-grid-container");
-  if (!container) return;
+function renderPetaCards() {
+  const container = document.getElementById("peta-desa-grid");
+  if (!container || !analyticsData) return;
 
-  container.innerHTML = Object.keys(desaGroups).map(desa => {
-    let list = desaGroups[desa];
-    if (currentSapaanFilter === "SUDAH") list = list.filter(k => k.frekuensi > 0);
-    if (currentSapaanFilter === "BELUM") list = list.filter(k => k.frekuensi === 0);
+  const mapping = analyticsData.kelompokMapping || [];
+  const desas = ["Desa 1", "Desa 2", "Desa 3", "Desa 4"];
+
+  container.innerHTML = desas.map(desa => {
+    let list = mapping.filter(k => k.nama_desa === desa);
+    if (currentPetaFilter === "sudah") list = list.filter(k => k.frekuensi > 0);
+    if (currentPetaFilter === "belum") list = list.filter(k => k.frekuensi === 0);
 
     return `
       <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-        <div class="flex justify-between items-center border-b pb-2">
-          <h4 class="text-xs sm:text-sm font-bold text-slate-800">${desa}</h4>
-          <span class="text-xs text-slate-400 font-semibold">${list.length} Kelompok</span>
+        <div class="border-b pb-2 flex justify-between items-center">
+          <h4 class="font-bold text-slate-800 text-xs uppercase">${desa}</h4>
+          <span class="text-[10px] text-slate-500 font-medium">${list.length} Kelompok Ditampilkan</span>
         </div>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           ${list.map(k => `
-            <div class="p-2 rounded-xl border ${
-              k.frekuensi > 0 ? "bg-emerald-50/70 border-emerald-200 text-emerald-950" : "bg-slate-50 border-slate-200 text-slate-700"
-            } flex flex-col justify-between h-20">
-              <div class="text-[11px] font-semibold truncate" title="${k.nama_kelompok}">${k.nama_kelompok}</div>
-              <div class="text-[10px] ${k.frekuensi > 0 ? "text-emerald-700 font-bold" : "text-slate-400"} flex justify-between">
-                <span>${k.frekuensi > 0 ? `${k.frekuensi}x Disapa` : "Belum Ada"}</span>
-                <span>${k.tanggal_terakhir}</span>
+            <div class="p-2.5 rounded-xl border flex flex-col justify-between space-y-1.5 ${k.frekuensi > 0 ? 'bg-emerald-50/70 border-emerald-300' : 'bg-slate-50 border-slate-200'}">
+              <div>
+                <p class="font-bold text-xs text-slate-800">${k.nama_kelompok}</p>
+                <span class="text-[10px] ${k.frekuensi > 0 ? 'text-emerald-700 font-bold' : 'text-slate-400 font-medium'}">
+                  ${k.frekuensi > 0 ? `<i class="fa-solid fa-check"></i> ${k.frekuensi}x Disapa` : 'Belum Pernah Disapa'}
+                </span>
               </div>
+              <p class="text-[9px] text-slate-400 border-t pt-1 border-slate-200">
+                Terakhir: ${k.tanggal_terakhir !== '-' ? String(k.tanggal_terakhir).split('T')[0] : '-'}
+              </p>
             </div>
           `).join("")}
         </div>
@@ -415,115 +516,78 @@ function renderPetaDesaSapaan(desaGroups) {
   }).join("");
 }
 
-function renderRiwayatSapaanTable(list) {
-  const tbody = document.getElementById("table-sapaan-body");
-  if (!tbody) return;
+function renderRiwayatPenyapaanTable() {
+  const tbody = document.getElementById("table-riwayat-sapaan-body");
+  if (!tbody || !analyticsData) return;
 
-  if (!list || list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400 italic">Belum ada rekam jejak penyapaan.</td></tr>`;
+  const search = (document.getElementById("search-riwayat").value || "").toLowerCase();
+  const desaFilter = document.getElementById("filter-riwayat-desa").value;
+
+  let list = analyticsData.riwayat || [];
+  if (desaFilter !== "ALL") list = list.filter(r => r.Nama_Desa === desaFilter);
+  if (search) {
+    list = list.filter(r =>
+      String(r.Nama_Petugas).toLowerCase().includes(search) ||
+      String(r.Nama_Kelompok).toLowerCase().includes(search) ||
+      String(r.Jenis_Kegiatan_Sapaan).toLowerCase().includes(search)
+    );
+  }
+
+  if (list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 italic">Tidak ada data penyapaan ditemukan.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = list.map(r => `
-    <tr class="hover:bg-slate-50">
-      <td class="p-3 text-slate-500 whitespace-nowrap">${String(r.Tanggal).slice(0, 10)}</td>
-      <td class="p-3 font-semibold text-slate-800 whitespace-nowrap">${r.Nama_Desa} - ${r.Nama_Kelompok}</td>
-      <td class="p-3"><span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-[11px] font-semibold">${r.Jenis_Kegiatan_Sapaan}</span></td>
-      <td class="p-3 text-slate-600">${r.Nama_Petugas}</td>
-      <td class="p-3 text-slate-500 max-w-xs truncate" title="${r.Catatan_Hasil_Solusi}">${r.Catatan_Hasil_Solusi}</td>
+    <tr class="bg-white hover:bg-slate-50 border-b">
+      <td class="px-3 py-2.5 whitespace-nowrap font-medium text-slate-600">${String(r.Tanggal).split('T')[0]}</td>
+      <td class="px-3 py-2.5 font-semibold text-slate-700">${r.Nama_Desa}</td>
+      <td class="px-3 py-2.5 font-bold text-slate-900">${r.Nama_Kelompok}</td>
+      <td class="px-3 py-2.5 text-teal-700 font-semibold">${r.Jenis_Kegiatan_Sapaan}</td>
+      <td class="px-3 py-2.5 font-medium text-slate-700">${r.Nama_Petugas}</td>
+      <td class="px-4 py-2.5 text-slate-500 max-w-xs leading-relaxed">${r.Catatan_Hasil_Solusi}</td>
     </tr>
   `).join("");
 }
 
-function filterRiwayatSapaanTable() {
-  const q = document.getElementById("search-sapaan-input").value.toLowerCase();
-  const filtered = appData.penyapaan.filter(r =>
-    String(r.Nama_Kelompok).toLowerCase().includes(q) ||
-    String(r.Nama_Desa).toLowerCase().includes(q) ||
-    String(r.Nama_Petugas).toLowerCase().includes(q) ||
-    String(r.Jenis_Kegiatan_Sapaan).toLowerCase().includes(q)
-  );
-  renderRiwayatSapaanTable(filtered);
+function populateSapaanSelectors() {
+  const desaSelect = document.getElementById("sapaan-desa-select");
+  if (!desaSelect) return;
+  const desas = ["Desa 1", "Desa 2", "Desa 3", "Desa 4"];
+  desaSelect.innerHTML = desas.map(d => `<option value="${d}">${d}</option>`).join("");
+  handleSapaanDesaChange();
 }
 
-// ==========================================
-// FORM INPUT PRESENSI AGREGAT
-// ==========================================
+function handleSapaanDesaChange() {
+  const desa = document.getElementById("sapaan-desa-select").value;
+  const kelSelect = document.getElementById("sapaan-kelompok-select");
+  if (!kelSelect) return;
+  const list = appData.master_kelompok.filter(k => k.Nama_Desa === desa);
+  kelSelect.innerHTML = list.map(k => `<option value="${k.ID_Kelompok}">${k.Nama_Kelompok}</option>`).join("");
+}
 
-function renderPresensiFormUI() {
-  const warn = document.getElementById("presensi-auth-warning");
-  const formBox = document.getElementById("presensi-form-box");
-
-  if (!currentAdmin || currentAdmin.role !== "Admin Kelompok") {
-    if (warn) warn.classList.remove("hidden");
-    if (formBox) formBox.classList.add("hidden");
+async function handlePenyapaanSubmit(e) {
+  e.preventDefault();
+  if (!currentUser || currentUser.role !== "Super Admin") {
+    showToast("Hanya Super Admin yang berwenang mencatat sapaan daerah.", "error");
     return;
   }
 
-  if (warn) warn.classList.add("hidden");
-  if (formBox) formBox.classList.remove("hidden");
-
-  const lockedInput = document.getElementById("presensi-input-kelompok-locked");
-  const kData = appData.master_kelompok.find(k => String(k.ID_Kelompok) === String(currentAdmin.scopeKelompok));
-  if (lockedInput) {
-    lockedInput.value = kData ? `${kData.Nama_Desa} - ${kData.Nama_Kelompok}` : currentAdmin.scopeKelompok;
-  }
-
-  const rowsContainer = document.getElementById("presensi-agregat-rows");
-  if (!rowsContainer) return;
-
-  rowsContainer.innerHTML = KATEGORI_USIA.map(kat => {
-    let target = 0;
-    if (kData) {
-      if (kat === "Caberawit") target = kData.Target_Caberawit || 0;
-      if (kat === "Pra Remaja") target = kData.Target_Pra_Remaja || 0;
-      if (kat === "REMAJA") target = kData.Target_REMAJA || 0;
-      if (kat === "Bapak-bapak") target = kData.Target_Bapak || 0;
-      if (kat === "Ibu-ibu") target = kData.Target_Ibu || 0;
-    }
-
-    return `
-      <tr data-kategori="${kat}">
-        <td class="py-2.5 px-3 font-semibold text-slate-800">${kat}</td>
-        <td class="py-2 px-1"><input type="number" min="0" value="0" class="input-hadir w-14 sm:w-16 text-center border rounded-lg p-1.5 mx-auto block"></td>
-        <td class="py-2 px-1"><input type="number" min="0" value="0" class="input-izin w-14 sm:w-16 text-center border rounded-lg p-1.5 mx-auto block"></td>
-        <td class="py-2 px-1"><input type="number" min="0" value="0" class="input-sakit w-14 sm:w-16 text-center border rounded-lg p-1.5 mx-auto block"></td>
-        <td class="py-2 px-1"><input type="number" min="0" value="0" class="input-alpa w-14 sm:w-16 text-center border rounded-lg p-1.5 mx-auto block"></td>
-        <td class="py-2 px-1 text-center text-slate-500 font-bold target-val">${target}</td>
-      </tr>
-    `;
-  }).join("");
-}
-
-async function handleSubmitPresensiAgregat(e) {
-  e.preventDefault();
-  if (!currentAdmin || currentAdmin.role !== "Admin Kelompok") {
-    return alert("Akses Admin Kelompok diperlukan!");
-  }
-
-  const btn = document.getElementById("btn-submit-presensi");
-  toggleBtnLoading(btn, true);
-
-  const records = [];
-  document.querySelectorAll("#presensi-agregat-rows tr").forEach(row => {
-    records.push({
-      kategoriUsia: row.dataset.kategori,
-      hadir: row.querySelector(".input-hadir").value,
-      izin: row.querySelector(".input-izin").value,
-      sakit: row.querySelector(".input-sakit").value,
-      alpa: row.querySelector(".input-alpa").value,
-      totalTarget: row.querySelector(".target-val").innerText
-    });
-  });
+  const kelId = document.getElementById("sapaan-kelompok-select").value;
+  const kelObj = appData.master_kelompok.find(k => String(k.ID_Kelompok) === String(kelId));
 
   const payload = {
-    action: "save_presensi_batch",
-    idKegiatan: document.getElementById("presensi-input-kegiatan").value,
-    idKelompok: currentAdmin.scopeKelompok,
-    inputBy: currentAdmin.nama,
-    records: records
+    action: "add_penyapaan",
+    tanggal: document.getElementById("sapaan-tanggal").value,
+    idKelompok: kelId,
+    namaKelompok: kelObj ? kelObj.Nama_Kelompok : "-",
+    namaDesa: document.getElementById("sapaan-desa-select").value,
+    namaPetugas: document.getElementById("sapaan-petugas").value,
+    jenisKegiatan: document.getElementById("sapaan-agenda").value,
+    catatan: document.getElementById("sapaan-catatan").value
   };
 
+  showToast("Menyimpan laporan penyapaan...", "info");
   try {
     const res = await fetch(SCRIPT_URL, {
       method: "POST",
@@ -531,414 +595,171 @@ async function handleSubmitPresensiAgregat(e) {
     });
     const json = await res.json();
     if (json.success) {
-      showMessage(json.message, "success");
-      await loadAllData();
+      showToast(json.message, "success");
+      document.getElementById("form-penyapaan").reset();
+      await loadAllSystemData();
+      switchPenyapaanSubTab("status-peta");
     } else {
-      showMessage("Gagal: " + json.error, "error");
+      showToast(json.message, "error");
     }
   } catch (err) {
-    showMessage("Koneksi gagal saat menyimpan presensi.", "error");
-  } finally {
-    toggleBtnLoading(btn, false, "Kirim Rekapitulasi Presensi");
+    showToast("Gagal menyimpan penyapaan.", "error");
   }
 }
 
 // ==========================================
-// STATISTIK GRAFIK (CHART.JS)
+// 8. MANAJEMEN PENGGUNA & KEGIATAN
 // ==========================================
 
-function renderCharts() {
-  const container = document.getElementById("charts-wrapper");
-  if (!container) return;
-
-  Object.values(chartInstances).forEach(c => c && typeof c.destroy === 'function' && c.destroy());
-  chartInstances = {};
-
-  const filterDesa = document.getElementById("chart-filter-desa") ? document.getElementById("chart-filter-desa").value : "ALL";
-
-  container.innerHTML = KATEGORI_USIA.map((kat, idx) => `
-    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-      <div class="flex items-center justify-between border-b pb-2">
-        <h4 class="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> ${kat}
-        </h4>
-        <span class="text-[11px] font-semibold text-slate-500">${filterDesa === 'ALL' ? 'Semua Desa' : filterDesa}</span>
-      </div>
-      <div class="relative h-56 sm:h-64">
-        <canvas id="chart-canvas-${idx}"></canvas>
-      </div>
-    </div>
-  `).join("");
-
-  KATEGORI_USIA.forEach((kat, idx) => {
-    buildSingleChart(`chart-canvas-${idx}`, kat, filterDesa);
-  });
+function populateNewUserSelectors() {
+  const desaSelect = document.getElementById("new-user-desa");
+  if (!desaSelect) return;
+  const desas = ["ALL", "Desa 1", "Desa 2", "Desa 3", "Desa 4"];
+  desaSelect.innerHTML = desas.map(d => `<option value="${d}">${d}</option>`).join("");
+  handleNewUserDesaChange();
 }
 
-function buildSingleChart(canvasId, kategori, filterDesa) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
+function handleNewUserRoleChange() {
+  const role = document.getElementById("new-user-role").value;
+  const desaSelect = document.getElementById("new-user-desa");
+  const kelSelect = document.getElementById("new-user-kelompok");
 
-  let filteredPresensi = appData.presensi.filter(p => String(p.Kategori_Usia) === String(kategori));
-  if (filterDesa !== "ALL") {
-    const validKelompokIds = new Set(
-      appData.master_kelompok.filter(k => k.Nama_Desa === filterDesa).map(k => String(k.ID_Kelompok))
-    );
-    filteredPresensi = filteredPresensi.filter(p => validKelompokIds.has(String(p.ID_Kelompok)));
-  }
-
-  // Akumulasi per kegiatan
-  const activityMap = {};
-  filteredPresensi.forEach(p => {
-    const kegId = p.ID_Kegiatan;
-    if (!activityMap[kegId]) {
-      activityMap[kegId] = { hadir: 0, target: 0 };
-    }
-    activityMap[kegId].hadir += Number(p.Hadir || 0);
-    activityMap[kegId].target += Number(p.Total_Target || 0);
-  });
-
-  const labels = [];
-  const percentages = [];
-
-  Object.keys(activityMap).forEach(kegId => {
-    const kegObj = appData.kegiatan.find(k => String(k.ID_Kegiatan) === String(kegId));
-    labels.push(kegObj ? kegObj.Nama_Kegiatan : kegId);
-    const data = activityMap[kegId];
-    const pct = data.target > 0 ? Number(((data.hadir / data.target) * 100).toFixed(1)) : 0;
-    percentages.push(pct);
-  });
-
-  chartInstances[canvasId] = new Chart(canvas.getContext("2d"), {
-    type: "bar",
-    data: {
-      labels: labels.length > 0 ? labels : ["Belum Ada Data"],
-      datasets: [{
-        label: "Kehadiran (%)",
-        data: percentages.length > 0 ? percentages : [0],
-        backgroundColor: "rgba(16, 185, 129, 0.8)",
-        borderColor: "#059669",
-        borderWidth: 1.5,
-        borderRadius: 6
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 100,
-          ticks: { callback: v => v + "%", font: { size: 10 } }
-        },
-        x: { ticks: { font: { size: 10 } } }
-      },
-      plugins: {
-        legend: { display: false },
-        datalabels: {
-          anchor: "end",
-          align: "top",
-          formatter: v => v > 0 ? v + "%" : "",
-          font: { weight: "bold", size: 10 },
-          color: "#065f46"
-        }
-      }
-    }
-  });
-}
-
-// ==========================================
-// CETAK LEMBAR KERJA FORMAT LANSKAP
-// ==========================================
-
-function downloadLembarKerja() {
-  const printWindow = window.open('', '_blank');
-  const targetKegiatan = appData.kegiatan.find(k => String(k.Status).toLowerCase() === "aktif") || { Nama_Kegiatan: "Kegiatan Rutin" };
-
-  let rowsHtml = appData.master_kelompok.map((k, idx) => `
-    <tr>
-      <td style="text-align:center;">${idx + 1}</td>
-      <td style="text-align:left;font-weight:bold;">${k.Nama_Kelompok}</td>
-      <td>${k.Nama_Desa}</td>
-      <td>${k.Target_Caberawit}</td>
-      <td>${k.Target_Pra_Remaja}</td>
-      <td>${k.Target_REMAJA}</td>
-      <td>${k.Target_Bapak}</td>
-      <td>${k.Target_Ibu}</td>
-      <td></td>
-    </tr>
-  `).join("");
-
-  const html = `
-    <!DOCTYPE html>
-    <html lang="id">
-    <head>
-      <meta charset="UTF-8">
-      <title>Lembar Kerja Presensi Agregat - 44 Kelompok</title>
-      <style>
-        @page { size: landscape; margin: 10mm; }
-        body { font-family: Arial, sans-serif; font-size: 10px; color: #1e293b; margin: 10px; }
-        .header { border-bottom: 2px solid #0f766e; padding-bottom: 6px; margin-bottom: 12px; }
-        h1 { margin: 0; font-size: 16px; color: #0f766e; text-transform: uppercase; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: center; }
-        th { background-color: #f1f5f9; font-weight: bold; text-transform: uppercase; }
-        @media print { button { display: none; } }
-      </style>
-    </head>
-    <body>
-      <button onclick="window.print()" style="background:#0f766e;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:bold;margin-bottom:10px;">
-        🖨️ Cetak / Simpan PDF
-      </button>
-      <div class="header">
-        <h1>Lembar Rekapitulasi Presensi Agregat Wilayah</h1>
-        <p>Sesi Kegiatan: <b>${targetKegiatan.Nama_Kegiatan}</b> | Dicetak: ${new Date().toLocaleDateString('id-ID')}</p>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th rowspan="2" style="width:4%;">No</th>
-            <th rowspan="2" style="width:20%;">Nama Kelompok</th>
-            <th rowspan="2" style="width:12%;">Desa</th>
-            <th colspan="5">Target Alokasi Kuota Kehadiran</th>
-            <th rowspan="2" style="width:16%;">Tanda Tangan Pembina</th>
-          </tr>
-          <tr>
-            <th>Caberawit</th>
-            <th>Pra Remaja</th>
-            <th>REMAJA</th>
-            <th>Bapak</th>
-            <th>Ibu</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rowsHtml}
-        </tbody>
-      </table>
-    </body>
-    </html>
-  `;
-
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
-}
-
-// ==========================================
-// SUBMIT AKSI POST & MODAL HANDLERS
-// ==========================================
-
-async function handleLoginSubmit(e) {
-  e.preventDefault();
-  const btn = document.getElementById("btn-submit-login");
-  toggleBtnLoading(btn, true);
-
-  const payload = {
-    action: "login",
-    username: document.getElementById("login-username").value,
-    password: document.getElementById("login-password").value
-  };
-
-  try {
-    const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
-    const json = await res.json();
-    if (json.success) {
-      currentAdmin = json.user;
-      sessionStorage.setItem("currentAdmin", JSON.stringify(currentAdmin));
-      updateAdminUI();
-      closeModal("modal-login");
-      showMessage(`Selamat datang, ${currentAdmin.nama}!`, "success");
-    } else {
-      showMessage(json.message, "error");
-    }
-  } catch (err) {
-    showMessage("Gagal verifikasi login.", "error");
-  } finally {
-    toggleBtnLoading(btn, false, "Masuk");
+  if (role === "Super Admin") {
+    desaSelect.value = "ALL";
+    kelSelect.innerHTML = `<option value="ALL">ALL (Semua Kelompok)</option>`;
+    desaSelect.disabled = true;
+    kelSelect.disabled = true;
+  } else {
+    desaSelect.disabled = false;
+    kelSelect.disabled = false;
+    handleNewUserDesaChange();
   }
 }
 
-function logoutAdmin() {
-  currentAdmin = null;
-  sessionStorage.removeItem("currentAdmin");
-  updateAdminUI();
-  showMessage("Anda telah logout dari sesi.", "info");
-  switchTab("beranda");
-}
+function handleNewUserDesaChange() {
+  const desa = document.getElementById("new-user-desa").value;
+  const kelSelect = document.getElementById("new-user-kelompok");
+  if (!kelSelect) return;
 
-async function handleSubmitSapaan(e) {
-  e.preventDefault();
-  const btn = document.getElementById("btn-submit-sapaan");
-  toggleBtnLoading(btn, true);
-
-  const kelSel = document.getElementById("sapaan-form-kelompok");
-  const payload = {
-    action: "add_penyapaan",
-    tanggal: document.getElementById("sapaan-form-tanggal").value,
-    idKelompok: kelSel.value,
-    namaKelompok: kelSel.options[kelSel.selectedIndex].text,
-    namaDesa: document.getElementById("sapaan-form-desa").value,
-    namaPetugas: document.getElementById("sapaan-form-petugas").value,
-    jenisKegiatan: document.getElementById("sapaan-form-agenda").value,
-    catatan: document.getElementById("sapaan-form-catatan").value
-  };
-
-  try {
-    const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
-    const json = await res.json();
-    if (json.success) {
-      showMessage(json.message, "success");
-      await loadAllData();
-      switchSubSapaan("pemetaan");
-    } else {
-      showMessage("Gagal: " + json.error, "error");
-    }
-  } catch (err) {
-    showMessage("Gagal menyimpan log penyapaan.", "error");
-  } finally {
-    toggleBtnLoading(btn, false, "Simpan Laporan Penyapaan");
+  if (desa === "ALL") {
+    kelSelect.innerHTML = `<option value="ALL">ALL (Semua Kelompok)</option>`;
+  } else {
+    const list = appData.master_kelompok.filter(k => k.Nama_Desa === desa);
+    kelSelect.innerHTML = `<option value="ALL">Semua Kelompok di ${desa}</option>` +
+      list.map(k => `<option value="${k.ID_Kelompok}">${k.Nama_Kelompok}</option>`).join("");
   }
 }
 
 async function handleCreateKegiatan(e) {
   e.preventDefault();
+  const form = e.target;
   const payload = {
     action: "save_kegiatan",
-    namaKegiatan: document.getElementById("admin-kegiatan-nama").value,
-    tanggalMulai: document.getElementById("admin-kegiatan-mulai").value,
-    tanggalSelesai: document.getElementById("admin-kegiatan-selesai").value,
-    targetUsia: document.getElementById("admin-kegiatan-target").value
+    namaKegiatan: form.namaKegiatan.value,
+    tanggalMulai: form.tanggalMulai.value,
+    tanggalSelesai: form.tanggalSelesai.value,
+    targetUsia: form.targetUsia.value
   };
 
+  showToast("Membuka sesi kegiatan...", "info");
   try {
-    const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
     const json = await res.json();
     if (json.success) {
-      showMessage(json.message, "success");
-      loadAllData();
+      showToast(json.message, "success");
+      form.reset();
+      await loadAllSystemData();
+    } else {
+      showToast(json.message, "error");
     }
-  } catch (err) {
-    showMessage("Gagal membuat kegiatan.", "error");
+  } catch (e) {
+    showToast("Gagal membuka kegiatan.", "error");
   }
 }
 
 async function handleCreateUser(e) {
   e.preventDefault();
+  const form = e.target;
   const payload = {
     action: "save_user",
-    nama: document.getElementById("admin-user-nama").value,
-    username: document.getElementById("admin-user-username").value,
-    password: document.getElementById("admin-user-password").value,
-    role: document.getElementById("admin-user-role").value,
-    scopeDesa: document.getElementById("admin-user-scope-desa").value,
-    scopeKelompok: document.getElementById("admin-user-scope-kelompok").value
+    username: form.username.value,
+    password: form.password.value,
+    nama: form.nama.value,
+    role: form.role.value,
+    scopeDesa: form.scopeDesa.value,
+    scopeKelompok: form.scopeKelompok.value
   };
 
-  try {
-    const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
-    const json = await res.json();
-    if (json.success) {
-      showMessage(json.message, "success");
-    }
-  } catch (err) {
-    showMessage("Gagal membuat akun admin.", "error");
-  }
-}
-
-function adjustScopeAdminInputs(role) {
-  const d = document.getElementById("admin-user-scope-desa");
-  const k = document.getElementById("admin-user-scope-kelompok");
-  if (role === "Super Admin") {
-    d.value = "ALL"; k.value = "ALL";
-    d.disabled = true; k.disabled = true;
-  } else if (role === "Admin Desa") {
-    d.disabled = false; k.value = "ALL"; k.disabled = true;
-  } else {
-    d.disabled = false; k.disabled = false;
-  }
-}
-
-function openFormJamaahModal() {
-  document.getElementById("form-jamaah-id").value = "";
-  document.getElementById("form-jamaah-nama").value = "";
-  document.getElementById("form-jamaah-tgl").value = "";
-  document.getElementById("form-jamaah-usia").value = "";
-  openModal("modal-jamaah");
-}
-
-function editJamaah(id) {
-  const item = appData.jamaah.find(j => String(j.ID_Jamaah) === String(id));
-  if (!item) return;
-
-  document.getElementById("form-jamaah-id").value = item.ID_Jamaah;
-  document.getElementById("form-jamaah-nama").value = item.Nama_Lengkap;
-  document.getElementById("form-jamaah-tgl").value = String(item.Tanggal_Lahir).slice(0, 10);
-  document.getElementById("form-jamaah-usia").value = item.Usia || "";
-  document.getElementById("form-jamaah-gender").value = item.Gender || "Laki-laki";
-  document.getElementById("form-jamaah-kategori").value = item.Kelas_Usia || "REMAJA";
-  document.getElementById("form-jamaah-kelompok").value = item.ID_Kelompok;
-
-  openModal("modal-jamaah");
-}
-
-function calcFormJamaahUsia() {
-  const val = document.getElementById("form-jamaah-tgl").value;
-  if (!val) return;
-  const d = new Date(val);
-  const age = Math.floor((Date.now() - d.getTime()) / (365.25 * 86400000));
-  document.getElementById("form-jamaah-usia").value = isNaN(age) ? 0 : age;
-}
-
-async function handleSaveJamaahSubmit(e) {
-  e.preventDefault();
-  const kelSel = document.getElementById("form-jamaah-kelompok");
-  const payload = {
-    action: "save_jamaah",
-    data: {
-      ID: document.getElementById("form-jamaah-id").value,
-      Nama_Lengkap: document.getElementById("form-jamaah-nama").value,
-      Tanggal_Lahir: document.getElementById("form-jamaah-tgl").value,
-      Usia: document.getElementById("form-jamaah-usia").value,
-      Gender: document.getElementById("form-jamaah-gender").value,
-      Kelas_Usia: document.getElementById("form-jamaah-kategori").value,
-      ID_Kelompok: kelSel.value,
-      Nama_Kelompok: kelSel.options[kelSel.selectedIndex].text,
-      Keaktifan: "Aktif"
-    }
-  };
-
-  try {
-    const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
-    const json = await res.json();
-    if (json.success) {
-      showMessage(json.message, "success");
-      closeModal("modal-jamaah");
-      loadAllData();
-    }
-  } catch (err) {
-    showMessage("Gagal menyimpan data jamaah.", "error");
-  }
-}
-
-async function deleteRow(sheetName, id) {
-  if (!confirm("Hapus baris data ini dari database?")) return;
+  showToast("Mendaftarkan admin...", "info");
   try {
     const res = await fetch(SCRIPT_URL, {
       method: "POST",
-      body: JSON.stringify({ action: "delete_row", sheetName: sheetName, id: id })
+      body: JSON.stringify(payload)
     });
     const json = await res.json();
     if (json.success) {
-      showMessage(json.message, "success");
-      loadAllData();
+      showToast(json.message, "success");
+      form.reset();
+      await loadAllSystemData();
+    } else {
+      showToast(json.message, "error");
     }
-  } catch (err) {
-    showMessage("Gagal menghapus data.", "error");
+  } catch (e) {
+    showToast("Gagal mendaftarkan admin.", "error");
   }
 }
 
 // ==========================================
-// MODAL & UI UTILITY
+// 9. AUTENTIKASI PENGGUNA (LOGIN / LOGOUT)
+// ==========================================
+
+async function handleLoginSubmit(e) {
+  e.preventDefault();
+  const u = document.getElementById("login-username").value;
+  const p = document.getElementById("login-password").value;
+  const btn = document.getElementById("btn-submit-login");
+
+  btn.disabled = true;
+  btn.innerText = "Memverifikasi...";
+
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "login", username: u, password: p })
+    });
+    const json = await res.json();
+    if (json.success) {
+      currentUser = json.user;
+      sessionStorage.setItem("activeUserSession", JSON.stringify(currentUser));
+      updateUIForRole();
+      populatePresensiSelectors();
+      closeModal("modal-login");
+      showToast(`Selamat datang, ${currentUser.nama}!`, "success");
+    } else {
+      showToast(json.message, "error");
+    }
+  } catch (err) {
+    showToast("Koneksi login bermasalah.", "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "Masuk ke Sistem";
+  }
+}
+
+function handleLogout() {
+  currentUser = null;
+  sessionStorage.removeItem("activeUserSession");
+  updateUIForRole();
+  populatePresensiSelectors();
+  showToast("Berhasil keluar dari akun.", "info");
+  switchTab("dashboard");
+}
+
+// ==========================================
+// 10. HELPER MODAL & TOAST
 // ==========================================
 
 function openModal(id) {
@@ -951,48 +772,20 @@ function closeModal(id) {
   if (m) m.classList.add("hidden");
 }
 
-function openLoginModal() {
-  openModal("modal-login");
-}
-
-function toggleMobileMenu() {
-  const c = document.getElementById("nav-menu-container");
-  const ic = document.getElementById("hamburger-icon");
-  if (!c) return;
-  c.classList.toggle("show-mobile-menu");
-  if (ic) {
-    if (c.classList.contains("show-mobile-menu")) {
-      ic.classList.remove("fa-bars"); ic.classList.add("fa-xmark");
-    } else {
-      ic.classList.remove("fa-xmark"); ic.classList.add("fa-bars");
-    }
-  }
-}
-
-function showMessage(msg, type) {
-  const el = document.getElementById("status-message");
-  if (!el) return;
-  el.innerText = msg;
-  el.classList.remove("hidden", "bg-emerald-100", "text-emerald-800", "bg-rose-100", "text-rose-800", "bg-amber-100", "text-amber-800");
-
-  if (type === "success") el.classList.add("bg-emerald-100", "text-emerald-800");
-  else if (type === "error") el.classList.add("bg-rose-100", "text-rose-800");
-  else el.classList.add("bg-amber-100", "text-amber-800");
-}
-
-function hideMessage() {
-  const el = document.getElementById("status-message");
-  if (el) el.classList.add("hidden");
-}
-
-function toggleBtnLoading(btn, isLoading, defaultText = "") {
-  if (!btn) return;
-  if (isLoading) {
-    btn.disabled = true;
-    btn.dataset.oldHtml = btn.innerHTML;
-    btn.innerHTML = '<span class="spinner"></span>';
+function showToast(msg, type) {
+  const t = document.getElementById("toast-message");
+  if (!t) return;
+  t.innerText = msg;
+  t.className = "fixed top-20 right-4 z-50 max-w-sm p-4 rounded-xl border shadow-xl text-xs font-semibold transition-all";
+  if (type === "success") {
+    t.classList.add("bg-emerald-100", "border-emerald-300", "text-emerald-800");
+  } else if (type === "error") {
+    t.classList.add("bg-rose-100", "border-rose-300", "text-rose-800");
   } else {
-    btn.disabled = false;
-    btn.innerHTML = defaultText ? `<span>${defaultText}</span>` : btn.dataset.oldHtml;
+    t.classList.add("bg-sky-100", "border-sky-300", "text-sky-800");
   }
+  t.classList.remove("hidden");
+  setTimeout(() => {
+    t.classList.add("hidden");
+  }, 4000);
 }
