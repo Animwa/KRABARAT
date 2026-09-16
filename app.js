@@ -2,7 +2,7 @@
 // FRONTEND LOGIC & INTEGRASI REST API KARANGANYAR BARAT
 // ==========================================
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6k1B4aoY4S9NAd3VSCPsWYNAqAe5wimrzAiEDRdIZKkZqChoAQXP-MM_rPNXS1wee/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxN5OsKvvMmUUJWGXe-ASQHDrE2jEVgYFzg7j7XIiZ8OxV5lU6ooQjSo0qqFR56sH6R/exec";
 
 let appData = {
   pengurus: [],
