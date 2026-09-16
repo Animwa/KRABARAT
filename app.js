@@ -1,6 +1,7 @@
 // ==========================================
 // FRONTEND LOGIC & INTEGRASI REST API KARANGANYAR BARAT
 // ==========================================
+
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6k1B4aoY4S9NAd3VSCPsWYNAqAe5wimrzAiEDRdIZKkZqChoAQXP-MM_rPNXS1wee/exec";
 
 let appData = {
@@ -100,7 +101,7 @@ async function loadPenyapaanAnalytics() {
       if (badge) badge.innerText = json.totalSapaan || 0;
     }
   } catch (e) {
-    console.warn("Gagal memuat data analitik penyapaan", e);
+    console.warn("Gagal memuat analitik penyapaan:", e);
   }
 }
 
@@ -347,16 +348,20 @@ function onJamaahDesaFilterChange() {
   let kelompokSet = new Set();
 
   if (selectedDesa === "Semua") {
-    data.forEach(j => { if (j.KelompokBinaan || j.Nama_Kelompok) kelompokSet.add(String(j.KelompokBinaan || j.Nama_Kelompok).trim()); });
+    data.forEach(j => {
+      const kel = j.Nama_Kelompok || j.KelompokBinaan;
+      if (kel) kelompokSet.add(String(kel).trim());
+    });
     mk.forEach(m => { if (m.Nama_Kelompok) kelompokSet.add(String(m.Nama_Kelompok).trim()); });
   } else {
     data.forEach(j => {
-      if (String(j.Desa).trim().toLowerCase() === selectedDesa.toLowerCase()) {
-        if (j.KelompokBinaan || j.Nama_Kelompok) kelompokSet.add(String(j.KelompokBinaan || j.Nama_Kelompok).trim());
+      if (String(j.Desa || "").trim().toLowerCase() === selectedDesa.toLowerCase()) {
+        const kel = j.Nama_Kelompok || j.KelompokBinaan;
+        if (kel) kelompokSet.add(String(kel).trim());
       }
     });
     mk.forEach(m => {
-      if (String(m.Nama_Desa).trim().toLowerCase() === selectedDesa.toLowerCase()) {
+      if (String(m.Nama_Desa || "").trim().toLowerCase() === selectedDesa.toLowerCase()) {
         if (m.Nama_Kelompok) kelompokSet.add(String(m.Nama_Kelompok).trim());
       }
     });
@@ -378,7 +383,7 @@ function renderJamaah() {
 
   const filtered = data.filter(j => {
     const jDesa = String(j.Desa || "-").trim();
-    const jKelBinaan = String(j.KelompokBinaan || j.Nama_Kelompok || "-").trim();
+    const jKelBinaan = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
 
     const matchDesa = (desaFilter === "Semua") || (jDesa.toLowerCase() === desaFilter.toLowerCase());
     const matchKel = (kelFilter === "Semua") || (jKelBinaan.toLowerCase() === kelFilter.toLowerCase());
@@ -395,24 +400,24 @@ function renderJamaah() {
   }
 
   tbody.innerHTML = filtered.map(j => {
-    const kelompokUsia = String(j.Kelompok || j.Kelas_Usia || "Unassigned").trim();
+    const kelompokUsia = String(j.Kelas_Usia || j.Kelompok || "Unassigned").trim();
     let displayKelas = (kelompokUsia === "Caberawit") ? (j.Kelas || "Caberawit A") : "-";
 
     return `
       <tr class="bg-white border-b hover:bg-slate-50">
-        <td class="px-3 sm:px-4 py-3 text-xs font-mono text-slate-500">${j.ID || j.ID_Jamaah || '-'}</td>
-        <td class="px-3 sm:px-4 py-3 font-semibold text-slate-800">${j.Nama || j.Nama_Lengkap || '-'}</td>
+        <td class="px-3 sm:px-4 py-3 text-xs font-mono text-slate-500">${j.ID_Jamaah || j.ID || '-'}</td>
+        <td class="px-3 sm:px-4 py-3 font-semibold text-slate-800">${j.Nama_Lengkap || j.Nama || '-'}</td>
         <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-700">${j.Desa || '-'}</td>
-        <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-900">${j.KelompokBinaan || j.Nama_Kelompok || '-'}</td>
+        <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-900">${j.Nama_Kelompok || j.KelompokBinaan || '-'}</td>
         <td class="px-3 sm:px-4 py-3 whitespace-nowrap">${j.TanggalLahir ? j.TanggalLahir.toString().split("T")[0] : '-'} <span class="text-xs text-emerald-600 font-bold">(${calculateAge(j.TanggalLahir)})</span></td>
         <td class="px-3 sm:px-4 py-3"><span class="px-2 py-1 rounded bg-teal-50 text-teal-700 font-semibold text-xs">${kelompokUsia}</span></td>
         <td class="px-3 sm:px-4 py-3"><span class="px-2 py-1 rounded bg-slate-100 text-slate-700 font-semibold text-xs">${displayKelas}</span></td>
         <td class="px-3 sm:px-4 py-3">${j.Gender || '-'}</td>
         <td class="px-3 sm:px-4 py-3">${j.Alamat || '-'}</td>
-        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-1 rounded-full text-xs font-semibold ${j.Status === 'Aktif' || j.Keaktifan === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${j.Status || j.Keaktifan || 'Aktif'}</span></td>
+        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-1 rounded-full text-xs font-semibold ${j.Keaktifan === 'Aktif' || j.Status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${j.Keaktifan || j.Status || 'Aktif'}</span></td>
         <td class="px-3 sm:px-4 py-3 text-center admin-only space-x-2 ${currentAdmin ? '' : 'hidden'}">
-          <button onclick="editJamaah('${j.ID || j.ID_Jamaah}')" class="text-amber-600 hover:text-amber-800 font-semibold p-1"><i class="fa-solid fa-pen-to-square"></i></button>
-          <button onclick="deleteRow('Master_Jamaah', '${j.ID || j.ID_Jamaah}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
+          <button onclick="editJamaah('${j.ID_Jamaah || j.ID}')" class="text-amber-600 hover:text-amber-800 font-semibold p-1"><i class="fa-solid fa-pen-to-square"></i></button>
+          <button onclick="deleteRow('Master_Jamaah', '${j.ID_Jamaah || j.ID}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>
     `;
@@ -462,29 +467,19 @@ function renderPresensiTable() {
   const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
 
   const filteredJamaah = jamaahList.filter(j => {
-    const matchStatus = String(j.Status || j.Keaktifan || "Aktif").trim().toLowerCase() === "aktif";
-    const jKelompok = String(j.Kelompok || j.Kelas_Usia || "").trim();
+    const matchStatus = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
+    const jKelompok = String(j.Kelas_Usia || j.Kelompok || "").trim();
     const jGender = String(j.Gender || "").trim().toLowerCase();
 
     if (currentKelompok === "ASAD") {
-      if (currentKelas === "Caberawit Laki-Laki") {
-        return matchStatus && jKelompok === "Caberawit" && jGender === "laki-laki";
-      } else if (currentKelas === "Caberawit Perempuan") {
-        return matchStatus && jKelompok === "Caberawit" && jGender === "perempuan";
-      } else if (currentKelas === "Laki-Laki") {
-        const isAdultGroup = ["Pra Remaja", "Remaja", "Muda-Mudi", "Bapak-Bapak"].includes(jKelompok);
-        return matchStatus && isAdultGroup && jGender === "laki-laki";
-      } else if (currentKelas === "Perempuan") {
-        const isAdultGroup = ["Pra Remaja", "Remaja", "Muda-Mudi", "Ibu-Ibu"].includes(jKelompok);
-        return matchStatus && isAdultGroup && jGender === "perempuan";
-      }
+      if (currentKelas === "Caberawit Laki-Laki") return matchStatus && jKelompok === "Caberawit" && jGender === "laki-laki";
+      if (currentKelas === "Caberawit Perempuan") return matchStatus && jKelompok === "Caberawit" && jGender === "perempuan";
+      if (currentKelas === "Laki-Laki") return matchStatus && ["Pra Remaja", "Remaja", "Muda-Mudi", "Bapak-Bapak"].includes(jKelompok) && jGender === "laki-laki";
+      if (currentKelas === "Perempuan") return matchStatus && ["Pra Remaja", "Remaja", "Muda-Mudi", "Ibu-Ibu"].includes(jKelompok) && jGender === "perempuan";
     }
 
     const matchKelompok = String(jKelompok || "Caberawit").trim().toLowerCase() === String(currentKelompok).trim().toLowerCase();
-    let matchKelas = true;
-    if (currentKelompok === "Caberawit") {
-      matchKelas = String(j.Kelas || "").trim().toLowerCase() === String(currentKelas).trim().toLowerCase();
-    }
+    let matchKelas = (currentKelompok === "Caberawit") ? (String(j.Kelas || "").trim().toLowerCase() === String(currentKelas).trim().toLowerCase()) : true;
     return matchStatus && matchKelompok && matchKelas;
   });
 
@@ -526,7 +521,7 @@ function renderPresensiTable() {
     });
 
     tbody.innerHTML = filteredJamaah.map((j, idx) => {
-      const nama = j.Nama || j.Nama_Lengkap;
+      const nama = j.Nama_Lengkap || j.Nama;
       const namaKey = String(nama).trim().toLowerCase();
       const exData = existingStatusMap[namaKey] || { status: "Hadir", keterangan: "", karakter29: "Belum" };
       const savedStatus = exData.status;
@@ -583,9 +578,7 @@ function toggleKetInput(idx) {
   if (!ketInput || !radios) return;
 
   let selected = "Hadir";
-  for (let r of radios) {
-    if (r.checked) selected = r.value;
-  }
+  for (let r of radios) { if (r.checked) selected = r.value; }
 
   if (selected === "Izin") {
     ketInput.disabled = false;
@@ -679,8 +672,8 @@ async function submitPresensi() {
 
   const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
   const filteredJamaah = jamaahList.filter(j => {
-    const matchStatus = String(j.Status || j.Keaktifan || "Aktif").trim().toLowerCase() === "aktif";
-    const jKelompok = String(j.Kelompok || j.Kelas_Usia || "").trim();
+    const matchStatus = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
+    const jKelompok = String(j.Kelas_Usia || j.Kelompok || "").trim();
     const jGender = String(j.Gender || "").trim().toLowerCase();
 
     if (currentKelompok === "ASAD") {
@@ -710,7 +703,7 @@ async function submitPresensi() {
       kelas: (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? currentKelas : "Umum",
       tanggal: date,
       hari: day,
-      nama: j.Nama || j.Nama_Lengkap,
+      nama: j.Nama_Lengkap || j.Nama,
       status: selectedStatus,
       keterangan: ketInput ? ketInput.value : "",
       karakter29: isCaberawit && karakterSelect ? karakterSelect.value : "Belum",
@@ -800,11 +793,11 @@ function renderMonitoringTable() {
   });
 
   const targetJamaah = jamaahList.filter(j => {
-    const isAktif = String(j.Status || j.Keaktifan || "Aktif").trim().toLowerCase() === "aktif";
+    const isAktif = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
     if (!isAktif) return false;
     if (selectedFilter === "Semua") return true;
 
-    const jKel = String(j.Kelompok || j.Kelas_Usia || "").trim();
+    const jKel = String(j.Kelas_Usia || j.Kelompok || "").trim();
     const jKls = String(j.Kelas || "").trim();
 
     if (selectedFilter === "Caberawit") {
@@ -822,9 +815,9 @@ function renderMonitoringTable() {
   }
 
   tbody.innerHTML = targetJamaah.map((j, idx) => {
-    const nama = j.Nama || j.Nama_Lengkap;
+    const nama = j.Nama_Lengkap || j.Nama;
     const namaKey = String(nama || "").trim().toLowerCase();
-    const isCaberawit = String(j.Kelompok || j.Kelas_Usia || "").trim().toLowerCase() === "caberawit";
+    const isCaberawit = String(j.Kelas_Usia || j.Kelompok || "").trim().toLowerCase() === "caberawit";
 
     let countHadir = 0, countIzin = 0, countAlfa = 0;
     let izinReasons = [];
@@ -857,7 +850,7 @@ function renderMonitoringTable() {
       }
     });
 
-    const displayKelas = isCaberawit ? `${j.Kelompok || 'Caberawit'} (${j.Kelas || 'Caberawit A'})` : (j.Kelompok || j.Kelas_Usia);
+    const displayKelas = isCaberawit ? `${j.Kelompok || 'Caberawit'} (${j.Kelas || 'Caberawit A'})` : (j.Kelas_Usia || j.Kelompok);
     const reasonsText = izinReasons.length > 0 ? izinReasons.join("; ") : "-";
 
     let karakterStatusBadge = "-";
@@ -888,7 +881,7 @@ function renderMonitoringTable() {
 }
 
 // =========================================================================
-// MODUL PENYAPAAN KEGIATAN (PENGGANTI REKAP JURNAL & STATISTIK)
+// MODUL PENYAPAAN KEGIATAN
 // =========================================================================
 function switchPenyapaanSubTab(subTabName) {
   ["status-peta", "rekap-riwayat", "input-sapaan"].forEach(name => {
@@ -907,7 +900,6 @@ function switchPenyapaanSubTab(subTabName) {
 function renderPenyapaanModule() {
   if (!analyticsPenyapaan) return;
 
-  // Banner Rekomendasi Terendah Per Desa
   const recGrid = document.getElementById("rekomendasi-grid");
   if (recGrid && analyticsPenyapaan.rekomendasi) {
     recGrid.innerHTML = analyticsPenyapaan.rekomendasi.map(r => `
@@ -1161,8 +1153,8 @@ function openFormJamaah(data = null) {
 
   if (fieldsEl) {
     fieldsEl.innerHTML = `
-      <input type="hidden" name="ID" value="${data ? (data.ID || data.ID_Jamaah) : ''}">
-      <div><label class="block text-xs font-semibold mb-1">Nama Lengkap</label><input type="text" name="Nama_Lengkap" value="${data ? (data.Nama || data.Nama_Lengkap || '') : ''}" required class="w-full border rounded px-3 py-1.5 text-sm"></div>
+      <input type="hidden" name="ID" value="${data ? (data.ID_Jamaah || data.ID || '') : ''}">
+      <div><label class="block text-xs font-semibold mb-1">Nama Lengkap</label><input type="text" name="Nama_Lengkap" value="${data ? (data.Nama_Lengkap || data.Nama || '') : ''}" required class="w-full border rounded px-3 py-1.5 text-sm"></div>
       
       <div class="grid grid-cols-2 gap-2">
         <div>
@@ -1173,7 +1165,7 @@ function openFormJamaah(data = null) {
         </div>
         <div>
           <label class="block text-xs font-semibold mb-1">Kelompok Binaan</label>
-          <select name="KelompokBinaan" id="form-modal-kelompok" class="w-full border rounded px-3 py-1.5 text-sm"></select>
+          <select name="Nama_Kelompok" id="form-modal-kelompok" class="w-full border rounded px-3 py-1.5 text-sm"></select>
         </div>
       </div>
 
@@ -1182,12 +1174,12 @@ function openFormJamaah(data = null) {
       <div>
         <label class="block text-xs font-semibold mb-1">Kelompok Usia</label>
         <select name="Kelas_Usia" id="field-kelompok" onchange="onKelompokChange()" class="w-full border rounded px-3 py-1.5 text-sm">
-          <option value="Caberawit" ${data && (data.Kelompok === 'Caberawit' || data.Kelas_Usia === 'Caberawit') ? 'selected' : ''}>Caberawit (SD)</option>
-          <option value="Pra Remaja" ${data && (data.Kelompok === 'Pra Remaja' || data.Kelas_Usia === 'Pra Remaja') ? 'selected' : ''}>Pra Remaja (SMP)</option>
-          <option value="Remaja" ${data && (data.Kelompok === 'Remaja' || data.Kelas_Usia === 'Remaja') ? 'selected' : ''}>Remaja (SMA)</option>
-          <option value="Muda-Mudi" ${data && (data.Kelompok === 'Muda-Mudi' || data.Kelas_Usia === 'Muda-Mudi') ? 'selected' : ''}>Muda-Mudi</option>
-          <option value="Bapak-Bapak" ${data && (data.Kelompok === 'Bapak-Bapak' || data.Kelas_Usia === 'Bapak-Bapak') ? 'selected' : ''}>Bapak-Bapak</option>
-          <option value="Ibu-Ibu" ${data && (data.Kelompok === 'Ibu-Ibu' || data.Kelas_Usia === 'Ibu-Ibu') ? 'selected' : ''}>Ibu-Ibu</option>
+          <option value="Caberawit" ${data && (data.Kelas_Usia === 'Caberawit' || data.Kelompok === 'Caberawit') ? 'selected' : ''}>Caberawit (SD)</option>
+          <option value="Pra Remaja" ${data && (data.Kelas_Usia === 'Pra Remaja' || data.Kelompok === 'Pra Remaja') ? 'selected' : ''}>Pra Remaja (SMP)</option>
+          <option value="Remaja" ${data && (data.Kelas_Usia === 'Remaja' || data.Kelompok === 'Remaja') ? 'selected' : ''}>Remaja (SMA)</option>
+          <option value="Muda-Mudi" ${data && (data.Kelas_Usia === 'Muda-Mudi' || data.Kelompok === 'Muda-Mudi') ? 'selected' : ''}>Muda-Mudi</option>
+          <option value="Bapak-Bapak" ${data && (data.Kelas_Usia === 'Bapak-Bapak' || data.Kelompok === 'Bapak-Bapak') ? 'selected' : ''}>Bapak-Bapak</option>
+          <option value="Ibu-Ibu" ${data && (data.Kelas_Usia === 'Ibu-Ibu' || data.Kelompok === 'Ibu-Ibu') ? 'selected' : ''}>Ibu-Ibu</option>
         </select>
       </div>
 
@@ -1207,15 +1199,15 @@ function openFormJamaah(data = null) {
       <div><label class="block text-xs font-semibold mb-1">Alamat</label><textarea name="Alamat" class="w-full border rounded px-3 py-1.5 text-sm">${data ? (data.Alamat || '') : ''}</textarea></div>
       <div>
         <label class="block text-xs font-semibold mb-1">Status Keaktifan</label>
-        <select name="Status" class="w-full border rounded px-3 py-1.5 text-sm">
-          <option value="Aktif" ${!data || data.Status === 'Aktif' || data.Keaktifan === 'Aktif' ? 'selected' : ''}>Aktif</option>
-          <option value="Non-Aktif" ${data && (data.Status === 'Non-Aktif' || data.Keaktifan === 'Non-Aktif') ? 'selected' : ''}>Non-Aktif</option>
+        <select name="Keaktifan" class="w-full border rounded px-3 py-1.5 text-sm">
+          <option value="Aktif" ${!data || data.Keaktifan === 'Aktif' || data.Status === 'Aktif' ? 'selected' : ''}>Aktif</option>
+          <option value="Non-Aktif" ${data && (data.Keaktifan === 'Non-Aktif' || data.Status === 'Non-Aktif') ? 'selected' : ''}>Non-Aktif</option>
         </select>
       </div>
     `;
   }
 
-  onModalDesaChange(data ? (data.KelompokBinaan || data.Nama_Kelompok) : null);
+  onModalDesaChange(data ? (data.Nama_Kelompok || data.KelompokBinaan) : null);
   onKelompokChange(data ? data.Kelas : null);
   openModal("modal-form");
 }
@@ -1259,7 +1251,7 @@ function onKelompokChange(selectedKelas = null) {
 
 function editJamaah(id) {
   const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
-  const item = jamaahList.find(j => String(j.ID || j.ID_Jamaah) === String(id));
+  const item = jamaahList.find(j => String(j.ID_Jamaah || j.ID) === String(id));
   if (item) openFormJamaah(item);
 }
 
@@ -1268,6 +1260,13 @@ async function handleFormSubmit(e) {
   const formData = new FormData(e.target);
   const dataObj = {};
   formData.forEach((value, key) => dataObj[key] = value);
+
+  if (activeFormType === "Jamaah") {
+    const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
+    const matched = mk.find(k => k.Nama_Kelompok === dataObj.Nama_Kelompok);
+    dataObj.ID_Kelompok = matched ? matched.ID_Kelompok : "KLP-000";
+    dataObj.Usia = calculateAge(dataObj.TanggalLahir);
+  }
 
   const actionName = (activeFormType === "Jamaah") ? "save_jamaah" : `save_${activeFormType.toLowerCase()}`;
   showMessage("Menyimpan data...", "info");
