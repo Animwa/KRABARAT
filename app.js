@@ -235,7 +235,7 @@ function calculateAge(dobString) {
 }
 
 // =========================================================================
-// SISTEM FILTER WILAYAH GLOBAL PALING ATAS (MURNI DARI MASTER KELOMPOK)
+// SISTEM FILTER WILAYAH GLOBAL DI NAVBAR (MURNI DARI MASTER KELOMPOK)
 // =========================================================================
 function getDesaByKelompok(namaKelompok) {
   if (!namaKelompok || namaKelompok === "-") return "-";
@@ -250,7 +250,7 @@ function initGlobalWilayahFilters() {
 
   const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
   
-  // Ambil murni daftar Desa dari tab Master_Kelompok
+  // Ambil daftar Desa murni dari Master_Kelompok
   let desas = new Set();
   mk.forEach(m => {
     if (m.Nama_Desa && String(m.Nama_Desa).trim() !== "" && m.Nama_Desa !== "-") {
@@ -278,10 +278,8 @@ function onGlobalDesaChange() {
   let kelompokList = [];
 
   if (selectedDesa === "Semua") {
-    // Tampilkan seluruh kelompok binaan dari seluruh desa di Master_Kelompok
     kelompokList = mk.map(m => String(m.Nama_Kelompok || "").trim()).filter(Boolean);
   } else {
-    // Filter kelompok sesuai desa yang dipilih
     kelompokList = mk
       .filter(m => String(m.Nama_Desa || "").trim().toLowerCase() === selectedDesa.toLowerCase())
       .map(m => String(m.Nama_Kelompok || "").trim())
@@ -297,7 +295,7 @@ function onGlobalDesaChange() {
 }
 
 function onGlobalKelompokChange() {
-  // Seluruh view yang bergantung pada filter desa & kelompok langsung di-render ulang
+  // Update otomatis seluruh tabel berdasarkan pilihan desa & kelompok pada navbar
   renderJamaah();
   renderPresensiTable();
   renderMonitoringTable();
@@ -507,7 +505,7 @@ function renderPresensiTable() {
   const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
   const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
 
-  // Filter Wilayah Presensi dari bilah atas
+  // Filter Wilayah Presensi dari navbar
   const desaPresensi = document.getElementById("global-filter-desa") ? document.getElementById("global-filter-desa").value : "Semua";
   const kelPresensi = document.getElementById("global-filter-kelompok") ? document.getElementById("global-filter-kelompok").value : "Semua";
 
@@ -548,7 +546,7 @@ function renderPresensiTable() {
       <tr>
         <td colspan="${isCaberawit ? 7 : 6}" class="px-4 py-6 text-center text-slate-400 italic">
           Belum ada jamaah yang terdaftar di kelompok <b>${displayTitle}</b> pada wilayah yang dipilih.<br>
-          <span class="text-xs text-slate-500">Silakan ubah filter wilayah di baris atas atau tambahkan jamaah baru.</span>
+          <span class="text-xs text-slate-500">Silakan pilih desa/kelompok lain di navbar atau tambahkan jamaah baru.</span>
         </td>
       </tr>
     `;
