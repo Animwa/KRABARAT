@@ -182,12 +182,12 @@
     </div>
   </section>
 
-  <!-- VIEW 3: DATA JAMAAH (DENGAN FILTER DESA & KELOMPOK) -->
+  <!-- VIEW 3: DATA JAMAAH -->
   <section id="view-jamaah" class="view-section hidden space-y-4">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <div>
         <h2 class="text-lg sm:text-xl font-bold text-slate-800 flex items-center"><i class="fa-solid fa-users text-emerald-700 mr-2"></i>Database Jamaah</h2>
-        <p class="text-xs text-slate-500 hidden sm:block">Data registrasi seluruh jamaah beserta pengelompokan wilayah dan usia.</p>
+        <p class="text-xs text-slate-500 hidden sm:block">Data registrasi jamaah dengan filter desa dan kelompok binaan.</p>
       </div>
       <button onclick="openFormJamaah()" class="admin-only hidden w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition-all flex items-center justify-center space-x-1.5">
         <i class="fa-solid fa-user-plus"></i><span>Tambah Jamaah</span>
@@ -411,14 +411,14 @@
     </div>
   </section>
 
-  <!-- VIEW 6: PENYAPAAN KEGIATAN (MENGGANTIKAN JURNAL & STATISTIK) -->
+  <!-- VIEW 6: PENYAPAAN KEGIATAN -->
   <section id="view-penyapaan" class="view-section hidden space-y-5 pb-12">
     <div class="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
         <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
           <i class="fa-solid fa-handshake-angle text-teal-600"></i> Monitoring & Log Penyapaan Kegiatan
         </h2>
-        <p class="text-xs text-slate-500 mt-1">Pemetaan pembinaan wilayah, prioritas kelompok terkunjung minim, dan pencatatan sapaan.</p>
+        <p class="text-xs text-slate-500 mt-1">Pemetaan pembinaan wilayah, rekomendasi sapaan minimum, dan riwayat kunjungan.</p>
       </div>
       <div class="flex items-center space-x-1.5">
         <button onclick="switchPenyapaanSubTab('status-peta')" class="subnav-btn active px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all" id="subtab-btn-status-peta">
@@ -433,7 +433,7 @@
       </div>
     </div>
 
-    <!-- SUB-TAB 1: STATUS PEMETAAN & REKOMENDASI -->
+    <!-- SUB-TAB 1: PEMETAAN & REKOMENDASI -->
     <div id="subtab-status-peta" class="space-y-4">
       <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 sm:p-5 shadow-sm">
         <div class="flex items-center gap-2 mb-2">
@@ -457,7 +457,7 @@
       <div id="peta-desa-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </div>
 
-    <!-- SUB-TAB 2: RIWAYAT AGENDA PENYAPAAN -->
+    <!-- SUB-TAB 2: RIWAYAT PENYAPAAN -->
     <div id="subtab-rekap-riwayat" class="hidden space-y-4">
       <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between gap-3">
         <input type="text" id="search-riwayat" oninput="renderRiwayatPenyapaanTable()" placeholder="Cari petugas, agenda, atau kelompok..." class="border rounded-lg px-3 py-1.5 text-xs w-full sm:w-72">
@@ -485,7 +485,7 @@
       </div>
     </div>
 
-    <!-- SUB-TAB 3: FORM INPUT SAPAAN BARU -->
+    <!-- SUB-TAB 3: INPUT SAPAAN BARU -->
     <div id="subtab-input-sapaan" class="hidden">
       <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm max-w-2xl mx-auto space-y-4">
         <h3 class="text-sm font-bold text-slate-800 border-b pb-2 uppercase tracking-wide">
