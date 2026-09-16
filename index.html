@@ -3,546 +3,481 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Sistem Monitoring Jamaah Karanganyar Barat</title>
+  <title>Sistem Monitoring Daerah Karanganyar Barat</title>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-full flex flex-col antialiased selection:bg-emerald-200">
 
-<!-- HEADER UTAMA -->
-<header class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white shadow-lg pt-safe sticky top-0 z-40">
-  <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <div class="flex items-center space-x-3">
-      <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20 shadow-inner shrink-0">
-        <i class="fa-solid fa-mosque text-xl sm:text-2xl text-emerald-300"></i>
+  <!-- TOP HEADER -->
+  <header class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white shadow-lg sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20 shadow-inner shrink-0">
+          <i class="fa-solid fa-users-viewfinder text-xl text-emerald-300"></i>
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-extrabold tracking-wide uppercase">Monitoring Daerah</h1>
+          <p class="text-[10px] sm:text-xs text-emerald-200/90 font-medium hidden sm:block">Presensi Agregat 4 Desa & 44 Kelompok</p>
+        </div>
       </div>
-      <div>
-        <h1 class="text-base sm:text-xl font-extrabold tracking-wide leading-tight uppercase">Monitoring Daerah</h1>
-        <p class="text-[10px] sm:text-xs text-emerald-200/90 font-medium hidden sm:block">Presensi Agregat & Bina Jamaah 4 Desa (44 Kelompok)</p>
-      </div>
-    </div>
 
-    <!-- Sisi Kanan: Status Sesi & Tombol Login/Logout -->
-    <div class="flex items-center space-x-2">
-      <span id="badge-sapaan-navbar" class="hidden sm:inline-flex items-center px-2.5 py-1 bg-amber-400/20 border border-amber-400/40 text-amber-200 text-xs font-bold rounded-full">
-        <i class="fa-solid fa-handshake mr-1.5 text-amber-300"></i><span id="badge-sapaan-total">0 Sapaan</span>
-      </span>
+      <div class="flex items-center space-x-2">
+        <div id="user-profile-badge" class="hidden flex items-center gap-2 bg-emerald-950/60 border border-emerald-600/40 px-3 py-1.5 rounded-xl">
+          <div class="text-right">
+            <p id="user-display-name" class="text-xs font-bold leading-tight"></p>
+            <p id="user-display-role" class="text-[10px] text-amber-300 font-semibold leading-none"></p>
+          </div>
+          <button onclick="handleLogout()" title="Keluar Akun" class="text-rose-400 hover:text-rose-300 ml-1 p-1">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+        </div>
 
-      <span id="admin-badge" class="hidden px-2.5 py-1 bg-amber-400 text-slate-900 text-[11px] font-bold rounded-full items-center shadow-sm">
-        <i class="fa-solid fa-user-shield mr-1"></i>
-        <span id="admin-name-display" class="max-w-[90px] sm:max-w-[140px] truncate inline-block align-bottom"></span>
-      </span>
+        <button id="btn-open-login" onclick="openModal('modal-login')" class="bg-emerald-700/80 hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-2 rounded-xl border border-emerald-500/40 shadow-sm flex items-center gap-1.5">
+          <i class="fa-solid fa-right-to-bracket text-emerald-300"></i>
+          <span class="hidden sm:inline">Login Akun</span>
+        </button>
 
-      <button id="btn-login-modal" onclick="openLoginModal()" class="bg-emerald-700/80 hover:bg-emerald-600 active:scale-95 text-emerald-100 text-xs font-semibold px-3 py-2 rounded-xl border border-emerald-500/40 backdrop-blur-md transition-all shadow-sm flex items-center space-x-1.5">
-        <i class="fa-solid fa-right-to-bracket text-emerald-300"></i>
-        <span class="hidden sm:inline">Masuk Akun</span>
-      </button>
-
-      <button id="btn-logout" onclick="logoutAdmin()" title="Logout" class="hidden bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-semibold p-2.5 rounded-xl border border-rose-400/30 transition-all shadow-sm">
-        <i class="fa-solid fa-power-off"></i>
-      </button>
-
-      <button id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Toggle Menu" class="md:hidden bg-emerald-700/80 hover:bg-emerald-600 active:scale-95 text-white p-2.5 rounded-xl border border-emerald-500/40 backdrop-blur-md transition-all shadow-sm flex items-center justify-center">
-        <i class="fa-solid fa-bars text-base" id="hamburger-icon"></i>
-      </button>
-    </div>
-  </div>
-</header>
-
-<!-- NAVIGATION BAR -->
-<nav id="main-nav" class="bg-emerald-900 text-white text-xs sm:text-sm sticky top-0 z-30 shadow-md">
-  <div id="nav-menu-container" class="max-w-7xl mx-auto flex flex-col md:flex-row md:space-x-1 p-2">
-    <button onclick="switchTab('beranda')" class="nav-tab px-3.5 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2" id="tab-beranda">
-      <i class="fa-solid fa-chart-pie"></i><span>Beranda</span>
-    </button>
-    <button onclick="switchTab('jamaah')" class="nav-tab px-3.5 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2" id="tab-jamaah">
-      <i class="fa-solid fa-users"></i><span>Data Jamaah</span>
-    </button>
-    <button onclick="switchTab('status')" class="nav-tab px-3.5 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2" id="tab-status">
-      <i class="fa-solid fa-table-cells"></i><span>Status 44 Kelompok</span>
-    </button>
-    <button onclick="switchTab('penyapaan')" class="nav-tab px-3.5 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2" id="tab-penyapaan">
-      <i class="fa-solid fa-hand-holding-heart"></i><span>Penyapaan Daerah</span>
-    </button>
-    <button onclick="switchTab('presensi')" class="nav-tab px-3.5 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2" id="tab-presensi">
-      <i class="fa-solid fa-clipboard-user"></i><span>Presensi Pengajian</span>
-    </button>
-    <button onclick="switchTab('rekapitulasi')" class="nav-tab px-3.5 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2" id="tab-rekapitulasi">
-      <i class="fa-solid fa-chart-line"></i><span>Statistik Tren</span>
-    </button>
-    <button onclick="switchTab('admin')" class="nav-tab px-3.5 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2 hidden" id="tab-admin">
-      <i class="fa-solid fa-sliders"></i><span>Manajemen Sistem</span>
-    </button>
-  </div>
-</nav>
-
-<!-- MAIN CONTENT WRAPPER -->
-<main class="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 flex-grow w-full">
-  <div id="status-message" class="hidden mb-4 p-3.5 sm:p-4 rounded-xl font-medium text-xs sm:text-sm border shadow-sm transition-all duration-300 flex items-center justify-between"></div>
-
-  <!-- VIEW 0: BERANDA / DASHBOARD GLOBAL -->
-  <section id="view-beranda" class="view-section hidden space-y-6">
-    <div class="bg-gradient-to-r from-emerald-800 to-teal-800 rounded-2xl p-6 text-white shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-      <div>
-        <h2 class="text-xl sm:text-2xl font-extrabold flex items-center gap-2">
-          <i class="fa-solid fa-gauge-high text-amber-300"></i> Matriks Ringkasan Pembinaan Daerah
-        </h2>
-        <p class="text-xs sm:text-sm text-emerald-100 mt-1">Sistem informasi monitoring presensi dan persebaran sapaan 4 Desa binaan.</p>
-      </div>
-      <button onclick="downloadLembarKerja()" class="bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-xs px-4 py-2.5 rounded-xl shadow transition-all flex items-center gap-2 shrink-0">
-        <i class="fa-solid fa-print"></i> Cetak Lembar Kerja Matriks
-      </button>
-    </div>
-
-    <!-- Stat Grid -->
-    <div class="stat-grid text-center">
-      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Lingkup Wilayah</p>
-        <p class="text-2xl sm:text-3xl font-extrabold text-slate-800 mt-1">4 Desa</p>
-      </div>
-      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Kelompok Binaan</p>
-        <p class="text-2xl sm:text-3xl font-extrabold text-slate-800 mt-1">44 Masjid</p>
-      </div>
-      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Kegiatan Aktif</p>
-        <p class="text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-1" id="dash-stat-kegiatan">0</p>
-      </div>
-      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Penyapaan Terdata</p>
-        <p class="text-2xl sm:text-3xl font-extrabold text-amber-500 mt-1" id="dash-stat-sapaan">0</p>
-      </div>
-    </div>
-
-    <!-- Agenda Kegiatan Aktif -->
-    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
-      <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-        <i class="fa-solid fa-calendar-check text-teal-600"></i> Sesi Kegiatan Pembinaan Berjalan
-      </h3>
-      <div id="beranda-kegiatan-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-    </div>
-  </section>
-
-  <!-- VIEW 1: DATA JAMAAH RUJUKAN MASTER -->
-  <section id="view-jamaah" class="view-section hidden space-y-4">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-      <div>
-        <h2 class="text-lg font-bold text-slate-800 flex items-center">
-          <i class="fa-solid fa-id-card text-emerald-700 mr-2"></i>Data Jamaah & Target Kapasitas
-        </h2>
-        <p class="text-xs text-slate-500">Daftar jamaah per kelompok sebagai parameter kuota kehadiran agregat.</p>
-      </div>
-      <div class="flex items-center gap-2 w-full sm:w-auto">
-        <select id="filter-jamaah-kelompok" onchange="renderJamaahTable()" class="w-full sm:w-64 border border-slate-300 rounded-lg px-3 py-2 text-xs bg-slate-50 font-semibold focus:ring-2 focus:ring-emerald-500"></select>
-        <button onclick="openFormJamaahModal()" class="admin-only hidden bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition flex items-center space-x-1.5 shrink-0">
-          <i class="fa-solid fa-user-plus"></i><span>Tambah Jamaah</span>
+        <button id="hamburger-btn" onclick="toggleMobileMenu()" class="md:hidden bg-emerald-700/80 hover:bg-emerald-600 text-white p-2.5 rounded-xl border border-emerald-500/40">
+          <i class="fa-solid fa-bars text-sm" id="hamburger-icon"></i>
         </button>
       </div>
     </div>
+  </header>
 
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-xs text-left text-slate-600">
-          <thead class="text-[11px] text-slate-700 uppercase bg-slate-100 border-b border-slate-200 whitespace-nowrap">
-            <tr>
-              <th class="px-4 py-3 font-bold">Nama Lengkap</th>
-              <th class="px-4 py-3 font-bold">Tgl Lahir / Usia</th>
-              <th class="px-4 py-3 font-bold">Gender</th>
-              <th class="px-4 py-3 font-bold">Kategori Usia</th>
-              <th class="px-4 py-3 font-bold">Kelompok Binaan</th>
-              <th class="px-4 py-3 font-bold">Status Keaktifan</th>
-              <th class="px-4 py-3 font-bold admin-only hidden text-center">Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="table-jamaah-body" class="divide-y divide-slate-100"></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- VIEW 2: MATRIKS STATUS MONITORING 44 KELOMPOK -->
-  <section id="view-status" class="view-section hidden space-y-4">
-    <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-      <div>
-        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-table-cells text-teal-600"></i> Matriks Pelaporan 44 Kelompok
-        </h2>
-        <p class="text-xs text-slate-500 mt-1">Pemantauan visual kelompok yang sudah (Hijau) atau belum (Merah/Abu) melaporkan presensi.</p>
-      </div>
-      <div class="flex flex-wrap sm:flex-nowrap gap-2 w-full md:w-auto">
-        <select id="filter-monitoring-kegiatan" onchange="renderMonitoringMatrix()" class="text-xs border rounded-lg px-3 py-2 bg-slate-50 font-semibold w-full sm:w-auto"></select>
-        <select id="filter-monitoring-desa" onchange="filterMonitoringDisplay()" class="text-xs border rounded-lg px-3 py-2 bg-slate-50 font-semibold w-full sm:w-auto">
-          <option value="ALL">Semua Desa</option>
-          <option value="Desa 1">Desa 1</option>
-          <option value="Desa 2">Desa 2</option>
-          <option value="Desa 3">Desa 3</option>
-          <option value="Desa 4">Desa 4</option>
-        </select>
-      </div>
-    </div>
-
-    <div id="monitoring-matrix-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
-  </section>
-
-  <!-- VIEW 3: MODUL PENYAPAAN DAERAH (3 SUB-NAVIGASI) -->
-  <section id="view-penyapaan" class="view-section hidden space-y-4">
-    <!-- Sub Navigasi Sapaan -->
-    <div class="bg-slate-200 border-b border-slate-300 rounded-xl p-1.5 flex space-x-1 text-xs font-semibold overflow-x-auto no-scrollbar">
-      <button onclick="switchSubSapaan('pemetaan')" id="sub-sapaan-pemetaan" class="subnav-btn px-4 py-2 rounded-lg bg-white shadow-sm border border-slate-300 active">
-        <i class="fa-solid fa-map-location-dot mr-1"></i> Status & Pemetaan Kelompok
+  <!-- NAVIGATION BAR -->
+  <nav class="bg-emerald-950 text-white text-xs sticky top-14 z-30 shadow-md">
+    <div id="nav-container" class="max-w-7xl mx-auto flex flex-col md:flex-row md:space-x-1 p-1.5 hidden md:flex">
+      <button onclick="switchTab('dashboard')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center gap-2" id="tab-dashboard">
+        <i class="fa-solid fa-chart-pie"></i><span>Beranda & Metrik</span>
       </button>
-      <button onclick="switchSubSapaan('riwayat')" id="sub-sapaan-riwayat" class="subnav-btn px-4 py-2 rounded-lg bg-white shadow-sm border border-slate-300">
-        <i class="fa-solid fa-clock-rotate-left mr-1"></i> Rekap Agenda & Riwayat
+      <button onclick="switchTab('data-jamaah')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center gap-2" id="tab-data-jamaah">
+        <i class="fa-solid fa-address-book"></i><span>Data Target & Jamaah</span>
       </button>
-      <button onclick="switchSubSapaan('input')" id="sub-sapaan-input" class="subnav-btn px-4 py-2 rounded-lg bg-white shadow-sm border border-slate-300 hidden">
-        <i class="fa-solid fa-pen-to-square mr-1"></i> Input Sapaan Baru
+      <button onclick="switchTab('presensi')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center gap-2" id="tab-presensi">
+        <i class="fa-solid fa-clipboard-user"></i><span>Presensi Agregat</span>
+      </button>
+      <button onclick="switchTab('status-presensi')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center gap-2" id="tab-status-presensi">
+        <i class="fa-solid fa-table-cells"></i><span>Matriks Status Presensi</span>
+      </button>
+      <button onclick="switchTab('penyapaan')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center gap-2" id="tab-penyapaan">
+        <i class="fa-solid fa-handshake-angle"></i><span>Penyapaan Daerah</span>
+        <span id="badge-total-sapaan" class="ml-1 px-2 py-0.5 text-[10px] bg-amber-400 text-slate-900 font-extrabold rounded-full">0</span>
+      </button>
+      <button onclick="switchTab('manajemen')" class="nav-tab admin-super-only hidden px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center gap-2" id="tab-manajemen">
+        <i class="fa-solid fa-sliders"></i><span>Manajemen Sistem</span>
       </button>
     </div>
+  </nav>
 
-    <!-- SUB-TAB 1: Status & Pemetaan -->
-    <div id="tab-sapaan-pemetaan" class="space-y-4">
-      <!-- Banner 4 Kelompok Rekomendasi Terendah -->
-      <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 p-4 rounded-xl shadow-sm">
-        <h3 class="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
-          <i class="fa-solid fa-bullhorn text-amber-600"></i> Rekomendasi Prioritas Penyapaan (1 Terendah per Desa)
-        </h3>
-        <p class="text-[11px] text-amber-700 mt-0.5 mb-3">Daftar kelompok dengan frekuensi kunjungan terendah atau belum pernah dikunjungi dari tiap desa:</p>
-        <div id="rekomendasi-cards-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3"></div>
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast-message" class="fixed top-20 right-4 z-50 hidden max-w-sm p-4 rounded-xl border shadow-xl text-xs font-semibold transition-all"></div>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 py-5 flex-grow w-full">
+
+    <!-- VIEW 1: BERANDA / DASHBOARD -->
+    <section id="view-dashboard" class="view-section hidden space-y-5">
+      <div class="bg-gradient-to-r from-emerald-800 to-teal-800 rounded-2xl p-6 text-white shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-black flex items-center gap-2">
+            <i class="fa-solid fa-chart-line text-amber-300"></i> Ringkasan Kinerja & Presensi Wilayah
+          </h2>
+          <p class="text-xs sm:text-sm text-emerald-100 mt-1">Status agregasi kegiatan aktif untuk 4 Desa dan 44 Kelompok binaan.</p>
+        </div>
+        <div class="bg-white/10 border border-white/20 px-4 py-2 rounded-xl text-center shrink-0">
+          <span class="text-[10px] uppercase font-bold text-emerald-200 block">Total Kunjungan Daerah</span>
+          <span id="stat-grand-sapaan" class="text-2xl font-black text-amber-300">0</span>
+        </div>
       </div>
 
-      <!-- Filter Kategori Status Sapaan -->
-      <div class="flex items-center gap-2">
-        <button onclick="filterSapaanDisplay('ALL')" class="filter-sapaan-btn px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white hover:bg-slate-50 active">Semua Kelompok</button>
-        <button onclick="filterSapaanDisplay('SUDAH')" class="filter-sapaan-btn px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white hover:bg-slate-50 text-emerald-700">Sudah Disapa</button>
-        <button onclick="filterSapaanDisplay('BELUM')" class="filter-sapaan-btn px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white hover:bg-slate-50 text-rose-700">Belum Disapa</button>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-[11px] font-semibold text-slate-500 uppercase">Target Total Jamaah</p>
+          <p id="stat-total-target" class="text-2xl font-black text-slate-800 mt-1">0</p>
+          <span class="text-[10px] text-emerald-600 font-bold">Seluruh Kategori Usia</span>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-[11px] font-semibold text-slate-500 uppercase">Akumulasi Hadir</p>
+          <p id="stat-total-hadir" class="text-2xl font-black text-emerald-600 mt-1">0</p>
+          <span id="stat-pct-hadir" class="text-[10px] text-slate-500">0% Rasio Kehadiran</span>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-[11px] font-semibold text-slate-500 uppercase">Izin & Sakit</p>
+          <p id="stat-total-izinsakit" class="text-2xl font-black text-amber-500 mt-1">0</p>
+          <span class="text-[10px] text-slate-500">Izin Terkonfirmasi</span>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-[11px] font-semibold text-slate-500 uppercase">Alpa / Tanpa Kabar</p>
+          <p id="stat-total-alpa" class="text-2xl font-black text-rose-600 mt-1">0</p>
+          <span class="text-[10px] text-rose-500 font-semibold">Perlu Pembinaan</span>
+        </div>
       </div>
 
-      <!-- Peta Wilayah 4 Kontainer Desa -->
-      <div id="sapaan-desa-grid-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-    </div>
-
-    <!-- SUB-TAB 2: Rekap Agenda & Riwayat -->
-    <div id="tab-sapaan-riwayat" class="space-y-4 hidden">
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-3">
-        <input type="text" id="search-sapaan-input" onkeyup="filterRiwayatSapaanTable()" placeholder="Cari desa, kelompok, petugas, agenda sapaan..." class="w-full text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div class="flex items-center justify-between border-b pb-3">
+          <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-bullhorn text-amber-500"></i> Pantauan Kegiatan Aktif
+          </h3>
+          <span id="active-event-name" class="text-xs bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full font-bold border border-emerald-200">
+            Tidak ada kegiatan aktif
+          </span>
+        </div>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Gunakan modul <b>Matriks Status Presensi</b> untuk memverifikasi kelengkapan laporan kelompok per desa atau buka tab <b>Penyapaan Daerah</b> untuk menjadwalkan pembinaan pada kelompok dengan sapaan terminimal.
+        </p>
       </div>
-      <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+    </section>
+
+    <!-- VIEW 2: DATA TARGET & REFERENSI JAMAAH -->
+    <section id="view-data-jamaah" class="view-section hidden space-y-4">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-address-book text-emerald-700"></i> Master Target & Kapasitas Kelompok
+          </h2>
+          <p class="text-xs text-slate-500">Target kuota peserta per kategori usia (Caberawit, Pra Remaja, Remaja, Bapak, Ibu).</p>
+        </div>
+        <div class="w-full sm:w-auto">
+          <select id="filter-jamaah-desa" onchange="renderMasterTargetTable()" class="w-full sm:w-48 border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold bg-white">
+            <option value="ALL">Semua Desa</option>
+            <option value="Desa 1">Desa 1</option>
+            <option value="Desa 2">Desa 2</option>
+            <option value="Desa 3">Desa 3</option>
+            <option value="Desa 4">Desa 4</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-600">
-            <thead class="bg-slate-100 border-b border-slate-200 font-bold text-slate-700 uppercase">
+          <table class="w-full text-xs text-left text-slate-600">
+            <thead class="text-[11px] text-slate-700 uppercase bg-slate-100 border-b border-slate-200">
               <tr>
-                <th class="p-3">Tanggal</th>
-                <th class="p-3">Kelompok & Desa</th>
-                <th class="p-3">Agenda Sapaan</th>
-                <th class="p-3">Petugas / Tim</th>
-                <th class="p-3">Catatan Hasil & Solusi</th>
+                <th class="px-3 py-3 text-center">ID</th>
+                <th class="px-4 py-3">Desa</th>
+                <th class="px-4 py-3">Nama Kelompok</th>
+                <th class="px-3 py-3 text-center">Caberawit</th>
+                <th class="px-3 py-3 text-center">Pra Remaja</th>
+                <th class="px-3 py-3 text-center">Remaja</th>
+                <th class="px-3 py-3 text-center">Bapak-Bapak</th>
+                <th class="px-3 py-3 text-center">Ibu-Ibu</th>
+                <th class="px-3 py-3 text-center font-bold text-emerald-800">Total Target</th>
               </tr>
             </thead>
-            <tbody id="table-sapaan-body" class="divide-y divide-slate-100"></tbody>
+            <tbody id="table-target-body" class="divide-y divide-slate-100"></tbody>
           </table>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- SUB-TAB 3: Form Input Sapaan Baru (Super Admin) -->
-    <div id="tab-sapaan-input" class="space-y-4 hidden max-w-xl mx-auto">
-      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <i class="fa-solid fa-pen-nib text-teal-600"></i> Catat Kunjungan Penyapaan Daerah
-        </h3>
-        <form onsubmit="handleSubmitSapaan(event)" class="space-y-4">
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Desa Binaan</label>
-            <select id="sapaan-form-desa" onchange="syncKelompokSapaanForm(this.value)" required class="w-full text-xs border rounded-lg p-2.5 bg-slate-50"></select>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Kelompok</label>
-            <select id="sapaan-form-kelompok" required class="w-full text-xs border rounded-lg p-2.5 bg-slate-50"></select>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Kunjungan</label>
-            <input type="date" id="sapaan-form-tanggal" required class="w-full text-xs border rounded-lg p-2.5">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Petugas / Tim Penyapa</label>
-            <input type="text" id="sapaan-form-petugas" required class="w-full text-xs border rounded-lg p-2.5" placeholder="Misal: Ustaz Ahmad & Tim Daerah">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Kegiatan Sapaan</label>
-            <input type="text" id="sapaan-form-agenda" required class="w-full text-xs border rounded-lg p-2.5" placeholder="Misal: Pembinaan Generus, Konsolidasi Pengurus">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan Hasil & Rekomendasi Solusi</label>
-            <textarea id="sapaan-form-catatan" rows="3" required class="w-full text-xs border rounded-lg p-2.5" placeholder="Tuliskan evaluasi, kendala, atau arahan khusus..."></textarea>
-          </div>
-          <button type="submit" id="btn-submit-sapaan" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow transition">
-            Simpan Laporan Penyapaan
-          </button>
-        </form>
-      </div>
-    </div>
-  </section>
+    <!-- VIEW 3: PRESENSI AGREGAT (INPUT CEPAT) -->
+    <section id="view-presensi" class="view-section hidden space-y-4">
+      <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+        <div class="border-b pb-4">
+          <h2 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-clipboard-user text-teal-600"></i> Input Presensi Agregat
+          </h2>
+          <p class="text-xs text-slate-500 mt-1">Input kuantitas kehadiran per kelompok pada agenda kegiatan yang aktif.</p>
+        </div>
 
-  <!-- VIEW 4: INPUT PRESENSI AGREGAT (ADMIN KELOMPOK) -->
-  <section id="view-presensi" class="view-section hidden space-y-4 max-w-4xl mx-auto">
-    <div id="presensi-auth-warning" class="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center space-y-2">
-      <i class="fa-solid fa-lock text-3xl text-amber-500 mb-1"></i>
-      <h3 class="text-sm font-bold text-amber-900">Akses Terkunci</h3>
-      <p class="text-xs text-amber-700">Form pengisian presensi agregat hanya dapat diisi oleh <strong>Admin Kelompok</strong> untuk kelompok yang menjadi tanggung jawabnya. Silakan masuk melalui tombol <strong>Masuk Akun</strong> di kanan atas.</p>
-    </div>
-
-    <div id="presensi-form-box" class="hidden bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-      <div class="border-b pb-3">
-        <h2 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-clipboard-user text-emerald-700"></i> Form Presensi Agregat 5 Kategori Usia
-        </h2>
-        <p class="text-xs text-slate-500 mt-0.5">Input jumlah kehadiran per kategori usia jamaah pada kegiatan aktif.</p>
-      </div>
-
-      <form onsubmit="handleSubmitPresensiAgregat(event)" class="space-y-6">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">Kegiatan Aktif</label>
-            <select id="presensi-input-kegiatan" required class="w-full text-xs border rounded-lg p-2.5 bg-slate-50 font-semibold"></select>
+            <select id="presensi-kegiatan-select" class="w-full border rounded-lg px-3 py-2 text-xs bg-slate-50 font-bold text-slate-700"></select>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Kelompok Anda</label>
-            <input type="text" id="presensi-input-kelompok-locked" readonly class="w-full text-xs border rounded-lg p-2.5 bg-slate-100 font-semibold text-slate-700">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Desa</label>
+            <select id="presensi-desa-select" onchange="handlePresensiDesaChange()" class="w-full border rounded-lg px-3 py-2 text-xs bg-white font-semibold text-slate-700"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Kelompok</label>
+            <select id="presensi-kelompok-select" onchange="handlePresensiKelompokChange()" class="w-full border rounded-lg px-3 py-2 text-xs bg-white font-semibold text-slate-700"></select>
           </div>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr class="bg-slate-100 border-y text-slate-700 font-bold uppercase">
-                <th class="py-3 px-3">Kategori Usia</th>
-                <th class="py-3 px-2 text-center text-emerald-700">Hadir</th>
-                <th class="py-3 px-2 text-center text-amber-700">Izin</th>
-                <th class="py-3 px-2 text-center text-blue-700">Sakit</th>
-                <th class="py-3 px-2 text-center text-rose-700">Alpa</th>
-                <th class="py-3 px-2 text-center">Target Kuota</th>
+        <div class="overflow-x-auto pt-2">
+          <table class="w-full text-xs text-left border rounded-lg overflow-hidden">
+            <thead class="bg-slate-100 text-slate-700 uppercase text-[11px] border-b">
+              <tr>
+                <th class="px-3 py-2.5">Kategori Usia</th>
+                <th class="px-3 py-2.5 text-center w-24">Target Rujukan</th>
+                <th class="px-3 py-2.5 text-center w-28 text-emerald-700">Hadir</th>
+                <th class="px-3 py-2.5 text-center w-28 text-amber-700">Izin</th>
+                <th class="px-3 py-2.5 text-center w-28 text-sky-700">Sakit</th>
+                <th class="px-3 py-2.5 text-center w-28 text-rose-700">Alpa</th>
               </tr>
             </thead>
-            <tbody id="presensi-agregat-rows" class="divide-y divide-slate-100"></tbody>
+            <tbody id="presensi-input-tbody" class="divide-y divide-slate-200 bg-white"></tbody>
           </table>
         </div>
 
-        <button type="submit" id="btn-submit-presensi" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-md transition flex items-center justify-center space-x-2">
-          <i class="fa-solid fa-floppy-disk"></i>
-          <span>Kirim Rekapitulasi Presensi</span>
+        <div class="flex justify-end pt-3">
+          <button id="btn-submit-presensi" onclick="submitPresensiAgregat()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Simpan Rekap Kehadiran
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: MATRIKS STATUS PRESENSI -->
+    <section id="view-status-presensi" class="view-section hidden space-y-4">
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-table-cells text-teal-600"></i> Matriks Kelengkapan Presensi
+          </h2>
+          <p class="text-xs text-slate-500">Monitor status pelaporan presensi 44 kelompok secara visual per desa.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <select id="matrix-kegiatan-filter" onchange="renderStatusMatrix()" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white font-semibold text-slate-700"></select>
+          <select id="matrix-desa-filter" onchange="renderStatusMatrix()" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white font-semibold text-slate-700">
+            <option value="ALL">Semua Desa</option>
+            <option value="Desa 1">Desa 1</option>
+            <option value="Desa 2">Desa 2</option>
+            <option value="Desa 3">Desa 3</option>
+            <option value="Desa 4">Desa 4</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="matrix-desa-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </section>
+
+    <!-- VIEW 5: PENYAPAAN DAERAH -->
+    <section id="view-penyapaan" class="view-section hidden space-y-5">
+      <div class="flex items-center space-x-1.5 border-b border-slate-200 pb-2 overflow-x-auto no-scrollbar">
+        <button onclick="switchPenyapaanSubTab('status-peta')" class="subnav-btn active px-3.5 py-2 rounded-xl text-xs font-semibold transition-all" id="subtab-btn-status-peta">
+          <i class="fa-solid fa-map-location-dot mr-1"></i> Status & Pemetaan
+        </button>
+        <button onclick="switchPenyapaanSubTab('rekap-riwayat')" class="subnav-btn px-3.5 py-2 rounded-xl text-xs font-semibold transition-all" id="subtab-btn-rekap-riwayat">
+          <i class="fa-solid fa-timeline mr-1"></i> Riwayat & Agenda
+        </button>
+        <button onclick="switchPenyapaanSubTab('input-sapaan')" class="subnav-btn admin-super-only hidden px-3.5 py-2 rounded-xl text-xs font-semibold transition-all" id="subtab-btn-input-sapaan">
+          <i class="fa-solid fa-square-plus mr-1"></i> Catat Sapaan Baru
+        </button>
+      </div>
+
+      <!-- SUB-TAB 1 -->
+      <div id="subtab-status-peta" class="space-y-4">
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+            <h3 class="text-xs sm:text-sm font-bold text-amber-900 uppercase tracking-wide">
+              Prioritas Rekomendasi Penyapaan Daerah (Frekuensi Terendah Tiap Desa)
+            </h3>
+          </div>
+          <div id="rekomendasi-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 mt-3"></div>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 pt-2">
+          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Pemetaan 44 Kelompok per Desa</h4>
+          <div class="flex items-center space-x-1">
+            <button onclick="filterPetaCards('all')" class="px-2.5 py-1 text-[11px] rounded bg-white border border-slate-300 font-semibold text-slate-600 hover:bg-slate-100">Semua</button>
+            <button onclick="filterPetaCards('sudah')" class="px-2.5 py-1 text-[11px] rounded bg-emerald-50 border border-emerald-300 font-semibold text-emerald-700 hover:bg-emerald-100">Sudah Disapa</button>
+            <button onclick="filterPetaCards('belum')" class="px-2.5 py-1 text-[11px] rounded bg-rose-50 border border-rose-300 font-semibold text-rose-700 hover:bg-rose-100">Belum Disapa</button>
+          </div>
+        </div>
+
+        <div id="peta-desa-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      </div>
+
+      <!-- SUB-TAB 2 -->
+      <div id="subtab-rekap-riwayat" class="hidden space-y-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between gap-3">
+          <input type="text" id="search-riwayat" oninput="renderRiwayatPenyapaanTable()" placeholder="Cari petugas, agenda, atau kelompok..." class="border rounded-lg px-3 py-1.5 text-xs w-full sm:w-72">
+          <select id="filter-riwayat-desa" onchange="renderRiwayatPenyapaanTable()" class="border rounded-lg px-3 py-1.5 text-xs bg-white font-semibold">
+            <option value="ALL">Semua Desa</option>
+            <option value="Desa 1">Desa 1</option>
+            <option value="Desa 2">Desa 2</option>
+            <option value="Desa 3">Desa 3</option>
+            <option value="Desa 4">Desa 4</option>
+          </select>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left text-slate-600">
+              <thead class="text-[11px] text-slate-700 uppercase bg-slate-100 border-b border-slate-200">
+                <tr>
+                  <th class="px-3 py-3">Tanggal</th>
+                  <th class="px-3 py-3">Desa</th>
+                  <th class="px-3 py-3">Kelompok</th>
+                  <th class="px-3 py-3">Agenda Pembinaan</th>
+                  <th class="px-3 py-3">Petugas</th>
+                  <th class="px-4 py-3">Catatan / Solusi</th>
+                </tr>
+              </thead>
+              <tbody id="table-riwayat-sapaan-body" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 3 -->
+      <div id="subtab-input-sapaan" class="hidden">
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm max-w-2xl mx-auto space-y-4">
+          <h3 class="text-sm font-bold text-slate-800 border-b pb-2 uppercase tracking-wide">
+            Form Laporan Kunjungan Pembinaan Daerah
+          </h3>
+          <form id="form-penyapaan" onsubmit="handlePenyapaanSubmit(event)" class="space-y-3.5 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold mb-1">Pilih Desa</label>
+                <select id="sapaan-desa-select" onchange="handleSapaanDesaChange()" required class="w-full border rounded-lg px-3 py-2 bg-white"></select>
+              </div>
+              <div>
+                <label class="block font-semibold mb-1">Pilih Kelompok Sasaran</label>
+                <select id="sapaan-kelompok-select" required class="w-full border rounded-lg px-3 py-2 bg-white"></select>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold mb-1">Tanggal Kunjungan</label>
+                <input type="date" id="sapaan-tanggal" required class="w-full border rounded-lg px-3 py-2">
+              </div>
+              <div>
+                <label class="block font-semibold mb-1">Nama Petugas / Tim</label>
+                <input type="text" id="sapaan-petugas" required placeholder="Nama Pembina Daerah" class="w-full border rounded-lg px-3 py-2">
+              </div>
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">Agenda / Jenis Pembinaan</label>
+              <input type="text" id="sapaan-agenda" required placeholder="Misal: Evaluasi Pra Remaja & Remaja" class="w-full border rounded-lg px-3 py-2">
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">Catatan Temuan & Solusi</label>
+              <textarea id="sapaan-catatan" rows="3" required placeholder="Catat kendala dan hasil arahan..." class="w-full border rounded-lg px-3 py-2"></textarea>
+            </div>
+            <div class="flex justify-end pt-2">
+              <button type="submit" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-md transition-all">
+                Kirim Laporan Penyapaan
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 6: MANAJEMEN SISTEM -->
+    <section id="view-manajemen" class="view-section hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <h3 class="text-sm font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+            <i class="fa-solid fa-calendar-plus text-emerald-600"></i> Buka Sesi Kegiatan Presensi
+          </h3>
+          <form onsubmit="handleCreateKegiatan(event)" class="space-y-3 text-xs">
+            <div>
+              <label class="block font-semibold mb-1">Nama Kegiatan</label>
+              <input type="text" name="namaKegiatan" required placeholder="Misal: Evaluasi Akhir Semester" class="w-full border rounded-lg px-3 py-2">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block font-semibold mb-1">Tanggal Mulai</label>
+                <input type="date" name="tanggalMulai" required class="w-full border rounded-lg px-3 py-2">
+              </div>
+              <div>
+                <label class="block font-semibold mb-1">Tanggal Selesai</label>
+                <input type="date" name="tanggalSelesai" required class="w-full border rounded-lg px-3 py-2">
+              </div>
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">Target Sasaran Usia</label>
+              <input type="text" name="targetUsia" value="Semua Kategori Usia" required class="w-full border rounded-lg px-3 py-2">
+            </div>
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg transition-all">
+              Buka Sesi Presensi
+            </button>
+          </form>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <h3 class="text-sm font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+            <i class="fa-solid fa-user-shield text-teal-600"></i> Registrasi Akun Admin (RBAC)
+          </h3>
+          <form onsubmit="handleCreateUser(event)" class="space-y-3 text-xs">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block font-semibold mb-1">Username</label>
+                <input type="text" name="username" required class="w-full border rounded-lg px-3 py-2">
+              </div>
+              <div>
+                <label class="block font-semibold mb-1">Password</label>
+                <input type="password" name="password" required class="w-full border rounded-lg px-3 py-2">
+              </div>
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">Nama Lengkap</label>
+              <input type="text" name="nama" required class="w-full border rounded-lg px-3 py-2">
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block font-semibold mb-1">Role</label>
+                <select name="role" id="new-user-role" onchange="handleNewUserRoleChange()" class="w-full border rounded-lg px-2 py-2 bg-white">
+                  <option value="Admin Kelompok">Admin Kelompok</option>
+                  <option value="Admin Desa">Admin Desa</option>
+                  <option value="Super Admin">Super Admin</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-semibold mb-1">Scope Desa</label>
+                <select name="scopeDesa" id="new-user-desa" onchange="handleNewUserDesaChange()" class="w-full border rounded-lg px-2 py-2 bg-white"></select>
+              </div>
+              <div>
+                <label class="block font-semibold mb-1">Scope Kelompok</label>
+                <select name="scopeKelompok" id="new-user-kelompok" class="w-full border rounded-lg px-2 py-2 bg-white"></select>
+              </div>
+            </div>
+            <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg transition-all">
+              Daftarkan Admin
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL LOGIN -->
+  <div id="modal-login" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-lock text-emerald-700"></i> Autentikasi Pengguna
+        </h3>
+        <button onclick="closeModal('modal-login')" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <form onsubmit="handleLoginSubmit(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">Username</label>
+          <input type="text" id="login-username" required placeholder="Masukkan username..." class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">Password</label>
+          <input type="password" id="login-password" required placeholder="••••••••" class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <button type="submit" id="btn-submit-login" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl shadow-md transition-all mt-2">
+          Masuk ke Sistem
         </button>
       </form>
     </div>
-  </section>
-
-  <!-- VIEW 5: STATISTIK KEHADIRAN (CHART.JS) -->
-  <section id="view-rekapitulasi" class="view-section hidden space-y-4">
-    <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-chart-line text-teal-600"></i> Statistik Tren Kehadiran Agregat
-        </h2>
-        <p class="text-xs text-slate-500 mt-1">Grafik persentase capaian presensi per kategori usia jamaah lintas kegiatan.</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <select id="chart-filter-desa" onchange="renderCharts()" class="text-xs border rounded-lg px-3 py-2 bg-slate-50 font-semibold">
-          <option value="ALL">Semua Desa (Agregat)</option>
-          <option value="Desa 1">Desa 1</option>
-          <option value="Desa 2">Desa 2</option>
-          <option value="Desa 3">Desa 3</option>
-          <option value="Desa 4">Desa 4</option>
-        </select>
-      </div>
-    </div>
-    <div id="charts-wrapper" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-  </section>
-
-  <!-- VIEW 6: ADMIN CONTROL (SUPER ADMIN) -->
-  <section id="view-admin" class="view-section hidden space-y-6">
-    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-      <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-        <i class="fa-solid fa-sliders text-teal-600"></i> Panel Manajemen Super Admin
-      </h2>
-      <p class="text-xs text-slate-500 mt-0.5">Konfigurasi pembukaan agenda sesi kegiatan dan pendaftaran hak akses admin baru.</p>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <!-- Buka Kegiatan Baru -->
-      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-          <i class="fa-solid fa-calendar-plus text-emerald-600"></i> Buka Agenda Kegiatan Presensi
-        </h3>
-        <form onsubmit="handleCreateKegiatan(event)" class="space-y-3">
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Kegiatan</label>
-            <input type="text" id="admin-kegiatan-nama" required class="w-full text-xs border rounded-lg p-2.5" placeholder="Misal: Pengajian Rutin Daerah">
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Mulai</label>
-              <input type="date" id="admin-kegiatan-mulai" required class="w-full text-xs border rounded-lg p-2.5">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Selesai</label>
-              <input type="date" id="admin-kegiatan-selesai" required class="w-full text-xs border rounded-lg p-2.5">
-            </div>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Target Usia</label>
-            <input type="text" id="admin-kegiatan-target" required class="w-full text-xs border rounded-lg p-2.5" value="Semua Kategori Usia">
-          </div>
-          <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow transition">
-            Buka Sesi Kegiatan
-          </button>
-        </form>
-      </div>
-
-      <!-- Tambah Pengguna Baru -->
-      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-          <i class="fa-solid fa-user-shield text-teal-600"></i> Registrasi Akun Admin
-        </h3>
-        <form onsubmit="handleCreateUser(event)" class="space-y-3">
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Petugas</label>
-            <input type="text" id="admin-user-nama" required class="w-full text-xs border rounded-lg p-2.5">
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Username</label>
-              <input type="text" id="admin-user-username" required class="w-full text-xs border rounded-lg p-2.5">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-              <input type="password" id="admin-user-password" required class="w-full text-xs border rounded-lg p-2.5">
-            </div>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Peran (Role)</label>
-            <select id="admin-user-role" onchange="adjustScopeAdminInputs(this.value)" required class="w-full text-xs border rounded-lg p-2.5 bg-slate-50">
-              <option value="Admin Kelompok">Admin Kelompok</option>
-              <option value="Admin Desa">Admin Desa</option>
-              <option value="Super Admin">Super Admin</option>
-            </select>
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Scope Desa</label>
-              <input type="text" id="admin-user-scope-desa" class="w-full text-xs border rounded-lg p-2.5" placeholder="Desa 1 / ALL">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Scope Kelompok</label>
-              <input type="text" id="admin-user-scope-kelompok" class="w-full text-xs border rounded-lg p-2.5" placeholder="KLP-001 / ALL">
-            </div>
-          </div>
-          <button type="submit" class="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs rounded-xl shadow transition">
-            Simpan Akun Admin
-          </button>
-        </form>
-      </div>
-    </div>
-  </section>
-</main>
-
-<!-- MODAL LOGIN ADMIN -->
-<div id="modal-login" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-md p-5 sm:p-6 space-y-4 animate-scaleUp">
-    <div class="flex justify-between items-center border-b pb-3">
-      <h3 class="text-base sm:text-lg font-bold text-slate-800 flex items-center">
-        <i class="fa-solid fa-lock text-emerald-700 mr-2"></i>Login Pengguna Terdaftar
-      </h3>
-      <button onclick="closeModal('modal-login')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
-    </div>
-    <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
-      <div>
-        <label class="block text-xs font-semibold text-slate-600 mb-1">Username</label>
-        <input type="text" id="login-username" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="Username akun">
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-        <input type="password" id="login-password" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="••••••••">
-      </div>
-      <div class="flex justify-end space-x-2 pt-2">
-        <button type="button" onclick="closeModal('modal-login')" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
-        <button type="submit" id="btn-submit-login" class="px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm">Masuk</button>
-      </div>
-    </form>
   </div>
-</div>
 
-<!-- MODAL FORM MASTER JAMAAH -->
-<div id="modal-jamaah" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5 sm:p-6 space-y-4 animate-scaleUp">
-    <div class="flex justify-between items-center border-b pb-3">
-      <h3 class="text-base font-bold text-slate-800 flex items-center">
-        <i class="fa-solid fa-user-pen text-emerald-700 mr-2"></i>Data Profil Jamaah
-      </h3>
-      <button onclick="closeModal('modal-jamaah')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+  <!-- FOOTER -->
+  <footer class="bg-slate-900 text-slate-400 text-xs py-5 border-t border-slate-800 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 text-center space-y-1">
+      <p>&copy; 2026 Pembinaan Daerah. Sistem Presensi Agregat Terpadu.</p>
+      <p class="text-slate-500 text-[11px]">Serverless Architecture via Google Apps Script & GitHub Pages</p>
     </div>
-    <form onsubmit="handleSaveJamaahSubmit(event)" class="space-y-3 text-xs">
-      <input type="hidden" id="form-jamaah-id">
-      <div>
-        <label class="block font-semibold mb-1">Nama Lengkap</label>
-        <input type="text" id="form-jamaah-nama" required class="w-full border rounded-lg p-2">
-      </div>
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block font-semibold mb-1">Tanggal Lahir</label>
-          <input type="date" id="form-jamaah-tgl" required onchange="calcFormJamaahUsia()" class="w-full border rounded-lg p-2">
-        </div>
-        <div>
-          <label class="block font-semibold mb-1">Usia (Tahun)</label>
-          <input type="number" id="form-jamaah-usia" readonly class="w-full border rounded-lg p-2 bg-slate-100 font-bold">
-        </div>
-      </div>
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block font-semibold mb-1">Gender</label>
-          <select id="form-jamaah-gender" class="w-full border rounded-lg p-2 bg-slate-50">
-            <option value="Laki-laki">Laki-laki</option>
-            <option value="Perempuan">Perempuan</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-semibold mb-1">Kategori Usia</label>
-          <select id="form-jamaah-kategori" class="w-full border rounded-lg p-2 bg-slate-50">
-            <option value="Caberawit">Caberawit</option>
-            <option value="Pra Remaja">Pra Remaja</option>
-            <option value="REMAJA">REMAJA</option>
-            <option value="Bapak-bapak">Bapak-bapak</option>
-            <option value="Ibu-ibu">Ibu-ibu</option>
-          </select>
-        </div>
-      </div>
-      <div>
-        <label class="block font-semibold mb-1">Kelompok</label>
-        <select id="form-jamaah-kelompok" class="w-full border rounded-lg p-2 bg-slate-50"></select>
-      </div>
-      <div class="flex justify-end space-x-2 pt-3 border-t">
-        <button type="button" onclick="closeModal('modal-jamaah')" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
-        <button type="submit" class="px-5 py-2 text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg font-semibold">Simpan</button>
-      </div>
-    </form>
-  </div>
-</div>
+  </footer>
 
-<!-- FOOTER -->
-<footer class="bg-slate-800 text-slate-400 text-[11px] sm:text-xs py-5 border-t border-slate-700 mt-auto pb-safe">
-  <div class="max-w-7xl mx-auto px-4 text-center space-y-1">
-    <p>&copy; 2026 Sistem Monitoring Jamaah Karanganyar Barat. Seluruh hak cipta dilindungi.</p>
-    <p class="text-slate-500">Arsitektur GitHub Pages SPA & REST API Sementara</p>
-  </div>
-</footer>
-
-<!-- SCRIPT UTAMA -->
-<script src="app.js"></script>
+  <!-- Script Logic -->
+  <script src="script.js"></script>
 </body>
 </html>
