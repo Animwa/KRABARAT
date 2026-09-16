@@ -6,13 +6,19 @@
   border: 3px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   border-top-color: #ffffff;
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.15rem;
+  height: 1.15rem;
   animation: spin 0.8s linear infinite;
   display: inline-block;
 }
 
-.tab-active {
+.nav-link-active {
+  color: #1d4ed8 !important;
+  border-bottom: 2px solid #2563eb;
+  font-weight: 600;
+}
+
+.tab-sapaan-active {
   border-bottom: 2px solid #2563eb;
   color: #1d4ed8 !important;
   font-weight: 600;
