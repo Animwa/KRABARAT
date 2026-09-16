@@ -152,23 +152,42 @@
     </div>
   </section>
 
-  <!-- VIEW 2: INVENTARIS -->
+  <!-- VIEW 2: INVENTARIS (DENGAN FILTER DESA & KELOMPOK) -->
   <section id="view-inventaris" class="view-section hidden space-y-4">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <div>
         <h2 class="text-lg sm:text-xl font-bold text-slate-800 flex items-center"><i class="fa-solid fa-boxes-packing text-emerald-700 mr-2"></i>Inventaris Alat & Barang</h2>
-        <p class="text-xs text-slate-500 hidden sm:block">Data aset dan peralatan operasional.</p>
+        <p class="text-xs text-slate-500 hidden sm:block">Data aset dan peralatan operasional wilayah binaan.</p>
       </div>
       <button onclick="openFormInventaris()" class="admin-only hidden w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition-all flex items-center justify-center space-x-1.5">
         <i class="fa-solid fa-plus"></i><span>Tambah Barang</span>
       </button>
     </div>
+
+    <!-- Filter Desa & Kelompok Inventaris -->
+    <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-3">
+      <div class="w-full sm:w-56">
+        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Filter Desa</label>
+        <select id="inventaris-filter-desa" onchange="onInventarisDesaFilterChange()" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white font-semibold">
+          <option value="Semua">Semua Desa</option>
+        </select>
+      </div>
+      <div class="w-full sm:w-56">
+        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Filter Kelompok</label>
+        <select id="inventaris-filter-kelompok" onchange="renderInventaris()" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white font-semibold">
+          <option value="Semua">Semua Kelompok</option>
+        </select>
+      </div>
+    </div>
+
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-xs sm:text-sm text-left text-slate-600">
-          <thead class="text-[11px] sm:text-xs text-slate-700 uppercase bg-slate-100 border-b border-slate-200">
+          <thead class="text-[11px] sm:text-xs text-slate-700 uppercase bg-slate-100 border-b border-slate-200 whitespace-nowrap">
             <tr>
               <th class="px-4 sm:px-6 py-3 font-bold">Nama Barang</th>
+              <th class="px-3 sm:px-4 py-3 font-bold">Desa</th>
+              <th class="px-3 sm:px-4 py-3 font-bold">Kelompok</th>
               <th class="px-4 sm:px-6 py-3 font-bold">Jumlah</th>
               <th class="px-4 sm:px-6 py-3 font-bold">Kondisi</th>
               <th class="px-4 sm:px-6 py-3 font-bold">Tgl Masuk</th>
@@ -187,14 +206,14 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <div>
         <h2 class="text-lg sm:text-xl font-bold text-slate-800 flex items-center"><i class="fa-solid fa-users text-emerald-700 mr-2"></i>Database Jamaah</h2>
-        <p class="text-xs text-slate-500 hidden sm:block">Data registrasi jamaah dengan filter desa dan kelompok binaan.</p>
+        <p class="text-xs text-slate-500 hidden sm:block">Data registrasi seluruh jamaah beserta pengelompokan wilayah dan usia.</p>
       </div>
       <button onclick="openFormJamaah()" class="admin-only hidden w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition-all flex items-center justify-center space-x-1.5">
         <i class="fa-solid fa-user-plus"></i><span>Tambah Jamaah</span>
       </button>
     </div>
 
-    <!-- Filter Pilihan Desa & Kelompok -->
+    <!-- Filter Pilihan Desa & Kelompok Jamaah -->
     <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-3">
       <div class="w-full sm:w-56">
         <label class="block text-[11px] font-semibold text-slate-600 mb-1">Filter Desa</label>
@@ -237,7 +256,7 @@
     </div>
   </section>
 
-  <!-- VIEW 4: PRESENSI KELOMPOK USIA -->
+  <!-- VIEW 4: PRESENSI KELOMPOK USIA (DENGAN FILTER DESA & KELOMPOK BINAAN) -->
   <section id="view-kelompok" class="view-section hidden space-y-4">
     <div class="bg-gradient-to-br from-emerald-800 via-emerald-900 to-teal-900 rounded-2xl p-4 sm:p-5 text-white shadow-md">
       <h3 class="text-xs sm:text-sm font-semibold uppercase tracking-wider text-emerald-200 mb-3 flex items-center" id="rekap-mingguan-title">
@@ -263,9 +282,22 @@
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-4">
         <div>
           <h3 class="text-base sm:text-lg font-bold text-slate-800" id="presensi-class-title">Presensi Kelas</h3>
-          <p class="text-xs text-slate-500">Tentukan tanggal, jenis pengajian, dan tandai daftar kehadiran jamaah.</p>
+          <p class="text-xs text-slate-500">Tentukan wilayah binaan, tanggal, dan rekap daftar kehadiran jamaah.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
+          <!-- Filter Wilayah Khusus Presensi -->
+          <div class="w-36">
+            <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Desa</label>
+            <select id="presensi-filter-desa" onchange="onPresensiDesaFilterChange()" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white font-semibold">
+              <option value="Semua">Semua Desa</option>
+            </select>
+          </div>
+          <div class="w-40">
+            <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Kelompok Binaan</label>
+            <select id="presensi-filter-kelompok" onchange="renderPresensiTable()" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white font-semibold">
+              <option value="Semua">Semua Kelompok</option>
+            </select>
+          </div>
           <div>
             <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Tanggal</label>
             <input type="date" id="presensi-date" class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" onchange="updateDayLabel()">
@@ -274,9 +306,9 @@
             <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Hari</label>
             <input type="text" id="presensi-day" readonly class="w-full border border-slate-200 bg-slate-100 rounded-lg px-3 py-1.5 text-xs sm:text-sm text-slate-600 font-medium text-center">
           </div>
-          <div class="grow sm:w-56">
-            <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Jenis Pengajian / Kegiatan</label>
-            <input type="text" id="presensi-jenis-kegiatan" placeholder="Misal: Rutin / Kajian Kitab" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+          <div class="grow sm:w-52">
+            <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Jenis Kegiatan</label>
+            <input type="text" id="presensi-jenis-kegiatan" placeholder="Misal: Rutin / Kajian" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
           </div>
         </div>
       </div>
@@ -341,21 +373,33 @@
     </div>
   </section>
 
-  <!-- VIEW 5: MONITORING KEHADIRAN -->
+  <!-- VIEW 5: MONITORING KEHADIRAN (DENGAN FILTER DESA & KELOMPOK BINAAN) -->
   <section id="view-monitoring" class="view-section hidden space-y-4 pb-12">
     <div class="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div>
         <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
           <i class="fa-solid fa-clipboard-check text-teal-600"></i> Monitoring Kehadiran Jamaah
         </h2>
-        <p class="text-xs text-slate-500 mt-1">Rekap frekuensi kehadiran, alasan izin, keaktifan ASAD, dan pencapaian 29 Karakter Caberawit.</p>
+        <p class="text-xs text-slate-500 mt-1">Rekap frekuensi kehadiran, alasan izin, keaktifan ASAD, dan pencapaian 29 Karakter.</p>
       </div>
 
       <div class="flex flex-wrap items-end gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200 shrink-0 w-full md:w-auto">
         <div>
-          <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Kelompok / Kelas</label>
-          <select id="monitoring-filter-kelompok" onchange="renderMonitoringTable()" class="border border-slate-300 rounded-lg px-2.5 py-1 text-xs bg-white text-slate-700 font-semibold focus:ring-1 focus:ring-teal-500">
+          <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Filter Desa</label>
+          <select id="monitoring-filter-desa" onchange="onMonitoringDesaFilterChange()" class="border border-slate-300 rounded-lg px-2.5 py-1 text-xs bg-white text-slate-700 font-semibold focus:ring-1 focus:ring-teal-500">
+            <option value="Semua">Semua Desa</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Filter Kelompok</label>
+          <select id="monitoring-filter-kelompok-binaan" onchange="renderMonitoringTable()" class="border border-slate-300 rounded-lg px-2.5 py-1 text-xs bg-white text-slate-700 font-semibold focus:ring-1 focus:ring-teal-500">
             <option value="Semua">Semua Kelompok</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Kelas Usia</label>
+          <select id="monitoring-filter-kelompok" onchange="renderMonitoringTable()" class="border border-slate-300 rounded-lg px-2.5 py-1 text-xs bg-white text-slate-700 font-semibold focus:ring-1 focus:ring-teal-500">
+            <option value="Semua">Semua Kelas Usia</option>
             <optgroup label="Caberawit">
               <option value="Caberawit">Semua Caberawit</option>
               <option value="Caberawit A">Caberawit A</option>
@@ -396,6 +440,8 @@
             <tr>
               <th class="px-3 py-3 text-center w-10">NO</th>
               <th class="px-4 py-3 font-bold">NAMA JAMAAH</th>
+              <th class="px-3 py-3">DESA</th>
+              <th class="px-3 py-3">KELOMPOK BINAAN</th>
               <th class="px-3 py-3">KELOMPOK / KELAS</th>
               <th class="px-2 py-3 text-center text-emerald-700 font-bold">HADIR</th>
               <th class="px-2 py-3 text-center text-amber-700 font-bold">IZIN</th>
@@ -418,7 +464,7 @@
         <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
           <i class="fa-solid fa-handshake-angle text-teal-600"></i> Monitoring & Log Penyapaan Kegiatan
         </h2>
-        <p class="text-xs text-slate-500 mt-1">Pemetaan pembinaan wilayah, rekomendasi sapaan minimum, dan riwayat kunjungan.</p>
+        <p class="text-xs text-slate-500 mt-1">Pemetaan pembinaan wilayah, prioritas kelompok terkunjung minim, dan pencatatan sapaan.</p>
       </div>
       <div class="flex items-center space-x-1.5">
         <button onclick="switchPenyapaanSubTab('status-peta')" class="subnav-btn active px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all" id="subtab-btn-status-peta">
@@ -433,7 +479,7 @@
       </div>
     </div>
 
-    <!-- SUB-TAB 1: PEMETAAN & REKOMENDASI -->
+    <!-- SUB-TAB 1: STATUS PEMETAAN & REKOMENDASI -->
     <div id="subtab-status-peta" class="space-y-4">
       <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 sm:p-5 shadow-sm">
         <div class="flex items-center gap-2 mb-2">
@@ -457,7 +503,7 @@
       <div id="peta-desa-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </div>
 
-    <!-- SUB-TAB 2: RIWAYAT PENYAPAAN -->
+    <!-- SUB-TAB 2: RIWAYAT AGENDA PENYAPAAN -->
     <div id="subtab-rekap-riwayat" class="hidden space-y-4">
       <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between gap-3">
         <input type="text" id="search-riwayat" oninput="renderRiwayatPenyapaanTable()" placeholder="Cari petugas, agenda, atau kelompok..." class="border rounded-lg px-3 py-1.5 text-xs w-full sm:w-72">
@@ -485,7 +531,7 @@
       </div>
     </div>
 
-    <!-- SUB-TAB 3: INPUT SAPAAN BARU -->
+    <!-- SUB-TAB 3: FORM INPUT SAPAAN BARU -->
     <div id="subtab-input-sapaan" class="hidden">
       <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm max-w-2xl mx-auto space-y-4">
         <h3 class="text-sm font-bold text-slate-800 border-b pb-2 uppercase tracking-wide">
