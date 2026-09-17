@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // =========================================================================
-// SISTEM HAK AKSES ROLE-BASED ACCESS CONTROL (RBAC)
+// SISTEM HAK AKSES ROLE-BASED ACCESS CONTROL (RBAC) & LOGIN
 // =========================================================================
 
 function getAdminRole() {
@@ -53,12 +53,87 @@ function getAdminRole() {
 
 function isSuperOrDaerah() {
   const role = getAdminRole();
-  return role === "super admin" || role === "admin daerah" || role === "admin";
+  return role.includes("super") || role.includes("daerah") || role.includes("admin daerah");
 }
 
 function canWritePenyapaan() {
-  // Hanya Super Admin / Admin Daerah yang bisa mengubah/menyimpan data penyapaan
   return isSuperOrDaerah();
+}
+
+// Fungsi Login yang diperbaiki agar membaca input dengan tepat
+async function handleLogin(event) {
+  event.preventDefault();
+  const namaInput = document.getElementById("login-nama").value.trim();
+  const pinInput = document.getElementById("login-pin").value.trim();
+
+  if (!namaInput || !pinInput) {
+    alert("Nama dan PIN/Sandi wajib diisi!");
+    return;
+  }
+
+  showMessage("Sedang memproses login...", "info");
+
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "login",
+        username: namaInput,
+        password: pinInput
+      })
+    });
+    const json = await res.json();
+
+    if (json.success && json.admin) {
+      currentAdmin = json.admin;
+      sessionStorage.setItem("currentAdmin", JSON.stringify(currentAdmin));
+      closeModal("modal-login");
+      showMessage("Login berhasil! Selamat datang, " + currentAdmin.nama, "success");
+      updateAdminUI();
+      loadAllData();
+    } else {
+      alert("Gagal Login: " + (json.message || "Nama atau PIN salah."));
+      hideMessage();
+    }
+  } catch (err) {
+    console.error("Login Error:", err);
+    alert("Terjadi kesalahan jaringan saat mencoba login ke server.");
+    hideMessage();
+  }
+}
+
+function logoutAdmin() {
+  sessionStorage.removeItem("currentAdmin");
+  currentAdmin = null;
+  alert("Anda telah keluar (logout).");
+  window.location.reload();
+}
+
+function openLoginModal() {
+  const modal = document.getElementById("modal-login");
+  if (modal) modal.classList.remove("hidden");
+}
+
+function closeModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) modal.classList.add("hidden");
+}
+
+function showMessage(text, type) {
+  const msgBox = document.getElementById("status-message");
+  if (!msgBox) return;
+  msgBox.className = `mb-4 p-3.5 sm:p-4 rounded-xl font-medium text-xs sm:text-sm border shadow-sm flex items-center justify-between ${
+    type === "success" ? "bg-emerald-50 text-emerald-800 border-emerald-200" :
+    type === "error" ? "bg-rose-50 text-rose-800 border-rose-200" :
+    "bg-teal-50 text-teal-800 border-teal-200"
+  }`;
+  msgBox.innerHTML = `<span>${text}</span>`;
+  msgBox.classList.remove("hidden");
+}
+
+function hideMessage() {
+  const msgBox = document.getElementById("status-message");
+  if (msgBox) msgBox.classList.add("hidden");
 }
 
 function updateAdminUI() {
@@ -79,24 +154,20 @@ function updateAdminUI() {
       btnManage.classList.add("hidden");
     }
 
-    // Tampilkan tombol berkelas .admin-only jika sudah login
     document.querySelectorAll(".admin-only").forEach(el => {
-      // Jika butuh tulis dan bukan superadmin, sembunyikan aksi tulis spesifik
       el.classList.remove("hidden");
     });
 
-    // Otomatis kunci filter global berdasarkan Scope Admin Desa / Admin Kelompok
     const role = getAdminRole();
     const desaSelect = document.getElementById("global-filter-desa");
     const kelSelect = document.getElementById("global-filter-kelompok");
 
-    if (role === "admin desa" && desaSelect && currentAdmin.scopeDesa) {
+    if (role.includes("desa") && desaSelect && currentAdmin.scopeDesa) {
       desaSelect.value = currentAdmin.scopeDesa;
-      desaSelect.disabled = true; // Dikunci agar tidak bisa pindah desa lain
+      desaSelect.disabled = true;
       onGlobalDesaChange();
-    } else if (role === "admin kelompok" && currentAdmin.scopeKelompok) {
+    } else if (role.includes("kelompok") && currentAdmin.scopeKelompok) {
       const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
-      // Cari data kelompok berdasarkan ID (misal KLP-001) atau Nama
       const found = mk.find(m => 
         String(m.ID_Kelompok || "").trim().toLowerCase() === String(currentAdmin.scopeKelompok).trim().toLowerCase() ||
         String(m.Nama_Kelompok || "").trim().toLowerCase() === String(currentAdmin.scopeKelompok).trim().toLowerCase()
@@ -109,7 +180,7 @@ function updateAdminUI() {
         }
         if (kelSelect) {
           kelSelect.value = found.Nama_Kelompok;
-          kelSelect.disabled = true; // Dikunci pada kelompoknya saja
+          kelSelect.disabled = true;
         }
       }
     }
@@ -182,7 +253,7 @@ async function loadAllData() {
       try {
         await loadPenyapaanAnalytics();
         initGlobalWilayahFilters();
-        updateAdminUI(); // Terapkan pembatasan scope setelah data master siap
+        updateAdminUI();
         buildLocalPenyapaanState();
         renderAllViews();
       } catch (renderErr) {
@@ -358,10 +429,6 @@ function calculateAge(dobString) {
   return Math.abs(ageDate.getUTCFullYear() - 1970) + " Thn";
 }
 
-// =========================================================================
-// SISTEM FILTER WILAYAH GLOBAL DI NAVBAR
-// =========================================================================
-
 function getDesaByKelompok(namaKelompok) {
   if (!namaKelompok || namaKelompok === "-") return "-";
   const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
@@ -431,10 +498,6 @@ function refreshCurrentActiveView() {
   else if (currentActiveTab === "jamaah") renderJamaah();
   else if (currentActiveTab === "monitoring") renderMonitoringTable();
 }
-
-// =========================================================================
-// RENDERERS (PENGURUS, INVENTARIS, JAMAAH, PRESENSI)
-// =========================================================================
 
 function renderBerandaKegiatan() {
   const container = document.getElementById("kegiatan-cards-container");
@@ -1152,10 +1215,6 @@ function renderMonitoringTable() {
   }).join("");
 }
 
-// =========================================================================
-// MODUL PENYAPAAN (DENGAN PEMBATASAN AKSES READ-ONLY UNTUK DESA & KELOMPOK)
-// =========================================================================
-
 function buildLocalPenyapaanState() {
   const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
   const sapaanList = Array.isArray(appData.penyapaan) ? appData.penyapaan : [];
@@ -1211,9 +1270,8 @@ function calculateRekomendasi16Kelompok() {
 }
 
 function toggleLocalSapa(idKelompok, actionType) {
-  // Hanya Super Admin / Admin Daerah yang bisa mengubah status penyapaan
   if (!canWritePenyapaan()) {
-    alert("Akun Admin Desa / Admin Kelompok bersifat Read-Only dan tidak berwenang mengubah status penyapaan kegiatan!");
+    alert("Akun Admin Desa / Admin Kelompok bersifat Read-Only pada modul penyapaan!");
     renderPetaCards();
     return;
   }
@@ -1457,7 +1515,6 @@ function renderRiwayatPenyapaanTable() {
       <div id="riwayat-cards-grid-wrapper" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
     `;
     wrapper = document.getElementById("riwayat-cards-grid-wrapper");
-    populateSapaanSelectors();
   }
 
   const search = (document.getElementById("search-riwayat") ? document.getElementById("search-riwayat").value : "").toLowerCase().trim();
