@@ -424,7 +424,7 @@
     </div>
   </section>
 
-  <!-- VIEW 6: PENYAPAAN KEGIATAN -->
+ <!-- VIEW 6: PENYAPAAN KEGIATAN -->
   <section id="view-penyapaan" class="view-section hidden space-y-5 pb-12">
     <div class="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
@@ -440,13 +440,10 @@
         <button onclick="switchPenyapaanSubTab('rekap-riwayat')" class="subnav-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0" id="subtab-btn-rekap-riwayat">
           <i class="fa-solid fa-timeline mr-1"></i> Riwayat Sapaan
         </button>
-        <button onclick="switchPenyapaanSubTab('input-sapaan')" class="subnav-btn admin-only hidden px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0" id="subtab-btn-input-sapaan">
-          <i class="fa-solid fa-square-plus mr-1"></i> Catat Sapaan Manual
-        </button>
       </div>
     </div>
 
-    <!-- SUB-TAB 1: PEMETAAN & INPUT LANGSUNG (TANPA POPUP, TANPA BLOK 16 REKOMENDASI) -->
+    <!-- SUB-TAB 1: PEMETAAN & INPUT AGENDA LANGSUNG -->
     <div id="subtab-status-peta" class="space-y-4">
       <!-- Form Input Langsung Agenda Sapaan -->
       <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -475,7 +472,7 @@
 
       <!-- Filter Peta Status Kelompok -->
       <div class="flex items-center justify-between gap-2 pt-1">
-        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Daftar Kelompok Binaan</h4>
+        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Daftar Kelompok Binaan (Rekomendasi di Atas)</h4>
         <div class="flex items-center space-x-1">
           <button onclick="filterPetaCards('all')" id="peta-filter-all" class="px-2.5 py-1 text-[11px] rounded bg-teal-600 text-white font-semibold">Semua</button>
           <button onclick="filterPetaCards('sudah')" id="peta-filter-sudah" class="px-2.5 py-1 text-[11px] rounded bg-white border border-slate-300 font-semibold text-slate-600 hover:bg-slate-100">Sudah Disapa</button>
@@ -483,7 +480,7 @@
         </div>
       </div>
 
-      <!-- Container Grid 4 Desa (Tetap Menampilkan Seluruh Kelompok) -->
+      <!-- Container Grid 4 Desa -->
       <div id="peta-desa-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </div>
 
@@ -512,50 +509,6 @@
             <tbody id="table-riwayat-sapaan-body" class="divide-y divide-slate-100"></tbody>
           </table>
         </div>
-      </div>
-    </div>
-
-    <!-- SUB-TAB 3: FORM INPUT SAPAAN MANUAL -->
-    <div id="subtab-input-sapaan" class="hidden">
-      <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm max-w-2xl mx-auto space-y-4">
-        <h3 class="text-sm font-bold text-slate-800 border-b pb-2 uppercase tracking-wide">
-          Form Laporan Kunjungan Pembinaan / Sapaan Manual
-        </h3>
-        <form id="form-penyapaan" onsubmit="handlePenyapaanSubmit(event)" class="space-y-3.5 text-xs">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block font-semibold mb-1">Pilih Desa</label>
-              <select id="sapaan-desa-select" onchange="handleSapaanDesaChange()" required class="w-full border rounded-lg px-3 py-2 bg-white"></select>
-            </div>
-            <div>
-              <label class="block font-semibold mb-1">Pilih Kelompok Sasaran</label>
-              <select id="sapaan-kelompok-select" required class="w-full border rounded-lg px-3 py-2 bg-white"></select>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block font-semibold mb-1">Tanggal Kunjungan</label>
-              <input type="date" id="sapaan-tanggal" required class="w-full border rounded-lg px-3 py-2">
-            </div>
-            <div>
-              <label class="block font-semibold mb-1">Nama Petugas / Tim Sapaan</label>
-              <input type="text" id="sapaan-petugas" required placeholder="Nama Pembina" class="w-full border rounded-lg px-3 py-2">
-            </div>
-          </div>
-          <div>
-            <label class="block font-semibold mb-1">Agenda / Jenis Pembinaan Sapaan</label>
-            <input type="text" id="sapaan-agenda" required placeholder="Misal: Pembinaan Pra Remaja & Remaja" class="w-full border rounded-lg px-3 py-2">
-          </div>
-          <div>
-            <label class="block font-semibold mb-1">Catatan Hasil & Solusi</label>
-            <textarea id="sapaan-catatan" rows="3" required placeholder="Tuliskan kendala dan arahan solusi..." class="w-full border rounded-lg px-3 py-2"></textarea>
-          </div>
-          <div class="flex justify-end pt-2">
-            <button type="submit" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-md transition-all">
-              Kirim Laporan Penyapaan
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   </section>
