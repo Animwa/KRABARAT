@@ -151,7 +151,6 @@ function switchTab(tabName) {
   const classnav = document.getElementById("classnav-container");
   const filterSearchBox = document.getElementById("nav-filter-search-container");
 
-  // Filter Desa, Kelompok, dan Kotak Search hanya muncul di 4 tab ini:
   const allowedTabs = ["pengurus", "inventaris", "jamaah", "monitoring"];
   if (filterSearchBox) {
     if (allowedTabs.includes(tabName)) {
@@ -1071,7 +1070,7 @@ function renderMonitoringTable() {
 }
 
 // =========================================================================
-// MODUL PENYAPAAN (SEMUA KELOMPOK TAMPIL, LENCANA REKOMENDASI & INPUT FORM LANGSUNG)
+// MODUL PENYAPAAN (SEMUA KELOMPOK TAMPIL, REKOMENDASI DI ATAS, FONT BESAR)
 // =========================================================================
 
 function buildLocalPenyapaanState() {
@@ -1111,7 +1110,7 @@ function buildLocalPenyapaanState() {
   calculateRekomendasi16Kelompok();
 }
 
-// Menandai 4 kelompok paling minim sapaan per desa (Total 16 kelompok)
+// Menandai 4 kelompok terendah dari tiap desa (Total 16 kelompok)
 function calculateRekomendasi16Kelompok() {
   localPenyapaanData.forEach(k => k.is_recommended = false);
 
@@ -1122,7 +1121,6 @@ function calculateRekomendasi16Kelompok() {
 
     kelompokInDesa.sort((a, b) => parseInt(a.total_penyapaan || 0, 10) - parseInt(b.total_penyapaan || 0, 10));
 
-    // Tandai 4 kelompok terendah di desa ini
     const lowest4 = kelompokInDesa.slice(0, 4);
     lowest4.forEach(item => {
       item.is_recommended = true;
@@ -1209,7 +1207,7 @@ async function simpanBatchPenyapaanGrid() {
 }
 
 function switchPenyapaanSubTab(subTabName) {
-  ["status-peta", "rekap-riwayat", "input-sapaan"].forEach(name => {
+  ["status-peta", "rekap-riwayat"].forEach(name => {
     const el = document.getElementById(`subtab-${name}`);
     const btn = document.getElementById(`subtab-btn-${name}`);
     if (el) el.classList.add("hidden");
@@ -1231,7 +1229,6 @@ function renderPenyapaanModule() {
 
   renderPetaCards();
   renderRiwayatPenyapaanTable();
-  populateSapaanSelectors();
 }
 
 function filterPetaCards(filter) {
@@ -1249,7 +1246,7 @@ function filterPetaCards(filter) {
   renderPetaCards();
 }
 
-// Menampilkan seluruh kelompok binaan pada tiap desa dengan tanda lencana rekomendasi
+// Render seluruh kelompok: Rekomendasi diurutkan paling atas di tiap desa, font kelompok & total diperbesar
 function renderPetaCards() {
   const container = document.getElementById("peta-desa-grid");
   if (!container) return;
@@ -1263,69 +1260,80 @@ function renderPetaCards() {
 
   container.innerHTML = desas.map(desa => {
     let list = localPenyapaanData.filter(k => k.nama_desa === desa);
+
+    // Filter status tab (Semua, Sudah Disapa, Belum Disapa)
     if (currentPetaFilter === "sudah") list = list.filter(k => k.total_penyapaan > 0 || k.status_sapa);
     if (currentPetaFilter === "belum") list = list.filter(k => k.total_penyapaan === 0 && !k.status_sapa);
 
+    // SORTING: Kelompok berstatus rekomendasi dinaikkan paling atas di desanya
+    list.sort((a, b) => {
+      if (a.is_recommended && !b.is_recommended) return -1;
+      if (!a.is_recommended && b.is_recommended) return 1;
+      return parseInt(a.total_penyapaan || 0, 10) - parseInt(b.total_penyapaan || 0, 10);
+    });
+
     return `
-      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
         <div class="border-b pb-2 flex justify-between items-center">
-          <h4 class="font-bold text-slate-800 text-xs uppercase flex items-center gap-1.5">
+          <h4 class="font-bold text-slate-800 text-sm uppercase flex items-center gap-1.5">
             <i class="fa-solid fa-location-dot text-emerald-600"></i> ${desa}
           </h4>
-          <span class="text-[10px] text-slate-500 font-medium">${list.length} Kelompok</span>
+          <span class="text-xs text-slate-500 font-semibold">${list.length} Kelompok</span>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           ${list.map(k => {
             const isSapaChecked = k.status_sapa;
             const isBelumChecked = k.status_belum_sapa;
 
             let badgeHtml = "";
             if (k.is_dirty) {
-              badgeHtml = `<span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-amber-300">Draf</span>`;
+              badgeHtml = `<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-300">Draf</span>`;
             } else if (k.total_penyapaan > 0) {
-              badgeHtml = `<span class="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-emerald-300">Disapa</span>`;
+              badgeHtml = `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-300">Disapa</span>`;
             } else {
-              badgeHtml = `<span class="bg-slate-100 text-slate-500 text-[9px] font-semibold px-1.5 py-0.5 rounded">Belum</span>`;
+              badgeHtml = `<span class="bg-slate-100 text-slate-500 text-[10px] font-semibold px-2 py-0.5 rounded">Belum</span>`;
             }
 
             let rekomBadge = "";
             if (k.is_recommended) {
               rekomBadge = `
-                <span class="text-[9px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded flex items-center gap-1">
-                  <i class="fa-solid fa-star text-amber-500 text-[8px]"></i> Rekomendasi
+                <span class="text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-md flex items-center gap-1">
+                  <i class="fa-solid fa-star text-amber-500 text-[9px]"></i> Rekomendasi
                 </span>
               `;
             }
 
             return `
-              <div class="p-2.5 rounded-xl border flex flex-col justify-between space-y-2 ${k.is_dirty ? 'bg-amber-50/50 border-amber-300' : (k.total_penyapaan > 0 ? 'bg-emerald-50/40 border-emerald-200' : 'bg-slate-50 border-slate-200')}">
+              <div class="p-3.5 rounded-xl border flex flex-col justify-between space-y-2.5 transition-all ${k.is_dirty ? 'bg-amber-50/60 border-amber-300 shadow-xs' : (k.is_recommended ? 'bg-amber-50/25 border-amber-200 shadow-xs' : (k.total_penyapaan > 0 ? 'bg-emerald-50/30 border-emerald-200' : 'bg-slate-50/70 border-slate-200'))}">
                 <div>
                   <div class="flex items-start justify-between gap-1 mb-1">
-                    <p class="font-bold text-xs text-slate-800 truncate">${k.nama_kelompok}</p>
+                    <!-- FONT KELOMPOK DIPERBESAR -->
+                    <p class="font-extrabold text-sm sm:text-base text-slate-900 leading-snug truncate" title="${k.nama_kelompok}">${k.nama_kelompok}</p>
                     ${badgeHtml}
                   </div>
-                  <div class="flex items-center gap-1.5 flex-wrap">
+                  <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
                     ${rekomBadge}
-                    <span class="text-[9px] text-slate-400">Tgl: ${k.tanggal_terakhir !== '-' ? String(k.tanggal_terakhir).split('T')[0] : '-'}</span>
+                    <span class="text-[10px] text-slate-400 font-medium">Terakhir: ${k.tanggal_terakhir !== '-' ? String(k.tanggal_terakhir).split('T')[0] : '-'}</span>
                   </div>
                 </div>
 
-                <div class="pt-2 border-t border-slate-200/80 flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <label class="flex items-center gap-1 ${currentAdmin ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}">
-                      <input type="checkbox" ${isSapaChecked ? 'checked' : ''} ${!currentAdmin ? 'disabled' : ''} onchange="toggleLocalSapa('${k.id}', 'sapa')" class="rounded text-teal-600 focus:ring-teal-500 w-3.5 h-3.5">
-                      <span class="text-[10px] font-bold text-slate-700">Sapa</span>
+                <div class="pt-2.5 border-t border-slate-200/80 flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <label class="flex items-center gap-1.5 ${currentAdmin ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}">
+                      <input type="checkbox" ${isSapaChecked ? 'checked' : ''} ${!currentAdmin ? 'disabled' : ''} onchange="toggleLocalSapa('${k.id}', 'sapa')" class="rounded text-teal-600 focus:ring-teal-500 w-4 h-4">
+                      <span class="text-xs font-bold text-slate-800">Sapa</span>
                     </label>
 
-                    <label class="flex items-center gap-1 ${currentAdmin ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}">
-                      <input type="checkbox" ${isBelumChecked ? 'checked' : ''} ${!currentAdmin ? 'disabled' : ''} onchange="toggleLocalSapa('${k.id}', 'belum_sapa')" class="rounded text-rose-600 focus:ring-rose-500 w-3.5 h-3.5">
-                      <span class="text-[10px] font-bold text-slate-500">Belum</span>
+                    <label class="flex items-center gap-1.5 ${currentAdmin ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}">
+                      <input type="checkbox" ${isBelumChecked ? 'checked' : ''} ${!currentAdmin ? 'disabled' : ''} onchange="toggleLocalSapa('${k.id}', 'belum_sapa')" class="rounded text-rose-600 focus:ring-rose-500 w-4 h-4">
+                      <span class="text-xs font-bold text-slate-500">Belum</span>
                     </label>
                   </div>
 
-                  <div class="text-right">
-                    <span class="text-[9px] text-slate-400 block leading-none font-semibold">Total Sapa</span>
-                    <span class="text-xs font-black text-teal-900 leading-tight">${k.total_penyapaan}x</span>
+                  <!-- FONT NILAI TOTAL PENYAPAAN DIPERBESAR -->
+                  <div class="text-right pl-2">
+                    <span class="text-[9px] text-slate-400 block leading-none font-bold uppercase tracking-wider">Total Sapa</span>
+                    <span class="text-base sm:text-lg font-black text-teal-950 leading-tight">${k.total_penyapaan}x</span>
                   </div>
                 </div>
               </div>
@@ -1383,72 +1391,6 @@ function renderRiwayatPenyapaanTable() {
       <td class="px-4 py-2.5 text-slate-500 max-w-xs leading-relaxed">${r.Catatan_Hasil_Solusi}</td>
     </tr>
   `).join("");
-}
-
-function populateSapaanSelectors() {
-  const desaSelect = document.getElementById("sapaan-desa-select");
-  const filterDesa = document.getElementById("filter-riwayat-desa");
-  if (!desaSelect) return;
-
-  const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
-  const desas = [...new Set(mk.map(m => m.Nama_Desa))];
-
-  if (desas.length === 0) desas.push("Desa 1", "Desa 2", "Desa 3", "Desa 4");
-
-  desaSelect.innerHTML = desas.map(d => `<option value="${d}">${d}</option>`).join("");
-  if (filterDesa) {
-    filterDesa.innerHTML = `<option value="ALL">Semua Desa</option>` + desas.map(d => `<option value="${d}">${d}</option>`).join("");
-  }
-
-  handleSapaanDesaChange();
-}
-
-function handleSapaanDesaChange() {
-  const desa = document.getElementById("sapaan-desa-select").value;
-  const kelSelect = document.getElementById("sapaan-kelompok-select");
-  if (!kelSelect) return;
-  const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
-  const list = mk.filter(k => k.Nama_Desa === desa);
-  kelSelect.innerHTML = list.map(k => `<option value="${k.ID_Kelompok}">${k.Nama_Kelompok}</option>`).join("");
-}
-
-async function handlePenyapaanSubmit(e) {
-  e.preventDefault();
-  if (!currentAdmin) return alert("Hanya Admin yang berwenang mencatat sapaan kegiatan!");
-
-  const kelId = document.getElementById("sapaan-kelompok-select").value;
-  const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
-  const kelObj = mk.find(k => String(k.ID_Kelompok) === String(kelId));
-
-  const payload = {
-    action: "add_penyapaan",
-    tanggal: document.getElementById("sapaan-tanggal").value,
-    idKelompok: kelId,
-    namaKelompok: kelObj ? kelObj.Nama_Kelompok : "-",
-    namaDesa: document.getElementById("sapaan-desa-select").value,
-    namaPetugas: document.getElementById("sapaan-petugas").value,
-    jenisKegiatan: document.getElementById("sapaan-agenda").value,
-    catatan: document.getElementById("sapaan-catatan").value
-  };
-
-  showMessage("Menyimpan laporan penyapaan...", "info");
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-    const json = await res.json();
-    if (json.success) {
-      showMessage(json.message, "success");
-      document.getElementById("form-penyapaan").reset();
-      await loadAllData();
-      switchPenyapaanSubTab("status-peta");
-    } else {
-      showMessage(json.message, "error");
-    }
-  } catch (err) {
-    showMessage("Gagal menyimpan penyapaan.", "error");
-  }
 }
 
 function downloadLembarKerja() {
@@ -1620,7 +1562,7 @@ function openFormJamaah(data = null) {
         <div>
           <label class="block text-xs font-semibold mb-1">Desa Binaan</label>
           <select name="Desa" id="form-modal-desa" onchange="onModalDesaChange()" class="w-full border rounded px-3 py-1.5 text-sm">
-            ${desas.map(d => `<option value="${d}">${d}</option>`).join("")}
+            ${desas.map(d => `<option value="${d}" ${data && data.Desa === d ? 'selected' : ''}>${d}</option>`).join("")}
           </select>
         </div>
         <div>
