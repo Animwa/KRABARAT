@@ -1,7 +1,8 @@
 // ==========================================
 // FRONTEND LOGIC & INTEGRASI REST API KARANGANYAR BARAT
 // ==========================================
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzq4G6cAgvwbu9WXFIBMZykpPOzx-u5LX9dOUqbzlwrICAzPplGAajcHILuGzoYsCgA/exec";
+
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwTRkswqQQIeji_E5Lviz9YzEuk8b3z6foVvYygNt4phLBVRo6gyFelkKm1VDI9MN3D/exec";
 
 let appData = {
   pengurus: [],
@@ -98,10 +99,14 @@ async function loadAllData() {
         penyapaan: Array.isArray(json.penyapaan) ? json.penyapaan : []
       };
 
-      await loadPenyapaanAnalytics();
-      initGlobalWilayahFilters();
-      buildLocalPenyapaanState();
-      renderAllViews();
+      try {
+        await loadPenyapaanAnalytics();
+        initGlobalWilayahFilters();
+        buildLocalPenyapaanState();
+        renderAllViews();
+      } catch (renderErr) {
+        console.error("Render error:", renderErr);
+      }
       hideMessage();
     } else {
       showMessage("Gagal memuat data: " + (json.error || json.message), "error");
@@ -1069,7 +1074,7 @@ function renderMonitoringTable() {
 }
 
 // =========================================================================
-// MODUL PENYAPAAN (SEMUA KELOMPOK TAMPIL, REKOMENDASI DI ATAS, FONT BESAR)
+// MODUL PENYAPAAN (REKOMENDASI DI ATAS, FONT KELOMPOK & TOTAL DIPERBESAR)
 // =========================================================================
 
 function buildLocalPenyapaanState() {
@@ -1109,7 +1114,6 @@ function buildLocalPenyapaanState() {
   calculateRekomendasi16Kelompok();
 }
 
-// Menandai 4 kelompok terendah dari tiap desa (Total 16 kelompok)
 function calculateRekomendasi16Kelompok() {
   localPenyapaanData.forEach(k => k.is_recommended = false);
 
@@ -1160,7 +1164,6 @@ function toggleLocalSapa(idKelompok, actionType) {
   renderPetaCards();
 }
 
-// Simpan batch penyapaan langsung dari form (tanpa popup prompt)
 async function simpanBatchPenyapaanGrid() {
   if (!currentAdmin) {
     return alert("Akses Admin diperlukan untuk menyimpan penyapaan!");
@@ -1245,7 +1248,7 @@ function filterPetaCards(filter) {
   renderPetaCards();
 }
 
-// Render seluruh kelompok: Rekomendasi diurutkan paling atas di tiap desa, font kelompok & total diperbesar
+// Render kartu kelompok: Rekomendasi di urutan paling atas di tiap desa, font diperbesar
 function renderPetaCards() {
   const container = document.getElementById("peta-desa-grid");
   if (!container) return;
@@ -1260,11 +1263,10 @@ function renderPetaCards() {
   container.innerHTML = desas.map(desa => {
     let list = localPenyapaanData.filter(k => k.nama_desa === desa);
 
-    // Filter status tab (Semua, Sudah Disapa, Belum Disapa)
     if (currentPetaFilter === "sudah") list = list.filter(k => k.total_penyapaan > 0 || k.status_sapa);
     if (currentPetaFilter === "belum") list = list.filter(k => k.total_penyapaan === 0 && !k.status_sapa);
 
-    // SORTING: Kelompok berstatus rekomendasi dinaikkan paling atas di desanya
+    // SORTING: Kelompok rekomendasi diangkat ke urutan teratas desa
     list.sort((a, b) => {
       if (a.is_recommended && !b.is_recommended) return -1;
       if (!a.is_recommended && b.is_recommended) return 1;
@@ -1306,7 +1308,7 @@ function renderPetaCards() {
               <div class="p-3.5 rounded-xl border flex flex-col justify-between space-y-2.5 transition-all ${k.is_dirty ? 'bg-amber-50/60 border-amber-300 shadow-xs' : (k.is_recommended ? 'bg-amber-50/25 border-amber-200 shadow-xs' : (k.total_penyapaan > 0 ? 'bg-emerald-50/30 border-emerald-200' : 'bg-slate-50/70 border-slate-200'))}">
                 <div>
                   <div class="flex items-start justify-between gap-1 mb-1">
-                    <!-- FONT KELOMPOK DIPERBESAR -->
+                    <!-- FONT NAMA KELOMPOK DIPERBESAR -->
                     <p class="font-extrabold text-sm sm:text-base text-slate-900 leading-snug truncate" title="${k.nama_kelompok}">${k.nama_kelompok}</p>
                     ${badgeHtml}
                   </div>
@@ -1362,7 +1364,6 @@ function renderRiwayatPenyapaanTable() {
   const container = document.getElementById("subtab-rekap-riwayat");
   if (!container || !analyticsPenyapaan) return;
 
-  // Pastikan elemen wrapper tabel lama diubah menjadi grid cards jika belum sesuai
   let wrapper = document.getElementById("riwayat-cards-grid-wrapper");
   if (!wrapper) {
     const oldContent = document.getElementById("subtab-rekap-riwayat");
@@ -1384,7 +1385,6 @@ function renderRiwayatPenyapaanTable() {
 
   let list = analyticsPenyapaan.riwayat || [];
 
-  // Kelompokkan data sapaan berdasarkan Nama Kegiatan (Agenda) & Tanggal
   const sessionsMap = {};
   list.forEach(r => {
     const agenda = String(r.Jenis_Kegiatan_Sapaan || "Penyapaan Rutin").trim();
@@ -1407,7 +1407,6 @@ function renderRiwayatPenyapaanTable() {
 
   let sessionsArray = Object.values(sessionsMap);
 
-  // Filter berdasarkan pencarian search input
   if (search) {
     sessionsArray = sessionsArray.filter(s => {
       const matchAgenda = s.nama_kegiatan.toLowerCase().includes(search);
@@ -1416,7 +1415,6 @@ function renderRiwayatPenyapaanTable() {
     });
   }
 
-  // Filter berdasarkan dropdown desa
   if (desaFilter !== "ALL") {
     sessionsArray = sessionsArray.filter(s => {
       return s.kelompok_disapa.some(k => k.desa.toLowerCase() === desaFilter.toLowerCase());
@@ -1477,7 +1475,6 @@ function renderRiwayatPenyapaanTable() {
   }).join("");
 }
 
-// Helper Format Tanggal Indonesia agar konsisten dengan tampilan kartu
 function formatTanggalIndo(dateString) {
   if (!dateString || dateString === "-") return "-";
   const cleanDate = dateString.substring(0, 10);
@@ -1501,433 +1498,4 @@ function formatTanggalIndo(dateString) {
   const monthName = months[monthIdx];
 
   return `${dayName}, ${dayNum} ${monthName} ${year}`;
-}
-
-function downloadLembarKerja() {
-  window.print();
-}
-
-// =========================================================================
-// MODAL & CRUD HANDLERS
-// =========================================================================
-
-function openFormKegiatan() {
-  activeFormType = "Kegiatan";
-  const titleEl = document.getElementById("modal-form-title");
-  const fieldsEl = document.getElementById("modal-form-fields");
-  if (titleEl) titleEl.innerText = "Tambah Agenda Kegiatan Baru";
-  if (fieldsEl) {
-    fieldsEl.innerHTML = `
-      <input type="hidden" name="ID" value="">
-      <div><label class="block text-xs font-semibold mb-1">Nama Kegiatan</label><input type="text" name="Kegiatan" required class="w-full border rounded px-3 py-1.5 text-sm" placeholder="Misal: Pengajian Akbar"></div>
-      <div class="grid grid-cols-2 gap-2">
-        <div><label class="block text-xs font-semibold mb-1">Tanggal</label><input type="date" id="modal-kegiatan-tanggal" name="Tanggal" required onchange="updateModalHari()" class="w-full border rounded px-3 py-1.5 text-sm"></div>
-        <div><label class="block text-xs font-semibold mb-1">Hari</label><input type="text" id="modal-kegiatan-hari" name="Hari" readonly class="w-full border rounded px-3 py-1.5 text-sm bg-slate-100 font-semibold text-slate-700" placeholder="Otomatis"></div>
-      </div>
-      <div><label class="block text-xs font-semibold mb-1">Jam / Waktu</label><input type="text" name="Jam" required class="w-full border rounded px-3 py-1.5 text-sm" placeholder="Misal: 19:30 - Selesai"></div>
-      <div><label class="block text-xs font-semibold mb-1">Pemateri</label><input type="text" name="Pemateri" class="w-full border rounded px-3 py-1.5 text-sm" placeholder="Nama Ustaz / Penceramah"></div>
-      <div><label class="block text-xs font-semibold mb-1">Keterangan / Lokasi</label><textarea name="Keterangan" class="w-full border rounded px-3 py-1.5 text-sm"></textarea></div>
-    `;
-  }
-  openModal("modal-form");
-}
-
-function updateModalHari() {
-  const dateInput = document.getElementById("modal-kegiatan-tanggal");
-  const hariInput = document.getElementById("modal-kegiatan-hari");
-  if (!dateInput || !hariInput || !dateInput.value) return;
-  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-  const d = new Date(dateInput.value + "T00:00:00");
-  if (!isNaN(d.getTime())) hariInput.value = days[d.getDay()];
-}
-
-function openFormPengurus() {
-  activeFormType = "Pengurus";
-  const titleEl = document.getElementById("modal-form-title");
-  const fieldsEl = document.getElementById("modal-form-fields");
-  if (titleEl) titleEl.innerText = "Tambah Data Pengurus";
-
-  const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
-  let desas = [...new Set(mk.map(m => m.Nama_Desa))];
-  if (desas.length === 0) desas = ["Desa 1", "Desa 2", "Desa 3", "Desa 4"];
-
-  if (fieldsEl) {
-    fieldsEl.innerHTML = `
-      <input type="hidden" name="ID" value="">
-      <div><label class="block text-xs font-semibold mb-1">Nama Lengkap</label><input type="text" name="Nama" required class="w-full border rounded px-3 py-1.5 text-sm"></div>
-      
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-xs font-semibold mb-1">Desa Asal</label>
-          <select name="Desa" id="form-pengurus-desa" onchange="onModalPengurusDesaChange()" class="w-full border rounded px-3 py-1.5 text-sm">
-            ${desas.map(d => `<option value="${d}">${d}</option>`).join("")}
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold mb-1">Kelompok Asal</label>
-          <select name="Kelompok" id="form-pengurus-kelompok" class="w-full border rounded px-3 py-1.5 text-sm"></select>
-        </div>
-      </div>
-
-      <div><label class="block text-xs font-semibold mb-1">Jabatan</label><input type="text" name="Jabatan" required class="w-full border rounded px-3 py-1.5 text-sm"></div>
-      <div><label class="block text-xs font-semibold mb-1">No. HP</label><input type="text" name="NoHP" class="w-full border rounded px-3 py-1.5 text-sm"></div>
-      <div><label class="block text-xs font-semibold mb-1">Status</label><select name="Status" class="w-full border rounded px-3 py-1.5 text-sm"><option>Aktif</option><option>Non-Aktif</option></select></div>
-    `;
-  }
-  onModalPengurusDesaChange();
-  openModal("modal-form");
-}
-
-function onModalPengurusDesaChange() {
-  const desaSel = document.getElementById("form-pengurus-desa");
-  const kelSel = document.getElementById("form-pengurus-kelompok");
-  if (!desaSel || !kelSel) return;
-
-  const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
-  const list = mk.filter(k => k.Nama_Desa === desaSel.value);
-  kelSel.innerHTML = list.map(k => `<option value="${k.Nama_Kelompok}">${k.Nama_Kelompok}</option>`).join("");
-}
-
-function openFormInventaris() {
-  activeFormType = "Inventaris";
-  const titleEl = document.getElementById("modal-form-title");
-  const fieldsEl = document.getElementById("modal-form-fields");
-  if (titleEl) titleEl.innerText = "Tambah Inventaris Barang";
-
-  const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
-  let desas = [...new Set(mk.map(m => m.Nama_Desa))];
-  if (desas.length === 0) desas = ["Desa 1", "Desa 2", "Desa 3", "Desa 4"];
-
-  if (fieldsEl) {
-    fieldsEl.innerHTML = `
-      <input type="hidden" name="ID" value="">
-      <div><label class="block text-xs font-semibold mb-1">Nama Barang</label><input type="text" name="NamaBarang" required class="w-full border rounded px-3 py-1.5 text-sm"></div>
-      
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-xs font-semibold mb-1">Desa</label>
-          <select name="Desa" id="form-inventaris-desa" onchange="onModalInventarisDesaChange()" class="w-full border rounded px-3 py-1.5 text-sm">
-            ${desas.map(d => `<option value="${d}">${d}</option>`).join("")}
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold mb-1">Kelompok</label>
-          <select name="Kelompok" id="form-inventaris-kelompok" class="w-full border rounded px-3 py-1.5 text-sm"></select>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-2">
-        <div><label class="block text-xs font-semibold mb-1">Jumlah</label><input type="number" name="Jumlah" required class="w-full border rounded px-3 py-1.5 text-sm" value="1"></div>
-        <div><label class="block text-xs font-semibold mb-1">Kondisi</label><select name="Kondisi" class="w-full border rounded px-3 py-1.5 text-sm"><option>Baik</option><option>Rusak Ringan</option><option>Rusak Berat</option></select></div>
-      </div>
-
-      <div><label class="block text-xs font-semibold mb-1">Tanggal Masuk</label><input type="date" name="TanggalMasuk" class="w-full border rounded px-3 py-1.5 text-sm"></div>
-      <div><label class="block text-xs font-semibold mb-1">Keterangan</label><textarea name="Keterangan" class="w-full border rounded px-3 py-1.5 text-sm"></textarea></div>
-    `;
-  }
-  onModalInventarisDesaChange();
-  openModal("modal-form");
-}
-
-function onModalInventarisDesaChange() {
-  const desaSel = document.getElementById("form-inventaris-desa");
-  const kelSel = document.getElementById("form-inventaris-kelompok");
-  if (!desaSel || !kelSel) return;
-
-  const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
-  const list = mk.filter(k => k.Nama_Desa === desaSel.value);
-  kelSel.innerHTML = list.map(k => `<option value="${k.Nama_Kelompok}">${k.Nama_Kelompok}</option>`).join("");
-}
-
-function openFormJamaah(data = null) {
-  activeFormType = "Jamaah";
-  const titleEl = document.getElementById("modal-form-title");
-  const fieldsEl = document.getElementById("modal-form-fields");
-  if (titleEl) titleEl.innerText = data ? "Edit Data Jamaah" : "Tambah Data Jamaah";
-
-  let formattedDob = "";
-  if (data && data.TanggalLahir) {
-    formattedDob = (data.TanggalLahir instanceof Date) ? data.TanggalLahir.toISOString().split("T")[0] : data.TanggalLahir.toString().split("T")[0].trim();
-  }
-
-  const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
-  let desas = [...new Set(mk.map(m => m.Nama_Desa))];
-  if (desas.length === 0) desas = ["Desa 1", "Desa 2", "Desa 3", "Desa 4"];
-
-  const rawKelasUsia = data ? String(data.Kelas_Usia || data.Kelompok || '') : '';
-  let selectedCategory = rawKelasUsia;
-  let selectedTingkat = data ? (data.Kelas || '') : '';
-
-  if (rawKelasUsia.startsWith("Caberawit")) {
-    selectedCategory = "Caberawit";
-    selectedTingkat = rawKelasUsia;
-  }
-
-  if (fieldsEl) {
-    fieldsEl.innerHTML = `
-      <input type="hidden" name="ID" value="${data ? (data.ID_Jamaah || data.ID || '') : ''}">
-      <div><label class="block text-xs font-semibold mb-1">Nama Lengkap</label><input type="text" name="Nama_Lengkap" value="${data ? (data.Nama_Lengkap || data.Nama || '') : ''}" required class="w-full border rounded px-3 py-1.5 text-sm"></div>
-      
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-xs font-semibold mb-1">Desa Binaan</label>
-          <select name="Desa" id="form-modal-desa" onchange="onModalDesaChange()" class="w-full border rounded px-3 py-1.5 text-sm">
-            ${desas.map(d => `<option value="${d}" ${data && data.Desa === d ? 'selected' : ''}>${d}</option>`).join("")}
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold mb-1">Kelompok Binaan</label>
-          <select name="Nama_Kelompok" id="form-modal-kelompok" class="w-full border rounded px-3 py-1.5 text-sm"></select>
-        </div>
-      </div>
-
-      <div><label class="block text-xs font-semibold mb-1">Tanggal Lahir</label><input type="date" name="TanggalLahir" value="${formattedDob}" required class="w-full border rounded px-3 py-1.5 text-sm"></div>
-
-      <div>
-        <label class="block text-xs font-semibold mb-1">Kelompok Usia</label>
-        <select name="Kelas_Usia" id="field-kelompok" onchange="onKelompokChange()" class="w-full border rounded px-3 py-1.5 text-sm">
-          <option value="Caberawit" ${selectedCategory === 'Caberawit' ? 'selected' : ''}>Caberawit (SD)</option>
-          <option value="Pra Remaja" ${selectedCategory === 'Pra Remaja' ? 'selected' : ''}>Pra Remaja (SMP)</option>
-          <option value="Remaja" ${selectedCategory === 'Remaja' ? 'selected' : ''}>Remaja (SMA)</option>
-          <option value="Muda-Mudi" ${selectedCategory === 'Muda-Mudi' ? 'selected' : ''}>Muda-Mudi</option>
-          <option value="Bapak-Bapak" ${selectedCategory === 'Bapak-Bapak' ? 'selected' : ''}>Bapak-Bapak</option>
-          <option value="Ibu-Ibu" ${selectedCategory === 'Ibu-Ibu' ? 'selected' : ''}>Ibu-Ibu</option>
-        </select>
-      </div>
-
-      <div id="form-kelas-wrapper">
-        <label class="block text-xs font-semibold mb-1">Kelas/Tingkat</label>
-        <select name="Kelas" id="field-kelas" class="w-full border rounded px-3 py-1.5 text-sm"></select>
-      </div>
-
-      <div>
-        <label class="block text-xs font-semibold mb-1">Gender</label>
-        <select name="Gender" class="w-full border rounded px-3 py-1.5 text-sm">
-          <option value="Laki-Laki" ${data && data.Gender === 'Laki-Laki' ? 'selected' : ''}>Laki-Laki</option>
-          <option value="Perempuan" ${data && data.Gender === 'Perempuan' ? 'selected' : ''}>Perempuan</option>
-        </select>
-      </div>
-
-      <div><label class="block text-xs font-semibold mb-1">Alamat</label><textarea name="Alamat" class="w-full border rounded px-3 py-1.5 text-sm">${data ? (data.Alamat || '') : ''}</textarea></div>
-      <div>
-        <label class="block text-xs font-semibold mb-1">Status Keaktifan</label>
-        <select name="Keaktifan" class="w-full border rounded px-3 py-1.5 text-sm">
-          <option value="Aktif" ${!data || data.Keaktifan === 'Aktif' || data.Status === 'Aktif' ? 'selected' : ''}>Aktif</option>
-          <option value="Non-Aktif" ${data && (data.Keaktifan === 'Non-Aktif' || data.Status === 'Non-Aktif') ? 'selected' : ''}>Non-Aktif</option>
-        </select>
-      </div>
-    `;
-  }
-
-  onModalDesaChange(data ? (data.Nama_Kelompok || data.KelompokBinaan) : null);
-  onKelompokChange(selectedTingkat);
-  openModal("modal-form");
-}
-
-function onModalDesaChange(selectedKel = null) {
-  const desaSel = document.getElementById("form-modal-desa");
-  const kelSel = document.getElementById("form-modal-kelompok");
-  if (!desaSel || !kelSel) return;
-
-  const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
-  const list = mk.filter(k => k.Nama_Desa === desaSel.value);
-
-  kelSel.innerHTML = list.map(k => `
-    <option value="${k.Nama_Kelompok}" ${selectedKel && selectedKel === k.Nama_Kelompok ? 'selected' : ''}>
-      ${k.Nama_Kelompok}
-    </option>
-  `).join("");
-}
-
-function onKelompokChange(selectedKelas = null) {
-  const kValEl = document.getElementById("field-kelompok");
-  const kelasSelect = document.getElementById("field-kelas");
-  const kelasWrapper = document.getElementById("form-kelas-wrapper");
-  if (!kValEl || !kelasSelect) return;
-
-  const kVal = kValEl.value;
-  kelasSelect.innerHTML = "";
-
-  if (kVal === "Caberawit") {
-    if (kelasWrapper) kelasWrapper.style.display = "block";
-    const options = ["Caberawit A", "Caberawit B", "Caberawit C", "Caberawit D"];
-    options.forEach(opt => {
-      const isSelected = (selectedKelas && selectedKelas.toLowerCase() === opt.toLowerCase()) ? "selected" : "";
-      kelasSelect.innerHTML += `<option value="${opt}" ${isSelected}>${opt}</option>`;
-    });
-  } else {
-    if (kelasWrapper) kelasWrapper.style.display = "none";
-    kelasSelect.innerHTML = `<option value="Umum" selected>Umum</option>`;
-  }
-}
-
-function editJamaah(id) {
-  const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
-  const item = jamaahList.find(j => String(j.ID_Jamaah || j.ID) === String(id));
-  if (item) openFormJamaah(item);
-}
-
-async function handleFormSubmit(e) {
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  const dataObj = {};
-  formData.forEach((value, key) => dataObj[key] = value);
-
-  if (activeFormType === "Jamaah") {
-    const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
-    const matched = mk.find(k => k.Nama_Kelompok === dataObj.Nama_Kelompok);
-    dataObj.ID_Kelompok = matched ? matched.ID_Kelompok : "KLP-000";
-    dataObj.Usia = calculateAge(dataObj.TanggalLahir);
-
-    if (dataObj.Kelas_Usia === "Caberawit" && dataObj.Kelas) {
-      dataObj.Kelas_Usia = dataObj.Kelas;
-    }
-  }
-
-  const actionName = (activeFormType === "Jamaah") ? "save_jamaah" : `save_${activeFormType.toLowerCase()}`;
-  showMessage("Menyimpan data...", "info");
-
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: actionName, data: dataObj })
-    });
-    const json = await res.json();
-    if (json.success) {
-      showMessage(json.message || "Data berhasil disimpan!", "success");
-      closeModal("modal-form");
-      loadAllData();
-    } else {
-      showMessage("Gagal menyimpan: " + json.error, "error");
-    }
-  } catch (err) {
-    showMessage("Gagal menyimpan data.", "error");
-  }
-}
-
-async function deleteRow(sheetName, id) {
-  if (!confirm("Apakah Anda yakin ingin menghapus data ini?")) return;
-  showMessage("Menghapus data...", "info");
-
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "delete_row", sheetName: sheetName, id: id })
-    });
-    const json = await res.json();
-    if (json.success) {
-      showMessage(json.message || "Data berhasil dihapus.", "success");
-      loadAllData();
-    } else {
-      showMessage("Gagal menghapus: " + json.error, "error");
-    }
-  } catch (err) {
-    showMessage("Gagal menghapus data.", "error");
-  }
-}
-
-function openLoginModal() { openModal("modal-login"); }
-function openAddAdminModal() { openModal("modal-add-admin"); }
-function openModal(id) { const modal = document.getElementById(id); if (modal) modal.classList.remove("hidden"); }
-function closeModal(id) { const modal = document.getElementById(id); if (modal) modal.classList.add("hidden"); }
-
-async function handleLogin(e) {
-  e.preventDefault();
-  const nama = document.getElementById("login-nama").value;
-  const pin = document.getElementById("login-pin").value;
-
-  showMessage("Memverifikasi...", "info");
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "login", username: nama, password: pin, nama: nama, pin: pin })
-    });
-    const json = await res.json();
-    if (json.success) {
-      currentAdmin = json.admin || json.user || { nama: nama, role: "Admin" };
-      sessionStorage.setItem("currentAdmin", JSON.stringify(currentAdmin));
-      updateAdminUI();
-      closeModal("modal-login");
-      showMessage(`Selamat datang, ${currentAdmin.nama}!`, "success");
-    } else {
-      showMessage(json.message || "Login gagal.", "error");
-    }
-  } catch (err) {
-    showMessage("Gagal login.", "error");
-  }
-}
-
-function logoutAdmin() {
-  currentAdmin = null;
-  sessionStorage.removeItem("currentAdmin");
-  updateAdminUI();
-  showMessage("Anda telah logout.", "info");
-}
-
-function updateAdminUI() {
-  const adminElements = document.querySelectorAll(".admin-only");
-  if (currentAdmin) {
-    adminElements.forEach(el => el.classList.remove("hidden"));
-    if (document.getElementById("btn-login-modal")) document.getElementById("btn-login-modal").classList.add("hidden");
-    if (document.getElementById("btn-logout")) document.getElementById("btn-logout").classList.remove("hidden");
-    if (document.getElementById("admin-badge")) document.getElementById("admin-badge").classList.remove("hidden");
-    if (document.getElementById("admin-name-display")) document.getElementById("admin-name-display").innerText = currentAdmin.nama;
-  } else {
-    adminElements.forEach(el => el.classList.add("hidden"));
-    if (document.getElementById("btn-login-modal")) document.getElementById("btn-login-modal").classList.remove("hidden");
-    if (document.getElementById("btn-logout")) document.getElementById("btn-logout").classList.add("hidden");
-    if (document.getElementById("admin-badge")) document.getElementById("admin-badge").classList.add("hidden");
-  }
-  renderPresensiTable();
-  renderPetaCards();
-}
-
-async function handleAddAdmin(e) {
-  e.preventDefault();
-  const nama = document.getElementById("new-admin-nama").value;
-  const pin = document.getElementById("new-admin-pin").value;
-
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "save_user", username: nama, password: pin, nama: nama, role: "Admin Desa", scopeDesa: "ALL", scopeKelompok: "ALL" })
-    });
-    const json = await res.json();
-    if (json.success) {
-      showMessage("Admin berhasil ditambahkan!", "success");
-      closeModal("modal-add-admin");
-    } else {
-      showMessage(json.message, "error");
-    }
-  } catch (err) {
-    showMessage("Gagal menambahkan admin.", "error");
-  }
-}
-
-function showMessage(msg, type) {
-  const el = document.getElementById("status-message");
-  if (!el) return;
-  el.innerText = msg;
-  el.className = "mb-4 p-3.5 sm:p-4 rounded-xl font-medium text-xs sm:text-sm border shadow-sm flex items-center justify-between";
-  if (type === "success") el.classList.add("bg-emerald-100", "text-emerald-800", "border-emerald-300");
-  else if (type === "error") el.classList.add("bg-rose-100", "text-rose-800", "border-rose-300");
-  else el.classList.add("bg-amber-100", "text-amber-800", "border-amber-300");
-  el.classList.remove("hidden");
-}
-
-function hideMessage() {
-  const el = document.getElementById("status-message");
-  if (el) el.classList.add("hidden");
-}
-
-function toggleMobileMenu() {
-  const menuContainer = document.getElementById("nav-menu-container");
-  const icon = document.getElementById("hamburger-icon");
-  if (menuContainer) {
-    menuContainer.classList.toggle("show-mobile-menu");
-    if (icon) {
-      icon.classList.toggle("fa-bars");
-      icon.classList.toggle("fa-xmark");
-    }
-  }
 }
