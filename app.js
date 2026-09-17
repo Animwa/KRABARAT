@@ -201,7 +201,7 @@ function selectKelompok(kelompok) {
         classBtnContainer.appendChild(btn);
       });
     }
-    selectKelas("Caberawit A");
+    selectKelas(currentKelas && classes.includes(currentKelas) ? currentKelas : "Caberawit A");
   } else {
     if (classnav) classnav.classList.add("hidden");
     selectKelas("Umum");
@@ -249,8 +249,6 @@ function initGlobalWilayahFilters() {
   if (!desaSelect) return;
 
   const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
-  
-  // Ambil daftar Desa murni dari Master_Kelompok
   let desas = new Set();
   mk.forEach(m => {
     if (m.Nama_Desa && String(m.Nama_Desa).trim() !== "" && m.Nama_Desa !== "-") {
@@ -295,7 +293,6 @@ function onGlobalDesaChange() {
 }
 
 function onGlobalKelompokChange() {
-  // Update otomatis seluruh tabel berdasarkan pilihan desa & kelompok pada navbar
   renderJamaah();
   renderPresensiTable();
   renderMonitoringTable();
@@ -437,8 +434,15 @@ function renderJamaah() {
   }
 
   tbody.innerHTML = filtered.map(j => {
-    const kelompokUsia = String(j.Kelas_Usia || j.Kelompok || "Unassigned").trim();
-    let displayKelas = (kelompokUsia === "Caberawit") ? (j.Kelas || "Caberawit A") : "-";
+    const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "Unassigned").trim();
+    let displayKelompok = rawKelasUsia;
+    let displayKelas = "-";
+
+    if (rawKelasUsia.toLowerCase().startsWith("caberawit")) {
+      displayKelompok = "Caberawit";
+      displayKelas = j.Kelas || rawKelasUsia;
+    }
+
     const jKel = j.Nama_Kelompok || j.KelompokBinaan || '-';
     const jDesa = (j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKel);
 
@@ -449,7 +453,7 @@ function renderJamaah() {
         <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-700">${jDesa}</td>
         <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-900">${jKel}</td>
         <td class="px-3 sm:px-4 py-3 whitespace-nowrap">${j.TanggalLahir ? j.TanggalLahir.toString().split("T")[0] : '-'} <span class="text-xs text-emerald-600 font-bold">(${calculateAge(j.TanggalLahir)})</span></td>
-        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-1 rounded bg-teal-50 text-teal-700 font-semibold text-xs">${kelompokUsia}</span></td>
+        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-1 rounded bg-teal-50 text-teal-700 font-semibold text-xs">${displayKelompok}</span></td>
         <td class="px-3 sm:px-4 py-3"><span class="px-2 py-1 rounded bg-slate-100 text-slate-700 font-semibold text-xs">${displayKelas}</span></td>
         <td class="px-3 sm:px-4 py-3">${j.Gender || '-'}</td>
         <td class="px-3 sm:px-4 py-3">${j.Alamat || '-'}</td>
@@ -462,6 +466,10 @@ function renderJamaah() {
     `;
   }).join("");
 }
+
+// =========================================================================
+// PRESENSI KELAS (FILTER CABERAWIT A, B, C, D DIPERBAIKI)
+// =========================================================================
 
 function renderPresensiTable() {
   const isCaberawit = (currentKelompok === "Caberawit");
@@ -505,16 +513,19 @@ function renderPresensiTable() {
   const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
   const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
 
-  // Filter Wilayah Presensi dari navbar
   const desaPresensi = document.getElementById("global-filter-desa") ? document.getElementById("global-filter-desa").value : "Semua";
   const kelPresensi = document.getElementById("global-filter-kelompok") ? document.getElementById("global-filter-kelompok").value : "Semua";
 
   const filteredJamaah = jamaahList.filter(j => {
     const matchStatus = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
-    const jKelompokUsia = String(j.Kelas_Usia || j.Kelompok || "").trim();
+    if (!matchStatus) return false;
+
+    // Normalisasi Data
+    const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "").trim();
+    const rawKelasUsiaLower = rawKelasUsia.toLowerCase();
     const jGender = String(j.Gender || "").trim().toLowerCase();
 
-    // Filter Wilayah Binaan
+    // Filter Wilayah
     const jKelBinaan = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
     const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKelBinaan)).trim();
 
@@ -523,16 +534,36 @@ function renderPresensiTable() {
 
     if (!matchDesa || !matchKelBinaan) return false;
 
-    if (currentKelompok === "ASAD") {
-      if (currentKelas === "Caberawit Laki-Laki") return matchStatus && jKelompokUsia === "Caberawit" && jGender === "laki-laki";
-      if (currentKelas === "Caberawit Perempuan") return matchStatus && jKelompokUsia === "Caberawit" && jGender === "perempuan";
-      if (currentKelas === "Laki-Laki") return matchStatus && ["Pra Remaja", "Remaja", "Muda-Mudi", "Bapak-Bapak"].includes(jKelompokUsia) && jGender === "laki-laki";
-      if (currentKelas === "Perempuan") return matchStatus && ["Pra Remaja", "Remaja", "Muda-Mudi", "Ibu-Ibu"].includes(jKelompokUsia) && jGender === "perempuan";
+    // Deteksi apakah data Caberawit
+    const isItemCaberawit = rawKelasUsiaLower.startsWith("caberawit");
+
+    // Deteksi Kelas Caberawit (bisa tersimpan sebagai "Caberawit A" atau hanya huruf "A")
+    let detectedKelas = String(j.Kelas || "").trim().toLowerCase();
+    if (!detectedKelas && isItemCaberawit) {
+      detectedKelas = rawKelasUsiaLower;
     }
 
-    const matchKelompok = String(jKelompokUsia || "Caberawit").trim().toLowerCase() === String(currentKelompok).trim().toLowerCase();
-    let matchKelas = (currentKelompok === "Caberawit") ? (String(j.Kelas || "").trim().toLowerCase() === String(currentKelas).trim().toLowerCase()) : true;
-    return matchStatus && matchKelompok && matchKelas;
+    if (currentKelompok === "ASAD") {
+      if (currentKelas === "Caberawit Laki-Laki") return isItemCaberawit && jGender === "laki-laki";
+      if (currentKelas === "Caberawit Perempuan") return isItemCaberawit && jGender === "perempuan";
+      if (currentKelas === "Laki-Laki") return !isItemCaberawit && jGender === "laki-laki";
+      if (currentKelas === "Perempuan") return !isItemCaberawit && jGender === "perempuan";
+    }
+
+    if (currentKelompok === "Caberawit") {
+      if (!isItemCaberawit) return false;
+
+      const targetKelas = currentKelas.trim().toLowerCase(); // misal "caberawit a"
+      const targetSuffix = targetKelas.replace("caberawit", "").trim(); // misal "a"
+
+      // Cocok jika isinya "Caberawit A" atau "A" atau raw data sama persis
+      return detectedKelas === targetKelas ||
+             detectedKelas === targetSuffix ||
+             rawKelasUsiaLower === targetKelas;
+    }
+
+    // Kelompok Usia Lain (Pra Remaja, Remaja, Muda-Mudi, Bapak-Bapak, Ibu-Ibu)
+    return rawKelasUsiaLower === currentKelompok.trim().toLowerCase();
   });
 
   const tbody = document.getElementById("table-presensi-body");
@@ -546,7 +577,7 @@ function renderPresensiTable() {
       <tr>
         <td colspan="${isCaberawit ? 7 : 6}" class="px-4 py-6 text-center text-slate-400 italic">
           Belum ada jamaah yang terdaftar di kelompok <b>${displayTitle}</b> pada wilayah yang dipilih.<br>
-          <span class="text-xs text-slate-500">Silakan pilih desa/kelompok lain di navbar atau tambahkan jamaah baru.</span>
+          <span class="text-xs text-slate-500">Pastikan kelompok usia jamaah sesuai atau ubah pilihan wilayah pada bilah atas.</span>
         </td>
       </tr>
     `;
@@ -561,7 +592,9 @@ function renderPresensiTable() {
       const pKls = String(p.Kelas || "Umum").trim().toLowerCase();
       let pDateStr = (p.Tanggal instanceof Date) ? p.Tanggal.toISOString().split("T")[0] : String(p.Tanggal).split("T")[0].trim();
 
-      const checkKelas = (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? (pKls === String(currentKelas).trim().toLowerCase()) : true;
+      const checkKelas = (currentKelompok === "Caberawit" || currentKelompok === "ASAD")
+        ? (pKls === String(currentKelas).trim().toLowerCase())
+        : true;
 
       if (pKel === String(currentKelompok).trim().toLowerCase() && checkKelas && pDateStr === targetDate) {
         existingStatusMap[String(p.NamaJamaah).trim().toLowerCase()] = {
@@ -728,7 +761,10 @@ async function submitPresensi() {
 
   const filteredJamaah = jamaahList.filter(j => {
     const matchStatus = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
-    const jKelompokUsia = String(j.Kelas_Usia || j.Kelompok || "").trim();
+    if (!matchStatus) return false;
+
+    const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "").trim();
+    const rawKelasUsiaLower = rawKelasUsia.toLowerCase();
     const jGender = String(j.Gender || "").trim().toLowerCase();
 
     const jKelBinaan = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
@@ -739,16 +775,27 @@ async function submitPresensi() {
 
     if (!matchDesa || !matchKelBinaan) return false;
 
-    if (currentKelompok === "ASAD") {
-      if (currentKelas === "Caberawit Laki-Laki") return matchStatus && jKelompokUsia === "Caberawit" && jGender === "laki-laki";
-      if (currentKelas === "Caberawit Perempuan") return matchStatus && jKelompokUsia === "Caberawit" && jGender === "perempuan";
-      if (currentKelas === "Laki-Laki") return matchStatus && ["Pra Remaja", "Remaja", "Muda-Mudi", "Bapak-Bapak"].includes(jKelompokUsia) && jGender === "laki-laki";
-      if (currentKelas === "Perempuan") return matchStatus && ["Pra Remaja", "Remaja", "Muda-Mudi", "Ibu-Ibu"].includes(jKelompokUsia) && jGender === "perempuan";
+    const isItemCaberawit = rawKelasUsiaLower.startsWith("caberawit");
+    let detectedKelas = String(j.Kelas || "").trim().toLowerCase();
+    if (!detectedKelas && isItemCaberawit) {
+      detectedKelas = rawKelasUsiaLower;
     }
 
-    const matchKelompok = String(jKelompokUsia || "Caberawit").trim().toLowerCase() === String(currentKelompok).trim().toLowerCase();
-    let matchKelas = (currentKelompok === "Caberawit") ? (String(j.Kelas || "").trim().toLowerCase() === String(currentKelas).trim().toLowerCase()) : true;
-    return matchStatus && matchKelompok && matchKelas;
+    if (currentKelompok === "ASAD") {
+      if (currentKelas === "Caberawit Laki-Laki") return isItemCaberawit && jGender === "laki-laki";
+      if (currentKelas === "Caberawit Perempuan") return isItemCaberawit && jGender === "perempuan";
+      if (currentKelas === "Laki-Laki") return !isItemCaberawit && jGender === "laki-laki";
+      if (currentKelas === "Perempuan") return !isItemCaberawit && jGender === "perempuan";
+    }
+
+    if (currentKelompok === "Caberawit") {
+      if (!isItemCaberawit) return false;
+      const targetKelas = currentKelas.trim().toLowerCase();
+      const targetSuffix = targetKelas.replace("caberawit", "").trim();
+      return detectedKelas === targetKelas || detectedKelas === targetSuffix || rawKelasUsiaLower === targetKelas;
+    }
+
+    return rawKelasUsiaLower === currentKelompok.trim().toLowerCase();
   });
 
   if (filteredJamaah.length === 0) return alert("Tidak ada jamaah untuk disimpan.");
@@ -872,15 +919,16 @@ function renderMonitoringTable() {
     // Filter Kelas Usia
     if (filterKelasUsia === "Semua") return true;
 
-    const jKel = String(j.Kelas_Usia || j.Kelompok || "").trim();
-    const jKls = String(j.Kelas || "").trim();
+    const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "").trim();
+    const rawLower = rawKelasUsia.toLowerCase();
+    const filterLower = filterKelasUsia.toLowerCase();
 
-    if (filterKelasUsia === "Caberawit") {
-      return jKel.toLowerCase() === "caberawit";
-    } else if (filterKelasUsia.startsWith("Caberawit ")) {
-      return jKel.toLowerCase() === "caberawit" && jKls.toLowerCase() === filterKelasUsia.toLowerCase();
+    if (filterLower === "caberawit") {
+      return rawLower.startsWith("caberawit");
+    } else if (filterLower.startsWith("caberawit ")) {
+      return rawLower === filterLower || String(j.Kelas || "").trim().toLowerCase() === filterLower;
     } else {
-      return jKel.toLowerCase() === filterKelasUsia.toLowerCase();
+      return rawLower === filterLower;
     }
   });
 
@@ -892,7 +940,8 @@ function renderMonitoringTable() {
   tbody.innerHTML = targetJamaah.map((j, idx) => {
     const nama = j.Nama_Lengkap || j.Nama;
     const namaKey = String(nama || "").trim().toLowerCase();
-    const isCaberawit = String(j.Kelas_Usia || j.Kelompok || "").trim().toLowerCase() === "caberawit";
+    const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "").trim();
+    const isCaberawit = rawKelasUsia.toLowerCase().startsWith("caberawit");
 
     const jKelBinaan = j.Nama_Kelompok || j.KelompokBinaan || "-";
     const jDesa = (j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKelBinaan);
@@ -928,7 +977,7 @@ function renderMonitoringTable() {
       }
     });
 
-    const displayKelas = isCaberawit ? `${j.Kelompok || 'Caberawit'} (${j.Kelas || 'Caberawit A'})` : (j.Kelas_Usia || j.Kelompok);
+    const displayKelas = isCaberawit ? `Caberawit (${j.Kelas || rawKelasUsia})` : rawKelasUsia;
     const reasonsText = izinReasons.length > 0 ? izinReasons.join("; ") : "-";
 
     let karakterStatusBadge = "-";
@@ -1264,6 +1313,15 @@ function openFormJamaah(data = null) {
   let desas = [...new Set(mk.map(m => m.Nama_Desa))];
   if (desas.length === 0) desas = ["Desa 1", "Desa 2", "Desa 3", "Desa 4"];
 
+  const rawKelasUsia = data ? String(data.Kelas_Usia || data.Kelompok || '') : '';
+  let selectedCategory = rawKelasUsia;
+  let selectedTingkat = data ? (data.Kelas || '') : '';
+
+  if (rawKelasUsia.startsWith("Caberawit")) {
+    selectedCategory = "Caberawit";
+    selectedTingkat = rawKelasUsia;
+  }
+
   if (fieldsEl) {
     fieldsEl.innerHTML = `
       <input type="hidden" name="ID" value="${data ? (data.ID_Jamaah || data.ID || '') : ''}">
@@ -1287,12 +1345,12 @@ function openFormJamaah(data = null) {
       <div>
         <label class="block text-xs font-semibold mb-1">Kelompok Usia</label>
         <select name="Kelas_Usia" id="field-kelompok" onchange="onKelompokChange()" class="w-full border rounded px-3 py-1.5 text-sm">
-          <option value="Caberawit" ${data && (data.Kelas_Usia === 'Caberawit' || data.Kelompok === 'Caberawit') ? 'selected' : ''}>Caberawit (SD)</option>
-          <option value="Pra Remaja" ${data && (data.Kelas_Usia === 'Pra Remaja' || data.Kelompok === 'Pra Remaja') ? 'selected' : ''}>Pra Remaja (SMP)</option>
-          <option value="Remaja" ${data && (data.Kelas_Usia === 'Remaja' || data.Kelompok === 'Remaja') ? 'selected' : ''}>Remaja (SMA)</option>
-          <option value="Muda-Mudi" ${data && (data.Kelas_Usia === 'Muda-Mudi' || data.Kelompok === 'Muda-Mudi') ? 'selected' : ''}>Muda-Mudi</option>
-          <option value="Bapak-Bapak" ${data && (data.Kelas_Usia === 'Bapak-Bapak' || data.Kelompok === 'Bapak-Bapak') ? 'selected' : ''}>Bapak-Bapak</option>
-          <option value="Ibu-Ibu" ${data && (data.Kelas_Usia === 'Ibu-Ibu' || data.Kelompok === 'Ibu-Ibu') ? 'selected' : ''}>Ibu-Ibu</option>
+          <option value="Caberawit" ${selectedCategory === 'Caberawit' ? 'selected' : ''}>Caberawit (SD)</option>
+          <option value="Pra Remaja" ${selectedCategory === 'Pra Remaja' ? 'selected' : ''}>Pra Remaja (SMP)</option>
+          <option value="Remaja" ${selectedCategory === 'Remaja' ? 'selected' : ''}>Remaja (SMA)</option>
+          <option value="Muda-Mudi" ${selectedCategory === 'Muda-Mudi' ? 'selected' : ''}>Muda-Mudi</option>
+          <option value="Bapak-Bapak" ${selectedCategory === 'Bapak-Bapak' ? 'selected' : ''}>Bapak-Bapak</option>
+          <option value="Ibu-Ibu" ${selectedCategory === 'Ibu-Ibu' ? 'selected' : ''}>Ibu-Ibu</option>
         </select>
       </div>
 
@@ -1321,7 +1379,7 @@ function openFormJamaah(data = null) {
   }
 
   onModalDesaChange(data ? (data.Nama_Kelompok || data.KelompokBinaan) : null);
-  onKelompokChange(data ? data.Kelas : null);
+  onKelompokChange(selectedTingkat);
   openModal("modal-form");
 }
 
@@ -1353,7 +1411,7 @@ function onKelompokChange(selectedKelas = null) {
     if (kelasWrapper) kelasWrapper.style.display = "block";
     const options = ["Caberawit A", "Caberawit B", "Caberawit C", "Caberawit D"];
     options.forEach(opt => {
-      const isSelected = (selectedKelas && selectedKelas === opt) ? "selected" : "";
+      const isSelected = (selectedKelas && selectedKelas.toLowerCase() === opt.toLowerCase()) ? "selected" : "";
       kelasSelect.innerHTML += `<option value="${opt}" ${isSelected}>${opt}</option>`;
     });
   } else {
@@ -1379,6 +1437,11 @@ async function handleFormSubmit(e) {
     const matched = mk.find(k => k.Nama_Kelompok === dataObj.Nama_Kelompok);
     dataObj.ID_Kelompok = matched ? matched.ID_Kelompok : "KLP-000";
     dataObj.Usia = calculateAge(dataObj.TanggalLahir);
+
+    // Pastikan tingkat kelas tersimpan ke kolom Kelas_Usia
+    if (dataObj.Kelas_Usia === "Caberawit" && dataObj.Kelas) {
+      dataObj.Kelas_Usia = dataObj.Kelas;
+    }
   }
 
   const actionName = (activeFormType === "Jamaah") ? "save_jamaah" : `save_${activeFormType.toLowerCase()}`;
