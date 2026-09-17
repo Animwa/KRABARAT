@@ -82,7 +82,7 @@
       </button>
     </div>
 
-    <!-- Kotak Filter & Pencarian (Muncul di Pengurus, Inventaris, Jamaah, Monitoring) -->
+    <!-- Kotak Filter & Pencarian (Hanya Tampil di Pengurus, Inventaris, Jamaah, Monitoring) -->
     <div id="nav-filter-search-container" class="hidden flex flex-wrap items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-emerald-900 shrink-0">
       <div class="relative w-full sm:w-44">
         <input type="text" id="global-search-input" oninput="onGlobalSearchInput()" placeholder="Cari data..." class="w-full bg-emerald-900/90 border border-emerald-700 text-white rounded-lg pl-7 pr-2.5 py-1.5 text-[11px] focus:ring-1 focus:ring-amber-400 focus:outline-none placeholder-emerald-300/60">
@@ -104,7 +104,7 @@
   </div>
 </nav>
 
-<!-- SUB NAV KELOMPOK USIA (HANYA DI TAB PRESENSI) -->
+<!-- SUB NAV KELOMPOK USIA (HANYA AKTIF DI TAB PRESENSI) -->
 <div id="subnav-container" class="bg-slate-200 border-b border-slate-300 hidden">
   <div class="max-w-7xl mx-auto px-3 py-2 flex items-center space-x-2 text-xs font-semibold overflow-x-auto no-scrollbar">
     <span class="text-slate-600 shrink-0 font-bold flex items-center text-[11px] uppercase tracking-wider"><i class="fa-solid fa-layer-group mr-1 text-emerald-700"></i> Kelompok Usia:</span>
@@ -274,7 +274,7 @@
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-4">
         <div>
           <h3 class="text-base sm:text-lg font-bold text-slate-800" id="presensi-class-title">Presensi Kelas</h3>
-          <p class="text-xs text-slate-500">Tentukan tanggal, pengajar, dan tandai kehadiran jamaah.</p>
+          <p class="text-xs text-slate-500">Tentukan tanggal, jenis pengajian, dan tandai kehadiran jamaah.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <div>
@@ -431,7 +431,7 @@
         <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
           <i class="fa-solid fa-handshake-angle text-teal-600"></i> Monitoring & Log Penyapaan Kegiatan
         </h2>
-        <p class="text-xs text-slate-500 mt-1">Pemetaan pembinaan wilayah, tanda rekomendasi sapaan minim, dan pencatatan sapaan.</p>
+        <p class="text-xs text-slate-500 mt-1">Pemetaan pembinaan wilayah, prioritas kelompok binaan, dan pencatatan sapaan.</p>
       </div>
       <div class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
         <button onclick="switchPenyapaanSubTab('status-peta')" class="subnav-btn active px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0" id="subtab-btn-status-peta">
@@ -446,15 +446,15 @@
       </div>
     </div>
 
-    <!-- SUB-TAB 1: PEMETAAN & FORM LANGSUNG (TANPA POPUP, TANPA BLOK REKOMENDASI 16) -->
+    <!-- SUB-TAB 1: PEMETAAN & INPUT LANGSUNG (TANPA POPUP, TANPA BLOK 16 REKOMENDASI) -->
     <div id="subtab-status-peta" class="space-y-4">
-      <!-- Input Agenda & Tanggal Langsung (Sama Persis Seperti Presensi) -->
+      <!-- Form Input Langsung Agenda Sapaan -->
       <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
             <i class="fa-solid fa-calendar-check text-emerald-600"></i> Form Agenda Penyapaan
           </h3>
-          <p class="text-xs text-slate-500">Tentukan tanggal dan agenda sapaan sebelum menyimpan kelompok yang ditandai.</p>
+          <p class="text-xs text-slate-500">Tentukan tanggal dan nama kegiatan sapaan sebelum menyimpan draf checklist sapaan.</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
@@ -467,15 +467,15 @@
             <input type="text" id="sapaan-batch-day" readonly class="w-full border border-slate-200 bg-slate-100 rounded-lg px-3 py-1.5 text-xs sm:text-sm text-slate-600 font-medium text-center">
           </div>
           <div class="grow sm:w-64">
-            <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Agenda / Kegiatan Sapaan</label>
-            <input type="text" id="sapaan-batch-agenda" placeholder="Misal: Evaluasi Pembinaan Rutin" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white font-semibold text-slate-800">
+            <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Jenis Pengajian / Kegiatan</label>
+            <input type="text" id="sapaan-batch-agenda" placeholder="Misal: Rutin / Kajian Kitab" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white font-semibold text-slate-800">
           </div>
         </div>
       </div>
 
       <!-- Filter Peta Status Kelompok -->
       <div class="flex items-center justify-between gap-2 pt-1">
-        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Daftar Seluruh Kelompok Binaan</h4>
+        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Daftar Kelompok Binaan</h4>
         <div class="flex items-center space-x-1">
           <button onclick="filterPetaCards('all')" id="peta-filter-all" class="px-2.5 py-1 text-[11px] rounded bg-teal-600 text-white font-semibold">Semua</button>
           <button onclick="filterPetaCards('sudah')" id="peta-filter-sudah" class="px-2.5 py-1 text-[11px] rounded bg-white border border-slate-300 font-semibold text-slate-600 hover:bg-slate-100">Sudah Disapa</button>
@@ -483,7 +483,7 @@
         </div>
       </div>
 
-      <!-- Container Grid 4 Desa -->
+      <!-- Container Grid 4 Desa (Tetap Menampilkan Seluruh Kelompok) -->
       <div id="peta-desa-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </div>
 
