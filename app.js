@@ -2,7 +2,7 @@
 // FRONTEND LOGIC & INTEGRASI REST API KARANGANYAR BARAT
 // ==========================================
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby06xsEieZsp-cmnHJIl3Tj39M82N3HDX8icPYg7qRBEAJ3CB4l-8ytQFX7ks2AfT7b/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwTRkswqQQIeji_E5Lviz9YzEuk8b3z6foVvYygNt4phLBVRo6gyFelkKm1VDI9MN3D/exec";
 
 let appData = {
   pengurus: [],
@@ -22,6 +22,9 @@ let activeFormType = null;
 let currentPetaFilter = "all";
 let analyticsPenyapaan = null;
 let currentActiveTab = "beranda";
+
+// State lokal khusus modul penyapaan
+let localPenyapaanData = [];
 
 document.addEventListener("DOMContentLoaded", () => {
   const savedAdmin = sessionStorage.getItem("currentAdmin");
@@ -81,6 +84,7 @@ async function loadAllData() {
 
       await loadPenyapaanAnalytics();
       initGlobalWilayahFilters();
+      buildLocalPenyapaanState();
       renderAllViews();
       hideMessage();
     } else {
@@ -130,10 +134,10 @@ function switchTab(tabName) {
   const classnav = document.getElementById("classnav-container");
   const filterSearchBox = document.getElementById("nav-filter-search-container");
 
-  // Filter Wilayah & Search Box HANYA muncul di 4 tab ini
-  const filterAllowedTabs = ["pengurus", "inventaris", "jamaah", "monitoring"];
+  // Filter Desa, Kelompok, dan Kotak Search hanya muncul di 4 tab ini:
+  const allowedTabs = ["pengurus", "inventaris", "jamaah", "monitoring"];
   if (filterSearchBox) {
-    if (filterAllowedTabs.includes(tabName)) {
+    if (allowedTabs.includes(tabName)) {
       filterSearchBox.classList.remove("hidden");
     } else {
       filterSearchBox.classList.add("hidden");
@@ -254,8 +258,9 @@ function calculateAge(dobString) {
 }
 
 // =========================================================================
-// SISTEM FILTER WILAYAH GLOBAL & PENCARIAN DI NAVBAR
+// SISTEM FILTER WILAYAH GLOBAL DI NAVBAR
 // =========================================================================
+
 function getDesaByKelompok(namaKelompok) {
   if (!namaKelompok || namaKelompok === "-") return "-";
   const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
@@ -327,7 +332,7 @@ function refreshCurrentActiveView() {
 }
 
 // =========================================================================
-// RENDERERS (DENGAN INTEGRASI FILTER WILAYAH & SEARCH)
+// RENDERERS (PENGURUS, INVENTARIS, JAMAAH, PRESENSI)
 // =========================================================================
 
 function renderBerandaKegiatan() {
@@ -500,7 +505,7 @@ function renderJamaah() {
   if (badgeCount) badgeCount.innerText = `${filtered.length} Jamaah Ditemukan`;
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="11" class="px-4 py-6 text-center text-slate-400 italic">Tidak ada data jamaah pada desa / kelompok yang dipilih.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="px-4 py-6 text-center text-slate-400 italic">Tidak ada data jamaah pada kriteria yang dipilih.</td></tr>`;
     return;
   }
 
@@ -537,10 +542,6 @@ function renderJamaah() {
     `;
   }).join("");
 }
-
-// =========================================================================
-// PRESENSI KELAS
-// =========================================================================
 
 function renderPresensiTable() {
   const isCaberawit = (currentKelompok === "Caberawit");
@@ -1053,8 +1054,173 @@ function renderMonitoringTable() {
 }
 
 // =========================================================================
-// MODUL PENYAPAAN KEGIATAN
+// MODUL PENYAPAAN (SEMUA KELOMPOK TAMPIL & 16 REKOMENDASI TERENDAH)
 // =========================================================================
+
+function buildLocalPenyapaanState() {
+  const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
+  const sapaanList = Array.isArray(appData.penyapaan) ? appData.penyapaan : [];
+
+  const freqMap = {};
+  const lastDateMap = {};
+
+  sapaanList.forEach(s => {
+    const kId = String(s.ID_Kelompok || "").trim();
+    if (!kId) return;
+    freqMap[kId] = (freqMap[kId] || 0) + 1;
+    const curDate = new Date(s.Tanggal);
+    if (!lastDateMap[kId] || curDate > new Date(lastDateMap[kId])) {
+      lastDateMap[kId] = s.Tanggal;
+    }
+  });
+
+  localPenyapaanData = mk.map(k => {
+    const kId = String(k.ID_Kelompok || "").trim();
+    const totalCount = freqMap[kId] || 0;
+    return {
+      id: kId,
+      nama_desa: String(k.Nama_Desa || "-").trim(),
+      nama_kelompok: String(k.Nama_Kelompok || "-").trim(),
+      total_penyapaan: totalCount,
+      base_total: totalCount,
+      status_sapa: false,
+      status_belum_sapa: false,
+      is_dirty: false,
+      tanggal_terakhir: lastDateMap[kId] || "-",
+      is_recommended: false
+    };
+  });
+
+  calculateRekomendasi16Kelompok();
+}
+
+function calculateRekomendasi16Kelompok() {
+  localPenyapaanData.forEach(k => k.is_recommended = false);
+
+  const desas = [...new Set(localPenyapaanData.map(k => k.nama_desa))];
+  desas.forEach(desa => {
+    const kelompokInDesa = localPenyapaanData.filter(k => k.nama_desa === desa);
+    if (kelompokInDesa.length === 0) return;
+
+    // Urutkan nilai total penyapaan dari paling sedikit
+    kelompokInDesa.sort((a, b) => parseInt(a.total_penyapaan || 0, 10) - parseInt(b.total_penyapaan || 0, 10));
+
+    // Ambil 4 kelompok dengan nilai sapaan paling rendah di desa ini (4 Desa x 4 = 16 Kelompok)
+    const lowest4 = kelompokInDesa.slice(0, 4);
+    lowest4.forEach(item => {
+      item.is_recommended = true;
+    });
+  });
+
+  renderRekomendasiBanner();
+}
+
+function renderRekomendasiBanner() {
+  const recGrid = document.getElementById("rekomendasi-grid");
+  if (!recGrid) return;
+
+  const recommendedItems = localPenyapaanData.filter(k => k.is_recommended);
+
+  if (recommendedItems.length === 0) {
+    recGrid.innerHTML = `<p class="col-span-full text-xs text-amber-800 italic">Belum ada kelompok binaan terdaftar.</p>`;
+    return;
+  }
+
+  recGrid.innerHTML = recommendedItems.map(r => `
+    <div class="bg-white p-3 rounded-xl border border-amber-300 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+      <div>
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-bold uppercase text-amber-700">${r.nama_desa}</span>
+          <span class="text-[9px] bg-amber-100 text-amber-900 font-extrabold px-1.5 py-0.5 rounded border border-amber-300">
+            <i class="fa-solid fa-star text-amber-500 text-[8px] mr-0.5"></i> Prioritas
+          </span>
+        </div>
+        <p class="font-black text-slate-800 text-xs mt-1 truncate">${r.nama_kelompok}</p>
+      </div>
+      <div class="flex justify-between items-center mt-2.5 text-[10px] border-t border-amber-100 pt-1.5">
+        <span class="text-slate-500">Total Sapaan:</span>
+        <span class="text-xs font-black text-amber-950">${r.total_penyapaan}x</span>
+      </div>
+    </div>
+  `).join("");
+}
+
+function toggleLocalSapa(idKelompok, actionType) {
+  if (!currentAdmin) {
+    alert("Hanya Admin yang berwenang mengubah status penyapaan kegiatan!");
+    renderPetaCards();
+    return;
+  }
+
+  const item = localPenyapaanData.find(k => String(k.id) === String(idKelompok));
+  if (!item) return;
+
+  if (actionType === "sapa") {
+    if (item.status_sapa) {
+      item.status_sapa = false;
+    } else {
+      item.status_sapa = true;
+      item.status_belum_sapa = false;
+    }
+  } else if (actionType === "belum_sapa") {
+    if (item.status_belum_sapa) {
+      item.status_belum_sapa = false;
+    } else {
+      item.status_belum_sapa = true;
+      item.status_sapa = false;
+    }
+  }
+
+  // Hitung ulang angka total sapaan secara dinamis
+  item.total_penyapaan = item.base_total + (item.status_sapa ? 1 : 0);
+  item.is_dirty = (item.status_sapa || item.status_belum_sapa);
+
+  calculateRekomendasi16Kelompok();
+  renderPetaCards();
+}
+
+async function simpanBatchPenyapaanGrid() {
+  if (!currentAdmin) {
+    return alert("Akses Admin diperlukan untuk menyimpan penyapaan!");
+  }
+
+  const dirtyItems = localPenyapaanData.filter(k => k.is_dirty && k.status_sapa);
+  if (dirtyItems.length === 0) {
+    return alert("Tidak ada kelompok yang ditandai 'Sapa' untuk disimpan.");
+  }
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const agendaText = prompt("Masukkan Agenda/Catatan Penyapaan untuk kelompok yang ditandai:", "Kunjungan & Evaluasi Pembinaan Rutin");
+  if (agendaText === null) return;
+
+  showMessage("Menyimpan perubahan penyapaan...", "info");
+
+  try {
+    for (const item of dirtyItems) {
+      const payload = {
+        action: "add_penyapaan",
+        tanggal: todayStr,
+        idKelompok: item.id,
+        namaKelompok: item.nama_kelompok,
+        namaDesa: item.nama_desa,
+        namaPetugas: currentAdmin.nama || "Admin Daerah",
+        jenisKegiatan: agendaText.trim() || "Penyapaan Rutin",
+        catatan: "Penyapaan dicatat langsung via pemetaan wilayah."
+      };
+
+      await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+    }
+
+    showMessage("Semua perubahan penyapaan berhasil disimpan ke server!", "success");
+    await loadAllData();
+  } catch (err) {
+    showMessage("Gagal menyimpan penyapaan: " + err, "error");
+  }
+}
+
 function switchPenyapaanSubTab(subTabName) {
   ["status-peta", "rekap-riwayat", "input-sapaan"].forEach(name => {
     const el = document.getElementById(`subtab-${name}`);
@@ -1070,24 +1236,13 @@ function switchPenyapaanSubTab(subTabName) {
 }
 
 function renderPenyapaanModule() {
-  if (!analyticsPenyapaan) return;
+  const badge = document.getElementById("badge-total-sapaan");
+  const total = (analyticsPenyapaan && analyticsPenyapaan.totalSapaan) 
+    ? analyticsPenyapaan.totalSapaan 
+    : (Array.isArray(appData.penyapaan) ? appData.penyapaan.length : 0);
+  if (badge) badge.innerText = total;
 
-  const recGrid = document.getElementById("rekomendasi-grid");
-  if (recGrid && analyticsPenyapaan.rekomendasi) {
-    recGrid.innerHTML = analyticsPenyapaan.rekomendasi.map(r => `
-      <div class="bg-white p-3 rounded-xl border border-amber-300 shadow-sm">
-        <span class="text-[10px] font-bold uppercase text-amber-700 block">${r.nama_desa}</span>
-        <p class="font-black text-slate-800 text-xs mt-0.5">${r.nama_kelompok}</p>
-        <div class="flex justify-between items-center mt-2 text-[10px]">
-          <span class="text-slate-500">Sapaan: <b>${r.frekuensi}x</b></span>
-          <span class="px-2 py-0.5 rounded ${r.frekuensi === 0 ? 'bg-rose-100 text-rose-700 font-bold' : 'bg-amber-100 text-amber-800 font-bold'}">
-            ${r.frekuensi === 0 ? 'Belum Pernah' : 'Terkecil'}
-          </span>
-        </div>
-      </div>
-    `).join("");
-  }
-
+  renderRekomendasiBanner();
   renderPetaCards();
   renderRiwayatPenyapaanTable();
   populateSapaanSelectors();
@@ -1095,52 +1250,126 @@ function renderPenyapaanModule() {
 
 function filterPetaCards(filter) {
   currentPetaFilter = filter;
+  ["all", "sudah", "belum"].forEach(f => {
+    const btn = document.getElementById(`peta-filter-${f}`);
+    if (btn) {
+      if (f === filter) {
+        btn.className = "px-2.5 py-1 text-[11px] rounded bg-teal-600 text-white font-semibold";
+      } else {
+        btn.className = "px-2.5 py-1 text-[11px] rounded bg-white border border-slate-300 font-semibold text-slate-600 hover:bg-slate-100";
+      }
+    }
+  });
   renderPetaCards();
 }
 
+// Menampilkan seluruh kelompok binaan pada tiap desa
 function renderPetaCards() {
   const container = document.getElementById("peta-desa-grid");
-  if (!container || !analyticsPenyapaan) return;
+  if (!container) return;
 
-  const mapping = analyticsPenyapaan.kelompokMapping || [];
-  const desas = [...new Set(mapping.map(m => m.nama_desa))];
+  if (!localPenyapaanData || localPenyapaanData.length === 0) {
+    buildLocalPenyapaanState();
+  }
+
+  const desas = [...new Set(localPenyapaanData.map(m => m.nama_desa))];
+  const hasDirty = localPenyapaanData.some(k => k.is_dirty);
 
   container.innerHTML = desas.map(desa => {
-    let list = mapping.filter(k => k.nama_desa === desa);
-    if (currentPetaFilter === "sudah") list = list.filter(k => k.frekuensi > 0);
-    if (currentPetaFilter === "belum") list = list.filter(k => k.frekuensi === 0);
+    let list = localPenyapaanData.filter(k => k.nama_desa === desa);
+    if (currentPetaFilter === "sudah") list = list.filter(k => k.total_penyapaan > 0 || k.status_sapa);
+    if (currentPetaFilter === "belum") list = list.filter(k => k.total_penyapaan === 0 && !k.status_sapa);
 
     return `
       <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
         <div class="border-b pb-2 flex justify-between items-center">
-          <h4 class="font-bold text-slate-800 text-xs uppercase"><i class="fa-solid fa-location-dot text-emerald-600 mr-1"></i>${desa}</h4>
+          <h4 class="font-bold text-slate-800 text-xs uppercase flex items-center gap-1.5">
+            <i class="fa-solid fa-location-dot text-emerald-600"></i> ${desa}
+          </h4>
           <span class="text-[10px] text-slate-500 font-medium">${list.length} Kelompok</span>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          ${list.map(k => `
-            <div class="p-2.5 rounded-xl border flex flex-col justify-between space-y-1.5 ${k.frekuensi > 0 ? 'bg-emerald-50/70 border-emerald-300' : 'bg-slate-50 border-slate-200'}">
-              <div>
-                <p class="font-bold text-xs text-slate-800">${k.nama_kelompok}</p>
-                <span class="text-[10px] ${k.frekuensi > 0 ? 'text-emerald-700 font-bold' : 'text-slate-400 font-medium'}">
-                  ${k.frekuensi > 0 ? `<i class="fa-solid fa-check"></i> ${k.frekuensi}x Disapa` : 'Belum Pernah Disapa'}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          ${list.map(k => {
+            const isSapaChecked = k.status_sapa;
+            const isBelumChecked = k.status_belum_sapa;
+
+            let badgeHtml = "";
+            if (k.is_dirty) {
+              badgeHtml = `<span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-amber-300">Draf</span>`;
+            } else if (k.total_penyapaan > 0) {
+              badgeHtml = `<span class="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-emerald-300">Disapa</span>`;
+            } else {
+              badgeHtml = `<span class="bg-slate-100 text-slate-500 text-[9px] font-semibold px-1.5 py-0.5 rounded">Belum</span>`;
+            }
+
+            let rekomBadge = "";
+            if (k.is_recommended) {
+              rekomBadge = `
+                <span class="text-[9px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-1 rounded flex items-center gap-0.5">
+                  <i class="fa-solid fa-star text-amber-500 text-[8px]"></i> Rekomendasi
                 </span>
+              `;
+            }
+
+            return `
+              <div class="p-2.5 rounded-xl border flex flex-col justify-between space-y-2 ${k.is_dirty ? 'bg-amber-50/50 border-amber-300' : (k.total_penyapaan > 0 ? 'bg-emerald-50/40 border-emerald-200' : 'bg-slate-50 border-slate-200')}">
+                <div>
+                  <div class="flex items-start justify-between gap-1 mb-1">
+                    <p class="font-bold text-xs text-slate-800 truncate">${k.nama_kelompok}</p>
+                    ${badgeHtml}
+                  </div>
+                  <div class="flex items-center gap-1">
+                    ${rekomBadge}
+                    <span class="text-[9px] text-slate-400">Tgl: ${k.tanggal_terakhir !== '-' ? String(k.tanggal_terakhir).split('T')[0] : '-'}</span>
+                  </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-200/80 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <label class="flex items-center gap-1 ${currentAdmin ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}">
+                      <input type="checkbox" ${isSapaChecked ? 'checked' : ''} ${!currentAdmin ? 'disabled' : ''} onchange="toggleLocalSapa('${k.id}', 'sapa')" class="rounded text-teal-600 focus:ring-teal-500 w-3.5 h-3.5">
+                      <span class="text-[10px] font-bold text-slate-700">Sapa</span>
+                    </label>
+
+                    <label class="flex items-center gap-1 ${currentAdmin ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}">
+                      <input type="checkbox" ${isBelumChecked ? 'checked' : ''} ${!currentAdmin ? 'disabled' : ''} onchange="toggleLocalSapa('${k.id}', 'belum_sapa')" class="rounded text-rose-600 focus:ring-rose-500 w-3.5 h-3.5">
+                      <span class="text-[10px] font-bold text-slate-500">Belum</span>
+                    </label>
+                  </div>
+
+                  <div class="text-right">
+                    <span class="text-[9px] text-slate-400 block leading-none font-semibold">Total Sapa</span>
+                    <span class="text-xs font-black text-teal-900 leading-tight">${k.total_penyapaan}x</span>
+                  </div>
+                </div>
               </div>
-              <p class="text-[9px] text-slate-400 border-t pt-1 border-slate-200">
-                Terakhir: ${k.tanggal_terakhir !== '-' ? String(k.tanggal_terakhir).split('T')[0] : '-'}
-              </p>
-            </div>
-          `).join("")}
+            `;
+          }).join("")}
         </div>
       </div>
     `;
   }).join("");
+
+  if (currentAdmin && hasDirty) {
+    container.innerHTML += `
+      <div class="col-span-full bg-amber-50 border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm sticky bottom-4 z-20">
+        <div class="flex items-center gap-2 text-xs font-semibold text-amber-900">
+          <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm"></i>
+          <span>Ada perubahan status penyapaan kelompok berstatus <b>Draf</b> yang belum disimpan ke server.</span>
+        </div>
+        <button onclick="simpanBatchPenyapaanGrid()" class="bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-2 shrink-0">
+          <i class="fa-solid fa-floppy-disk"></i> Simpan Sapaan Terpilih
+        </button>
+      </div>
+    `;
+  }
 }
 
 function renderRiwayatPenyapaanTable() {
   const tbody = document.getElementById("table-riwayat-sapaan-body");
   if (!tbody || !analyticsPenyapaan) return;
 
-  const search = (document.getElementById("search-riwayat").value || "").toLowerCase();
+  const search = (document.getElementById("search-riwayat") ? document.getElementById("search-riwayat").value : "").toLowerCase();
   const desaFilter = document.getElementById("filter-riwayat-desa") ? document.getElementById("filter-riwayat-desa").value : "ALL";
 
   let list = analyticsPenyapaan.riwayat || [];
@@ -1243,6 +1472,7 @@ function downloadLembarKerja() {
 // =========================================================================
 // MODAL & CRUD HANDLERS
 // =========================================================================
+
 function openFormKegiatan() {
   activeFormType = "Kegiatan";
   const titleEl = document.getElementById("modal-form-title");
@@ -1611,6 +1841,7 @@ function updateAdminUI() {
     if (document.getElementById("admin-badge")) document.getElementById("admin-badge").classList.add("hidden");
   }
   renderPresensiTable();
+  renderPetaCards();
 }
 
 async function handleAddAdmin(e) {
