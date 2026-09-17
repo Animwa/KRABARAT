@@ -42,6 +42,158 @@ document.addEventListener("DOMContentLoaded", () => {
   switchTab("beranda");
 });
 
+// =========================================================================
+// SISTEM HAK AKSES ROLE-BASED ACCESS CONTROL (RBAC) & LOGIN
+// =========================================================================
+
+function getAdminRole() {
+  if (!currentAdmin) return "guest";
+  return String(currentAdmin.role || "").trim().toLowerCase();
+}
+
+function isSuperOrDaerah() {
+  const role = getAdminRole();
+  return role.includes("super") || role.includes("daerah") || role.includes("admin daerah") || role === "admin";
+}
+
+function canWritePenyapaan() {
+  return isSuperOrDaerah();
+}
+
+// Fungsi Helper Notifikasi & Pesan
+function showMessage(text, type = "info") {
+  const msgBox = document.getElementById("status-message");
+  if (!msgBox) return;
+  msgBox.className = `mb-4 p-3.5 sm:p-4 rounded-xl font-medium text-xs sm:text-sm border shadow-sm flex items-center justify-between ${
+    type === "success" ? "bg-emerald-50 text-emerald-800 border-emerald-200" :
+    type === "error" ? "bg-rose-50 text-rose-800 border-rose-200" :
+    "bg-teal-50 text-teal-800 border-teal-200"
+  }`;
+  msgBox.innerHTML = `<span>${text}</span>`;
+  msgBox.classList.remove("hidden");
+}
+
+function hideMessage() {
+  const msgBox = document.getElementById("status-message");
+  if (msgBox) msgBox.classList.add("hidden");
+}
+
+function openLoginModal() {
+  const modal = document.getElementById("modal-login");
+  if (modal) modal.classList.remove("hidden");
+}
+
+function closeModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) modal.classList.add("hidden");
+}
+
+// Handler Login via API
+async function handleLogin(event) {
+  event.preventDefault();
+  const namaInput = document.getElementById("login-nama").value.trim();
+  const pinInput = document.getElementById("login-pin").value.trim();
+
+  if (!namaInput || !pinInput) {
+    alert("Nama dan PIN/Sandi wajib diisi!");
+    return;
+  }
+
+  showMessage("Sedang memproses login...", "info");
+
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "login",
+        username: namaInput,
+        password: pinInput
+      })
+    });
+    const json = await res.json();
+
+    if (json.success && json.admin) {
+      currentAdmin = json.admin;
+      sessionStorage.setItem("currentAdmin", JSON.stringify(currentAdmin));
+      closeModal("modal-login");
+      showMessage("Login berhasil! Selamat datang, " + currentAdmin.nama, "success");
+      updateAdminUI();
+      loadAllData();
+    } else {
+      alert("Gagal Login: " + (json.message || "Nama atau PIN salah."));
+      hideMessage();
+    }
+  } catch (err) {
+    console.error("Login Error:", err);
+    alert("Terjadi kesalahan jaringan saat mencoba login ke server.");
+    hideMessage();
+  }
+}
+
+function logoutAdmin() {
+  sessionStorage.removeItem("currentAdmin");
+  currentAdmin = null;
+  alert("Anda telah keluar (logout).");
+  window.location.reload();
+}
+
+function updateAdminUI() {
+  const badgeContainer = document.getElementById("admin-badge");
+  const nameDisplay = document.getElementById("admin-name-display");
+  const btnLogin = document.getElementById("btn-login-modal");
+  const btnLogout = document.getElementById("btn-logout");
+  const btnManage = document.getElementById("btn-admin-manage");
+
+  if (currentAdmin) {
+    if (badgeContainer) badgeContainer.classList.remove("hidden");
+    if (nameDisplay) nameDisplay.innerText = currentAdmin.nama || currentAdmin.username || "Admin";
+    if (btnLogin) btnLogin.classList.add("hidden");
+    if (btnLogout) btnLogout.classList.remove("hidden");
+    if (isSuperOrDaerah() && btnManage) {
+      btnManage.classList.remove("hidden");
+    } else if (btnManage) {
+      btnManage.classList.add("hidden");
+    }
+
+    document.querySelectorAll(".admin-only").forEach(el => {
+      el.classList.remove("hidden");
+    });
+
+    const role = getAdminRole();
+    const desaSelect = document.getElementById("global-filter-desa");
+    const kelSelect = document.getElementById("global-filter-kelompok");
+
+    if (role.includes("desa") && desaSelect && currentAdmin.scopeDesa) {
+      desaSelect.value = currentAdmin.scopeDesa;
+      desaSelect.disabled = true;
+      onGlobalDesaChange();
+    } else if (role.includes("kelompok") && currentAdmin.scopeKelompok) {
+      const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
+      const found = mk.find(m => 
+        String(m.ID_Kelompok || "").trim().toLowerCase() === String(currentAdmin.scopeKelompok).trim().toLowerCase() ||
+        String(m.Nama_Kelompok || "").trim().toLowerCase() === String(currentAdmin.scopeKelompok).trim().toLowerCase()
+      );
+      if (found) {
+        if (desaSelect) {
+          desaSelect.value = found.Nama_Desa;
+          desaSelect.disabled = true;
+          onGlobalDesaChange();
+        }
+        if (kelSelect) {
+          kelSelect.value = found.Nama_Kelompok;
+          kelSelect.disabled = true;
+        }
+      }
+    }
+  } else {
+    if (badgeContainer) badgeContainer.classList.add("hidden");
+    if (btnLogin) btnLogin.classList.remove("hidden");
+    if (btnLogout) btnLogout.classList.add("hidden");
+    if (btnManage) btnManage.classList.add("hidden");
+    document.querySelectorAll(".admin-only").forEach(el => el.classList.add("hidden"));
+  }
+}
+
 function setDefaultDate() {
   const today = new Date();
   const year = today.getFullYear();
@@ -102,6 +254,7 @@ async function loadAllData() {
       try {
         await loadPenyapaanAnalytics();
         initGlobalWilayahFilters();
+        updateAdminUI();
         buildLocalPenyapaanState();
         renderAllViews();
       } catch (renderErr) {
@@ -277,10 +430,6 @@ function calculateAge(dobString) {
   return Math.abs(ageDate.getUTCFullYear() - 1970) + " Thn";
 }
 
-// =========================================================================
-// SISTEM FILTER WILAYAH GLOBAL DI NAVBAR
-// =========================================================================
-
 function getDesaByKelompok(namaKelompok) {
   if (!namaKelompok || namaKelompok === "-") return "-";
   const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
@@ -351,10 +500,6 @@ function refreshCurrentActiveView() {
   else if (currentActiveTab === "monitoring") renderMonitoringTable();
 }
 
-// =========================================================================
-// RENDERERS (PENGURUS, INVENTARIS, JAMAAH, PRESENSI)
-// =========================================================================
-
 function renderBerandaKegiatan() {
   const container = document.getElementById("kegiatan-cards-container");
   if (!container) return;
@@ -388,7 +533,7 @@ function renderBerandaKegiatan() {
             ${k.Keterangan || k.Target_Usia || 'Tidak ada catatan tambahan.'}
           </p>
         </div>
-        <div class="admin-only ${currentAdmin ? '' : 'hidden'} flex justify-end pt-2 border-t border-slate-100">
+        <div class="admin-only ${isSuperOrDaerah() ? '' : 'hidden'} flex justify-end pt-2 border-t border-slate-100">
           <button onclick="deleteRow('Kegiatan', '${k.ID || k.ID_Kegiatan}')" class="text-rose-600 hover:text-rose-800 text-xs font-semibold flex items-center gap-1 p-1">
             <i class="fa-solid fa-trash"></i> Hapus Agenda
           </button>
@@ -439,7 +584,7 @@ function renderPengurus() {
         <td class="px-4 sm:px-6 py-3.5">${p.Jabatan || '-'}</td>
         <td class="px-4 sm:px-6 py-3.5">${p.NoHP || '-'}</td>
         <td class="px-4 sm:px-6 py-3.5"><span class="px-2 py-1 rounded-full text-xs font-semibold ${p.Status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${p.Status || 'Aktif'}</span></td>
-        <td class="px-4 sm:px-6 py-3.5 text-center admin-only ${currentAdmin ? '' : 'hidden'}">
+        <td class="px-4 sm:px-6 py-3.5 text-center admin-only ${isSuperOrDaerah() ? '' : 'hidden'}">
           <button onclick="deleteRow('Pengurus', '${p.ID}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>
@@ -489,7 +634,7 @@ function renderInventaris() {
         <td class="px-4 sm:px-6 py-3.5"><span class="px-2 py-1 rounded-full text-xs font-semibold ${i.Kondisi === 'Baik' ? 'bg-teal-100 text-teal-800' : 'bg-rose-100 text-rose-800'}">${i.Kondisi || 'Baik'}</span></td>
         <td class="px-4 sm:px-6 py-3.5">${i.TanggalMasuk ? i.TanggalMasuk.toString().split("T")[0] : '-'}</td>
         <td class="px-4 sm:px-6 py-3.5">${i.Keterangan || '-'}</td>
-        <td class="px-4 sm:px-6 py-3.5 text-center admin-only ${currentAdmin ? '' : 'hidden'}">
+        <td class="px-4 sm:px-6 py-3.5 text-center admin-only ${isSuperOrDaerah() ? '' : 'hidden'}">
           <button onclick="deleteRow('Inventaris', '${i.ID}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>
@@ -554,7 +699,7 @@ function renderJamaah() {
         <td class="px-3 sm:px-4 py-3">${j.Gender || '-'}</td>
         <td class="px-3 sm:px-4 py-3">${j.Alamat || '-'}</td>
         <td class="px-3 sm:px-4 py-3"><span class="px-2 py-1 rounded-full text-xs font-semibold ${j.Keaktifan === 'Aktif' || j.Status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${j.Keaktifan || j.Status || 'Aktif'}</span></td>
-        <td class="px-3 sm:px-4 py-3 text-center admin-only space-x-2 ${currentAdmin ? '' : 'hidden'}">
+        <td class="px-3 sm:px-4 py-3 text-center admin-only space-x-2 ${isSuperOrDaerah() ? '' : 'hidden'}">
           <button onclick="editJamaah('${j.ID_Jamaah || j.ID}')" class="text-amber-600 hover:text-amber-800 font-semibold p-1"><i class="fa-solid fa-pen-to-square"></i></button>
           <button onclick="deleteRow('Master_Jamaah', '${j.ID_Jamaah || j.ID}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
         </td>
@@ -968,7 +1113,6 @@ function renderMonitoringTable() {
     const isAktif = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
     if (!isAktif) return false;
 
-    // Filter Wilayah
     const jKelBinaan = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
     const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKelBinaan)).trim();
 
@@ -980,7 +1124,6 @@ function renderMonitoringTable() {
 
     if (!matchDesa || !matchKelBinaan || !matchSearch) return false;
 
-    // Filter Kelas Usia
     if (filterKelasUsia === "Semua") return true;
 
     const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "").trim();
@@ -1073,10 +1216,6 @@ function renderMonitoringTable() {
   }).join("");
 }
 
-// =========================================================================
-// MODUL PENYAPAAN (REKOMENDASI DI ATAS, FONT KELOMPOK & TOTAL DIPERBESAR)
-// =========================================================================
-
 function buildLocalPenyapaanState() {
   const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
   const sapaanList = Array.isArray(appData.penyapaan) ? appData.penyapaan : [];
@@ -1132,8 +1271,8 @@ function calculateRekomendasi16Kelompok() {
 }
 
 function toggleLocalSapa(idKelompok, actionType) {
-  if (!currentAdmin) {
-    alert("Hanya Admin yang berwenang mengubah status penyapaan kegiatan!");
+  if (!canWritePenyapaan()) {
+    alert("Akun Admin Desa / Admin Kelompok bersifat Read-Only pada modul penyapaan!");
     renderPetaCards();
     return;
   }
@@ -1165,8 +1304,8 @@ function toggleLocalSapa(idKelompok, actionType) {
 }
 
 async function simpanBatchPenyapaanGrid() {
-  if (!currentAdmin) {
-    return alert("Akses Admin diperlukan untuk menyimpan penyapaan!");
+  if (!canWritePenyapaan()) {
+    return alert("Akses ditolak: Admin Desa & Admin Kelompok hanya dapat melihat riwayat penyapaan.");
   }
 
   const dirtyItems = localPenyapaanData.filter(k => k.is_dirty && k.status_sapa);
@@ -1190,7 +1329,7 @@ async function simpanBatchPenyapaanGrid() {
         idKelompok: item.id,
         namaKelompok: item.nama_kelompok,
         namaDesa: item.nama_desa,
-        namaPetugas: currentAdmin.nama || "Admin Daerah",
+        namaPetugas: currentAdmin.nama || currentAdmin.username || "Admin Daerah",
         jenisKegiatan: agendaStr,
         catatan: `Disapa pada kegiatan: ${agendaStr}`
       };
@@ -1248,7 +1387,6 @@ function filterPetaCards(filter) {
   renderPetaCards();
 }
 
-// Render kartu kelompok: Rekomendasi di urutan paling atas di tiap desa, font diperbesar
 function renderPetaCards() {
   const container = document.getElementById("peta-desa-grid");
   if (!container) return;
@@ -1259,6 +1397,7 @@ function renderPetaCards() {
 
   const desas = [...new Set(localPenyapaanData.map(m => m.nama_desa))];
   const hasDirty = localPenyapaanData.some(k => k.is_dirty);
+  const writeAccess = canWritePenyapaan();
 
   container.innerHTML = desas.map(desa => {
     let list = localPenyapaanData.filter(k => k.nama_desa === desa);
@@ -1266,7 +1405,6 @@ function renderPetaCards() {
     if (currentPetaFilter === "sudah") list = list.filter(k => k.total_penyapaan > 0 || k.status_sapa);
     if (currentPetaFilter === "belum") list = list.filter(k => k.total_penyapaan === 0 && !k.status_sapa);
 
-    // SORTING: Kelompok rekomendasi diangkat ke urutan teratas desa
     list.sort((a, b) => {
       if (a.is_recommended && !b.is_recommended) return -1;
       if (!a.is_recommended && b.is_recommended) return 1;
@@ -1304,11 +1442,13 @@ function renderPetaCards() {
               `;
             }
 
+            const inputDisabledAttr = writeAccess ? '' : 'disabled';
+            const cursorClass = writeAccess ? 'cursor-pointer' : 'cursor-not-allowed opacity-60';
+
             return `
               <div class="p-3.5 rounded-xl border flex flex-col justify-between space-y-2.5 transition-all ${k.is_dirty ? 'bg-amber-50/60 border-amber-300 shadow-xs' : (k.is_recommended ? 'bg-amber-50/25 border-amber-200 shadow-xs' : (k.total_penyapaan > 0 ? 'bg-emerald-50/30 border-emerald-200' : 'bg-slate-50/70 border-slate-200'))}">
                 <div>
                   <div class="flex items-start justify-between gap-1 mb-1">
-                    <!-- FONT NAMA KELOMPOK DIPERBESAR -->
                     <p class="font-extrabold text-sm sm:text-base text-slate-900 leading-snug truncate" title="${k.nama_kelompok}">${k.nama_kelompok}</p>
                     ${badgeHtml}
                   </div>
@@ -1320,18 +1460,17 @@ function renderPetaCards() {
 
                 <div class="pt-2.5 border-t border-slate-200/80 flex items-center justify-between">
                   <div class="flex items-center gap-3">
-                    <label class="flex items-center gap-1.5 ${currentAdmin ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}">
-                      <input type="checkbox" ${isSapaChecked ? 'checked' : ''} ${!currentAdmin ? 'disabled' : ''} onchange="toggleLocalSapa('${k.id}', 'sapa')" class="rounded text-teal-600 focus:ring-teal-500 w-4 h-4">
+                    <label class="flex items-center gap-1.5 ${cursorClass}">
+                      <input type="checkbox" ${isSapaChecked ? 'checked' : ''} ${inputDisabledAttr} onchange="toggleLocalSapa('${k.id}', 'sapa')" class="rounded text-teal-600 focus:ring-teal-500 w-4 h-4">
                       <span class="text-xs font-bold text-slate-800">Sapa</span>
                     </label>
 
-                    <label class="flex items-center gap-1.5 ${currentAdmin ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}">
-                      <input type="checkbox" ${isBelumChecked ? 'checked' : ''} ${!currentAdmin ? 'disabled' : ''} onchange="toggleLocalSapa('${k.id}', 'belum_sapa')" class="rounded text-rose-600 focus:ring-rose-500 w-4 h-4">
+                    <label class="flex items-center gap-1.5 ${cursorClass}">
+                      <input type="checkbox" ${isBelumChecked ? 'checked' : ''} ${inputDisabledAttr} onchange="toggleLocalSapa('${k.id}', 'belum_sapa')" class="rounded text-rose-600 focus:ring-rose-500 w-4 h-4">
                       <span class="text-xs font-bold text-slate-500">Belum</span>
                     </label>
                   </div>
 
-                  <!-- FONT NILAI TOTAL PENYAPAAN DIPERBESAR -->
                   <div class="text-right pl-2">
                     <span class="text-[9px] text-slate-400 block leading-none font-bold uppercase tracking-wider">Total Sapa</span>
                     <span class="text-base sm:text-lg font-black text-teal-950 leading-tight">${k.total_penyapaan}x</span>
@@ -1345,7 +1484,7 @@ function renderPetaCards() {
     `;
   }).join("");
 
-  if (currentAdmin && hasDirty) {
+  if (writeAccess && hasDirty) {
     container.innerHTML += `
       <div class="col-span-full bg-amber-50 border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm sticky bottom-4 z-20">
         <div class="flex items-center gap-2 text-xs font-semibold text-amber-900">
@@ -1377,7 +1516,6 @@ function renderRiwayatPenyapaanTable() {
       <div id="riwayat-cards-grid-wrapper" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
     `;
     wrapper = document.getElementById("riwayat-cards-grid-wrapper");
-    populateSapaanSelectors();
   }
 
   const search = (document.getElementById("search-riwayat") ? document.getElementById("search-riwayat").value : "").toLowerCase().trim();
