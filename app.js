@@ -1360,37 +1360,148 @@ function renderPetaCards() {
 }
 
 function renderRiwayatPenyapaanTable() {
-  const tbody = document.getElementById("table-riwayat-sapaan-body");
-  if (!tbody || !analyticsPenyapaan) return;
+  const container = document.getElementById("subtab-rekap-riwayat");
+  if (!container || !analyticsPenyapaan) return;
 
-  const search = (document.getElementById("search-riwayat") ? document.getElementById("search-riwayat").value : "").toLowerCase();
+  // Pastikan elemen wrapper tabel lama diubah menjadi grid cards jika belum sesuai
+  let wrapper = document.getElementById("riwayat-cards-grid-wrapper");
+  if (!wrapper) {
+    const oldContent = document.getElementById("subtab-rekap-riwayat");
+    oldContent.innerHTML = `
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between gap-3">
+        <input type="text" id="search-riwayat" oninput="renderRiwayatPenyapaanTable()" placeholder="Cari agenda kegiatan atau kelompok..." class="border rounded-lg px-3 py-1.5 text-xs w-full sm:w-80 focus:ring-1 focus:ring-teal-500 focus:outline-none">
+        <select id="filter-riwayat-desa" onchange="renderRiwayatPenyapaanTable()" class="border rounded-lg px-3 py-1.5 text-xs bg-white font-semibold text-slate-700">
+          <option value="ALL">Semua Desa</option>
+        </select>
+      </div>
+      <div id="riwayat-cards-grid-wrapper" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+    `;
+    wrapper = document.getElementById("riwayat-cards-grid-wrapper");
+    populateSapaanSelectors();
+  }
+
+  const search = (document.getElementById("search-riwayat") ? document.getElementById("search-riwayat").value : "").toLowerCase().trim();
   const desaFilter = document.getElementById("filter-riwayat-desa") ? document.getElementById("filter-riwayat-desa").value : "ALL";
 
   let list = analyticsPenyapaan.riwayat || [];
-  if (desaFilter !== "ALL") list = list.filter(r => r.Nama_Desa === desaFilter);
+
+  // Kelompokkan data sapaan berdasarkan Nama Kegiatan (Agenda) & Tanggal
+  const sessionsMap = {};
+  list.forEach(r => {
+    const agenda = String(r.Jenis_Kegiatan_Sapaan || "Penyapaan Rutin").trim();
+    const tanggal = r.Tanggal ? String(r.Tanggal).split("T")[0] : "-";
+    const key = `${agenda}_${tanggal}`;
+
+    if (!sessionsMap[key]) {
+      sessionsMap[key] = {
+        nama_kegiatan: agenda,
+        tanggal: tanggal,
+        kelompok_disapa: []
+      };
+    }
+
+    sessionsMap[key].kelompok_disapa.push({
+      desa: String(r.Nama_Desa || "-").trim(),
+      nama_kelompok: String(r.Nama_Kelompok || "-").trim()
+    });
+  });
+
+  let sessionsArray = Object.values(sessionsMap);
+
+  // Filter berdasarkan pencarian search input
   if (search) {
-    list = list.filter(r =>
-      String(r.Nama_Petugas).toLowerCase().includes(search) ||
-      String(r.Nama_Kelompok).toLowerCase().includes(search) ||
-      String(r.Jenis_Kegiatan_Sapaan).toLowerCase().includes(search)
-    );
+    sessionsArray = sessionsArray.filter(s => {
+      const matchAgenda = s.nama_kegiatan.toLowerCase().includes(search);
+      const matchKelompok = s.kelompok_disapa.some(k => k.nama_kelompok.toLowerCase().includes(search) || k.desa.toLowerCase().includes(search));
+      return matchAgenda || matchKelompok;
+    });
   }
 
-  if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 italic">Tidak ada catatan riwayat penyapaan kegiatan.</td></tr>`;
+  // Filter berdasarkan dropdown desa
+  if (desaFilter !== "ALL") {
+    sessionsArray = sessionsArray.filter(s => {
+      return s.kelompok_disapa.some(k => k.desa.toLowerCase() === desaFilter.toLowerCase());
+    });
+  }
+
+  if (sessionsArray.length === 0) {
+    wrapper.innerHTML = `<div class="col-span-full bg-white p-8 text-center text-slate-400 italic rounded-xl border border-slate-200">Tidak ada riwayat penyapaan kegiatan yang ditemukan.</div>`;
     return;
   }
 
-  tbody.innerHTML = list.map(r => `
-    <tr class="bg-white hover:bg-slate-50 border-b">
-      <td class="px-3 py-2.5 whitespace-nowrap font-medium text-slate-600">${String(r.Tanggal).split('T')[0]}</td>
-      <td class="px-3 py-2.5 font-semibold text-slate-700">${r.Nama_Desa}</td>
-      <td class="px-3 py-2.5 font-bold text-slate-900">${r.Nama_Kelompok}</td>
-      <td class="px-3 py-2.5 text-teal-700 font-semibold">${r.Jenis_Kegiatan_Sapaan}</td>
-      <td class="px-3 py-2.5 font-medium text-slate-700">${r.Nama_Petugas}</td>
-      <td class="px-4 py-2.5 text-slate-500 max-w-xs leading-relaxed">${r.Catatan_Hasil_Solusi}</td>
-    </tr>
-  `).join("");
+  const desas = ["Banjarharjo", "Kaling", "Karangmojo", "Jaten"];
+
+  wrapper.innerHTML = sessionsArray.map(session => {
+    const totalDisapa = session.kelompok_disapa.length;
+
+    const desaHtmlList = desas.map(desa => {
+      const items = session.kelompok_disapa.filter(d => d.desa.toLowerCase() === desa.toLowerCase());
+      if (items.length === 0) return '';
+
+      const namesHtml = items.map(i => `
+        <span class="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-md text-xs font-semibold">
+          ${i.nama_kelompok}
+        </span>
+      `).join(' ');
+
+      return `
+        <div class="space-y-1.5">
+          <p class="text-xs font-bold text-slate-700">Desa ${desa} (${items.length}):</p>
+          <div class="flex flex-wrap gap-1.5">${namesHtml}</div>
+        </div>
+      `;
+    }).join('');
+
+    const formattedDateText = formatTanggalIndo(session.tanggal);
+
+    return `
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4 flex flex-col justify-between">
+        <div class="flex justify-between items-start border-b border-slate-100 pb-4 gap-3">
+          <div>
+            <h3 class="font-extrabold text-lg text-slate-900 leading-snug uppercase">${session.nama_kegiatan}</h3>
+            <p class="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
+              <i class="fa-solid fa-calendar-days text-blue-600"></i>
+              <span class="font-semibold text-slate-700">${formattedDateText}</span>
+            </p>
+          </div>
+          <div class="bg-blue-50 border border-blue-100 text-blue-700 px-3.5 py-1.5 rounded-xl text-right shrink-0">
+            <span class="text-base sm:text-lg font-black">${totalDisapa}</span>
+            <span class="text-xs font-bold"> Kelompok Disapa</span>
+          </div>
+        </div>
+
+        <div class="space-y-3.5 pt-1">
+          ${desaHtmlList || '<p class="text-xs text-slate-400 italic">Belum ada kelompok yang disapa pada kegiatan ini.</p>'}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// Helper Format Tanggal Indonesia agar konsisten dengan tampilan kartu
+function formatTanggalIndo(dateString) {
+  if (!dateString || dateString === "-") return "-";
+  const cleanDate = dateString.substring(0, 10);
+  const parts = cleanDate.split('-');
+  if (parts.length !== 3) return dateString;
+
+  const year = parseInt(parts[0], 10);
+  const monthIdx = parseInt(parts[1], 10) - 1;
+  const dayNum = parseInt(parts[2], 10);
+
+  const months = [
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni", 
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+  ];
+
+  const dateObj = new Date(year, monthIdx, dayNum);
+  if (isNaN(dateObj.getTime())) return dateString;
+
+  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const dayName = days[dateObj.getDay()];
+  const monthName = months[monthIdx];
+
+  return `${dayName}, ${dayNum} ${monthName} ${year}`;
 }
 
 function downloadLembarKerja() {
