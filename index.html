@@ -424,7 +424,7 @@
     </div>
   </section>
 
- <!-- VIEW 6: PENYAPAAN KEGIATAN -->
+  <!-- VIEW 6: PENYAPAAN KEGIATAN (TANPA CATAT MANUAL) -->
   <section id="view-penyapaan" class="view-section hidden space-y-5 pb-12">
     <div class="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
@@ -445,7 +445,6 @@
 
     <!-- SUB-TAB 1: PEMETAAN & INPUT AGENDA LANGSUNG -->
     <div id="subtab-status-peta" class="space-y-4">
-      <!-- Form Input Langsung Agenda Sapaan -->
       <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
@@ -470,7 +469,6 @@
         </div>
       </div>
 
-      <!-- Filter Peta Status Kelompok -->
       <div class="flex items-center justify-between gap-2 pt-1">
         <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Daftar Kelompok Binaan (Rekomendasi di Atas)</h4>
         <div class="flex items-center space-x-1">
@@ -480,36 +478,18 @@
         </div>
       </div>
 
-      <!-- Container Grid 4 Desa -->
       <div id="peta-desa-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </div>
 
     <!-- SUB-TAB 2: RIWAYAT AGENDA PENYAPAAN -->
     <div id="subtab-rekap-riwayat" class="hidden space-y-4">
       <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between gap-3">
-        <input type="text" id="search-riwayat" oninput="renderRiwayatPenyapaanTable()" placeholder="Cari petugas, agenda, atau kelompok..." class="border rounded-lg px-3 py-1.5 text-xs w-full sm:w-72">
-        <select id="filter-riwayat-desa" onchange="renderRiwayatPenyapaanTable()" class="border rounded-lg px-3 py-1.5 text-xs bg-white font-semibold">
+        <input type="text" id="search-riwayat" oninput="renderRiwayatPenyapaanTable()" placeholder="Cari agenda kegiatan atau kelompok..." class="border rounded-lg px-3 py-1.5 text-xs w-full sm:w-80 focus:ring-1 focus:ring-teal-500 focus:outline-none">
+        <select id="filter-riwayat-desa" onchange="renderRiwayatPenyapaanTable()" class="border rounded-lg px-3 py-1.5 text-xs bg-white font-semibold text-slate-700">
           <option value="ALL">Semua Desa</option>
         </select>
       </div>
-
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-xs text-left text-slate-600">
-            <thead class="text-[11px] text-slate-700 uppercase bg-slate-100 border-b border-slate-200">
-              <tr>
-                <th class="px-3 py-3">Tanggal</th>
-                <th class="px-3 py-3">Desa</th>
-                <th class="px-3 py-3">Kelompok</th>
-                <th class="px-3 py-3">Agenda Sapaan</th>
-                <th class="px-3 py-3">Petugas</th>
-                <th class="px-4 py-3">Catatan / Solusi</th>
-              </tr>
-            </thead>
-            <tbody id="table-riwayat-sapaan-body" class="divide-y divide-slate-100"></tbody>
-          </table>
-        </div>
-      </div>
+      <div id="riwayat-cards-grid-wrapper" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
     </div>
   </section>
 </main>
