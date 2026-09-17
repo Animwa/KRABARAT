@@ -53,7 +53,7 @@
   </div>
 </header>
 
-<!-- NAVIGATION BAR (FILTER WILAYAH MENYATU DI SINI) -->
+<!-- NAVIGATION BAR -->
 <nav id="main-nav" class="bg-emerald-950 text-white text-xs sm:text-sm sticky top-14 z-30 shadow-md">
   <div id="nav-menu-container" class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between p-2 gap-2">
     <!-- Menu Tabs -->
@@ -82,14 +82,23 @@
       </button>
     </div>
 
-    <!-- Dropdown Wilayah (Desa & Kelompok Binaan Terpasang Langsung di Navbar) -->
-    <div class="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-emerald-900 shrink-0">
-      <div class="w-1/2 md:w-36">
+    <!-- Kotak Filter & Pencarian (Hanya Tampil di Pengurus, Inventaris, Jamaah, Monitoring) -->
+    <div id="nav-filter-search-container" class="hidden flex flex-wrap items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-emerald-900 shrink-0">
+      <!-- Input Search Cepat -->
+      <div class="relative w-full sm:w-44">
+        <input type="text" id="global-search-input" oninput="onGlobalSearchInput()" placeholder="Cari data..." class="w-full bg-emerald-900/90 border border-emerald-700 text-white rounded-lg pl-7 pr-2.5 py-1.5 text-[11px] focus:ring-1 focus:ring-amber-400 focus:outline-none placeholder-emerald-300/60">
+        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-emerald-300 text-[10px]"></i>
+      </div>
+
+      <!-- Selector Desa -->
+      <div class="w-1/2 sm:w-32">
         <select id="global-filter-desa" onchange="onGlobalDesaChange()" class="w-full bg-emerald-900 border border-emerald-700 text-white rounded-lg px-2 py-1.5 text-[11px] font-semibold focus:ring-1 focus:ring-amber-400 focus:outline-none truncate">
           <option value="Semua">Semua Desa</option>
         </select>
       </div>
-      <div class="w-1/2 md:w-44">
+
+      <!-- Selector Kelompok -->
+      <div class="w-[calc(50%-0.5rem)] sm:w-40">
         <select id="global-filter-kelompok" onchange="onGlobalKelompokChange()" class="w-full bg-emerald-900 border border-emerald-700 text-white rounded-lg px-2 py-1.5 text-[11px] font-semibold focus:ring-1 focus:ring-amber-400 focus:outline-none truncate">
           <option value="Semua">Semua Kelompok</option>
         </select>
@@ -145,7 +154,7 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <div>
         <h2 class="text-lg sm:text-xl font-bold text-slate-800 flex items-center"><i class="fa-solid fa-sitemap text-emerald-700 mr-2"></i>Susunan Pengurus</h2>
-        <p class="text-xs text-slate-500 hidden sm:block">Daftar struktur kepengurusan aktif Karanganyar Barat.</p>
+        <p class="text-xs text-slate-500 hidden sm:block">Daftar struktur kepengurusan aktif (tersaring dari Desa & Kelompok asal).</p>
       </div>
       <button onclick="openFormPengurus()" class="admin-only hidden w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition-all flex items-center justify-center space-x-1.5">
         <i class="fa-solid fa-plus"></i><span>Tambah Pengurus</span>
@@ -157,6 +166,7 @@
           <thead class="text-[11px] sm:text-xs text-slate-700 uppercase bg-slate-100 border-b border-slate-200">
             <tr>
               <th class="px-4 sm:px-6 py-3 font-bold">Nama</th>
+              <th class="px-4 sm:px-6 py-3 font-bold">Asal Wilayah</th>
               <th class="px-4 sm:px-6 py-3 font-bold">Jabatan</th>
               <th class="px-4 sm:px-6 py-3 font-bold">No. HP</th>
               <th class="px-4 sm:px-6 py-3 font-bold">Status</th>
@@ -174,7 +184,7 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <div>
         <h2 class="text-lg sm:text-xl font-bold text-slate-800 flex items-center"><i class="fa-solid fa-boxes-packing text-emerald-700 mr-2"></i>Inventaris Alat & Barang</h2>
-        <p class="text-xs text-slate-500 hidden sm:block">Aset operasional (terfilter dari pilihan Desa & Kelompok di navbar).</p>
+        <p class="text-xs text-slate-500 hidden sm:block">Aset operasional di desa & kelompok yang dipilih.</p>
       </div>
       <button onclick="openFormInventaris()" class="admin-only hidden w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition-all flex items-center justify-center space-x-1.5">
         <i class="fa-solid fa-plus"></i><span>Tambah Barang</span>
@@ -207,7 +217,7 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <div>
         <h2 class="text-lg sm:text-xl font-bold text-slate-800 flex items-center"><i class="fa-solid fa-users text-emerald-700 mr-2"></i>Database Jamaah</h2>
-        <p class="text-xs text-slate-500 hidden sm:block">Data registrasi jamaah (terfilter dari pilihan Desa & Kelompok di navbar).</p>
+        <p class="text-xs text-slate-500 hidden sm:block">Data registrasi jamaah terfilter dari pilihan Desa & Kelompok di navbar.</p>
       </div>
       <div class="flex items-center gap-2">
         <span id="jamaah-count-badge" class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg inline-block">0 Jamaah</span>
@@ -267,7 +277,7 @@
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-4">
         <div>
           <h3 class="text-base sm:text-lg font-bold text-slate-800" id="presensi-class-title">Presensi Kelas</h3>
-          <p class="text-xs text-slate-500">Tentukan tanggal, pengajar, dan tandai kehadiran jamaah sesuai wilayah aktif di navbar.</p>
+          <p class="text-xs text-slate-500">Tentukan tanggal, jenis pengajian, dan tandai kehadiran jamaah.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <div>
