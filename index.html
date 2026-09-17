@@ -84,20 +84,17 @@
 
     <!-- Kotak Filter & Pencarian (Hanya Tampil di Pengurus, Inventaris, Jamaah, Monitoring) -->
     <div id="nav-filter-search-container" class="hidden flex flex-wrap items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-emerald-900 shrink-0">
-      <!-- Input Search Cepat -->
       <div class="relative w-full sm:w-44">
         <input type="text" id="global-search-input" oninput="onGlobalSearchInput()" placeholder="Cari data..." class="w-full bg-emerald-900/90 border border-emerald-700 text-white rounded-lg pl-7 pr-2.5 py-1.5 text-[11px] focus:ring-1 focus:ring-amber-400 focus:outline-none placeholder-emerald-300/60">
         <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-emerald-300 text-[10px]"></i>
       </div>
 
-      <!-- Selector Desa -->
       <div class="w-1/2 sm:w-32">
         <select id="global-filter-desa" onchange="onGlobalDesaChange()" class="w-full bg-emerald-900 border border-emerald-700 text-white rounded-lg px-2 py-1.5 text-[11px] font-semibold focus:ring-1 focus:ring-amber-400 focus:outline-none truncate">
           <option value="Semua">Semua Desa</option>
         </select>
       </div>
 
-      <!-- Selector Kelompok -->
       <div class="w-[calc(50%-0.5rem)] sm:w-40">
         <select id="global-filter-kelompok" onchange="onGlobalKelompokChange()" class="w-full bg-emerald-900 border border-emerald-700 text-white rounded-lg px-2 py-1.5 text-[11px] font-semibold focus:ring-1 focus:ring-amber-400 focus:outline-none truncate">
           <option value="Semua">Semua Kelompok</option>
@@ -107,7 +104,7 @@
   </div>
 </nav>
 
-<!-- SUB NAV KELOMPOK USIA (HANYA AKTIF DI TAB PRESENSI) -->
+<!-- SUB NAV KELOMPOK USIA (HANYA DI TAB PRESENSI) -->
 <div id="subnav-container" class="bg-slate-200 border-b border-slate-300 hidden">
   <div class="max-w-7xl mx-auto px-3 py-2 flex items-center space-x-2 text-xs font-semibold overflow-x-auto no-scrollbar">
     <span class="text-slate-600 shrink-0 font-bold flex items-center text-[11px] uppercase tracking-wider"><i class="fa-solid fa-layer-group mr-1 text-emerald-700"></i> Kelompok Usia:</span>
@@ -277,7 +274,7 @@
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-4">
         <div>
           <h3 class="text-base sm:text-lg font-bold text-slate-800" id="presensi-class-title">Presensi Kelas</h3>
-          <p class="text-xs text-slate-500">Tentukan tanggal, jenis pengajian, dan tandai kehadiran jamaah.</p>
+          <p class="text-xs text-slate-500">Tentukan tanggal, pengajar, dan tandai kehadiran jamaah.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <div>
@@ -449,27 +446,35 @@
       </div>
     </div>
 
-    <!-- SUB-TAB 1: STATUS PEMETAAN & REKOMENDASI -->
+    <!-- SUB-TAB 1: STATUS PEMETAAN & REKOMENDASI 16 KELOMPOK -->
     <div id="subtab-status-peta" class="space-y-4">
+      <!-- Banner Prioritas Rekomendasi (4 Kelompok per Desa = 16 Kelompok) -->
       <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 sm:p-5 shadow-sm">
-        <div class="flex items-center gap-2 mb-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
-          <h3 class="text-xs sm:text-sm font-bold text-amber-900 uppercase tracking-wide">
-            Prioritas Rekomendasi Penyapaan (Kelompok Kunjungan Terendah Per Desa)
-          </h3>
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+            <h3 class="text-xs sm:text-sm font-bold text-amber-900 uppercase tracking-wide">
+              Prioritas Rekomendasi Penyapaan (16 Kelompok Terendah: 4 Kelompok per Desa)
+            </h3>
+          </div>
+          <span class="text-[10px] bg-amber-200 text-amber-900 font-extrabold px-2.5 py-0.5 rounded-full border border-amber-300">
+            16 Kelompok Prioritas
+          </span>
         </div>
-        <div id="rekomendasi-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 mt-3"></div>
+        <div id="rekomendasi-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5"></div>
       </div>
 
+      <!-- Filter Peta Status Kelompok -->
       <div class="flex items-center justify-between gap-2 pt-2">
         <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Pemetaan Seluruh Kelompok Binaan</h4>
         <div class="flex items-center space-x-1">
-          <button onclick="filterPetaCards('all')" class="px-2.5 py-1 text-[11px] rounded bg-white border border-slate-300 font-semibold text-slate-600 hover:bg-slate-100">Semua</button>
-          <button onclick="filterPetaCards('sudah')" class="px-2.5 py-1 text-[11px] rounded bg-emerald-50 border border-emerald-300 font-semibold text-emerald-700 hover:bg-emerald-100">Sudah Disapa</button>
-          <button onclick="filterPetaCards('belum')" class="px-2.5 py-1 text-[11px] rounded bg-rose-50 border border-rose-300 font-semibold text-rose-700 hover:bg-rose-100">Belum Disapa</button>
+          <button onclick="filterPetaCards('all')" id="peta-filter-all" class="px-2.5 py-1 text-[11px] rounded bg-teal-600 text-white font-semibold">Semua</button>
+          <button onclick="filterPetaCards('sudah')" id="peta-filter-sudah" class="px-2.5 py-1 text-[11px] rounded bg-white border border-slate-300 font-semibold text-slate-600 hover:bg-slate-100">Sudah Disapa</button>
+          <button onclick="filterPetaCards('belum')" id="peta-filter-belum" class="px-2.5 py-1 text-[11px] rounded bg-white border border-slate-300 font-semibold text-slate-600 hover:bg-slate-100">Belum Disapa</button>
         </div>
       </div>
 
+      <!-- Container Grid 4 Desa (Tetap Menampilkan Seluruh Kelompok) -->
       <div id="peta-desa-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </div>
 
