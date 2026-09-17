@@ -44,13 +44,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function setDefaultDate() {
   const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const formattedToday = `${year}-${month}-${day}`;
+
   const dateInput = document.getElementById("presensi-date");
   if (dateInput) {
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    dateInput.value = `${year}-${month}-${day}`;
+    dateInput.value = formattedToday;
     updateDayLabel();
+  }
+
+  const sapaanDateInput = document.getElementById("sapaan-batch-date");
+  if (sapaanDateInput) {
+    sapaanDateInput.value = formattedToday;
+    updateSapaanDayLabel();
   }
 }
 
@@ -63,6 +71,15 @@ function updateDayLabel() {
   if (dayEl) dayEl.value = days[d.getDay()];
 
   renderPresensiTable();
+}
+
+function updateSapaanDayLabel() {
+  const dateInput = document.getElementById("sapaan-batch-date");
+  if (!dateInput || !dateInput.value) return;
+  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const d = new Date(dateInput.value + "T00:00:00");
+  const dayEl = document.getElementById("sapaan-batch-day");
+  if (dayEl) dayEl.value = days[d.getDay()];
 }
 
 async function loadAllData() {
@@ -1054,7 +1071,7 @@ function renderMonitoringTable() {
 }
 
 // =========================================================================
-// MODUL PENYAPAAN (SEMUA KELOMPOK TAMPIL & 16 REKOMENDASI TERENDAH)
+// MODUL PENYAPAAN (SEMUA KELOMPOK TAMPIL, LENCANA REKOMENDASI & INPUT FORM LANGSUNG)
 // =========================================================================
 
 function buildLocalPenyapaanState() {
@@ -1094,6 +1111,7 @@ function buildLocalPenyapaanState() {
   calculateRekomendasi16Kelompok();
 }
 
+// Menandai 4 kelompok paling minim sapaan per desa (Total 16 kelompok)
 function calculateRekomendasi16Kelompok() {
   localPenyapaanData.forEach(k => k.is_recommended = false);
 
@@ -1102,47 +1120,14 @@ function calculateRekomendasi16Kelompok() {
     const kelompokInDesa = localPenyapaanData.filter(k => k.nama_desa === desa);
     if (kelompokInDesa.length === 0) return;
 
-    // Urutkan nilai total penyapaan dari paling sedikit
     kelompokInDesa.sort((a, b) => parseInt(a.total_penyapaan || 0, 10) - parseInt(b.total_penyapaan || 0, 10));
 
-    // Ambil 4 kelompok dengan nilai sapaan paling rendah di desa ini (4 Desa x 4 = 16 Kelompok)
+    // Tandai 4 kelompok terendah di desa ini
     const lowest4 = kelompokInDesa.slice(0, 4);
     lowest4.forEach(item => {
       item.is_recommended = true;
     });
   });
-
-  renderRekomendasiBanner();
-}
-
-function renderRekomendasiBanner() {
-  const recGrid = document.getElementById("rekomendasi-grid");
-  if (!recGrid) return;
-
-  const recommendedItems = localPenyapaanData.filter(k => k.is_recommended);
-
-  if (recommendedItems.length === 0) {
-    recGrid.innerHTML = `<p class="col-span-full text-xs text-amber-800 italic">Belum ada kelompok binaan terdaftar.</p>`;
-    return;
-  }
-
-  recGrid.innerHTML = recommendedItems.map(r => `
-    <div class="bg-white p-3 rounded-xl border border-amber-300 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
-      <div>
-        <div class="flex items-center justify-between">
-          <span class="text-[10px] font-bold uppercase text-amber-700">${r.nama_desa}</span>
-          <span class="text-[9px] bg-amber-100 text-amber-900 font-extrabold px-1.5 py-0.5 rounded border border-amber-300">
-            <i class="fa-solid fa-star text-amber-500 text-[8px] mr-0.5"></i> Prioritas
-          </span>
-        </div>
-        <p class="font-black text-slate-800 text-xs mt-1 truncate">${r.nama_kelompok}</p>
-      </div>
-      <div class="flex justify-between items-center mt-2.5 text-[10px] border-t border-amber-100 pt-1.5">
-        <span class="text-slate-500">Total Sapaan:</span>
-        <span class="text-xs font-black text-amber-950">${r.total_penyapaan}x</span>
-      </div>
-    </div>
-  `).join("");
 }
 
 function toggleLocalSapa(idKelompok, actionType) {
@@ -1171,7 +1156,6 @@ function toggleLocalSapa(idKelompok, actionType) {
     }
   }
 
-  // Hitung ulang angka total sapaan secara dinamis
   item.total_penyapaan = item.base_total + (item.status_sapa ? 1 : 0);
   item.is_dirty = (item.status_sapa || item.status_belum_sapa);
 
@@ -1179,6 +1163,7 @@ function toggleLocalSapa(idKelompok, actionType) {
   renderPetaCards();
 }
 
+// Simpan batch penyapaan langsung dari form (tanpa popup prompt)
 async function simpanBatchPenyapaanGrid() {
   if (!currentAdmin) {
     return alert("Akses Admin diperlukan untuk menyimpan penyapaan!");
@@ -1186,26 +1171,28 @@ async function simpanBatchPenyapaanGrid() {
 
   const dirtyItems = localPenyapaanData.filter(k => k.is_dirty && k.status_sapa);
   if (dirtyItems.length === 0) {
-    return alert("Tidak ada kelompok yang ditandai 'Sapa' untuk disimpan.");
+    return alert("Belum ada kelompok yang ditandai 'Sapa' untuk disimpan.");
   }
 
-  const todayStr = new Date().toISOString().split("T")[0];
-  const agendaText = prompt("Masukkan Agenda/Catatan Penyapaan untuk kelompok yang ditandai:", "Kunjungan & Evaluasi Pembinaan Rutin");
-  if (agendaText === null) return;
+  const dateInput = document.getElementById("sapaan-batch-date");
+  const agendaInput = document.getElementById("sapaan-batch-agenda");
 
-  showMessage("Menyimpan perubahan penyapaan...", "info");
+  const tanggalStr = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().split("T")[0];
+  const agendaStr = agendaInput && agendaInput.value.trim() ? agendaInput.value.trim() : "Kunjungan & Evaluasi Pembinaan Rutin";
+
+  showMessage("Menyimpan data penyapaan...", "info");
 
   try {
     for (const item of dirtyItems) {
       const payload = {
         action: "add_penyapaan",
-        tanggal: todayStr,
+        tanggal: tanggalStr,
         idKelompok: item.id,
         namaKelompok: item.nama_kelompok,
         namaDesa: item.nama_desa,
         namaPetugas: currentAdmin.nama || "Admin Daerah",
-        jenisKegiatan: agendaText.trim() || "Penyapaan Rutin",
-        catatan: "Penyapaan dicatat langsung via pemetaan wilayah."
+        jenisKegiatan: agendaStr,
+        catatan: `Disapa pada kegiatan: ${agendaStr}`
       };
 
       await fetch(SCRIPT_URL, {
@@ -1214,7 +1201,7 @@ async function simpanBatchPenyapaanGrid() {
       });
     }
 
-    showMessage("Semua perubahan penyapaan berhasil disimpan ke server!", "success");
+    showMessage("Data penyapaan berhasil disimpan ke database!", "success");
     await loadAllData();
   } catch (err) {
     showMessage("Gagal menyimpan penyapaan: " + err, "error");
@@ -1242,7 +1229,6 @@ function renderPenyapaanModule() {
     : (Array.isArray(appData.penyapaan) ? appData.penyapaan.length : 0);
   if (badge) badge.innerText = total;
 
-  renderRekomendasiBanner();
   renderPetaCards();
   renderRiwayatPenyapaanTable();
   populateSapaanSelectors();
@@ -1263,7 +1249,7 @@ function filterPetaCards(filter) {
   renderPetaCards();
 }
 
-// Menampilkan seluruh kelompok binaan pada tiap desa
+// Menampilkan seluruh kelompok binaan pada tiap desa dengan tanda lencana rekomendasi
 function renderPetaCards() {
   const container = document.getElementById("peta-desa-grid");
   if (!container) return;
@@ -1305,7 +1291,7 @@ function renderPetaCards() {
             let rekomBadge = "";
             if (k.is_recommended) {
               rekomBadge = `
-                <span class="text-[9px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-1 rounded flex items-center gap-0.5">
+                <span class="text-[9px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded flex items-center gap-1">
                   <i class="fa-solid fa-star text-amber-500 text-[8px]"></i> Rekomendasi
                 </span>
               `;
@@ -1318,7 +1304,7 @@ function renderPetaCards() {
                     <p class="font-bold text-xs text-slate-800 truncate">${k.nama_kelompok}</p>
                     ${badgeHtml}
                   </div>
-                  <div class="flex items-center gap-1">
+                  <div class="flex items-center gap-1.5 flex-wrap">
                     ${rekomBadge}
                     <span class="text-[9px] text-slate-400">Tgl: ${k.tanggal_terakhir !== '-' ? String(k.tanggal_terakhir).split('T')[0] : '-'}</span>
                   </div>
@@ -1355,7 +1341,7 @@ function renderPetaCards() {
       <div class="col-span-full bg-amber-50 border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm sticky bottom-4 z-20">
         <div class="flex items-center gap-2 text-xs font-semibold text-amber-900">
           <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm"></i>
-          <span>Ada perubahan status penyapaan kelompok berstatus <b>Draf</b> yang belum disimpan ke server.</span>
+          <span>Perubahan tanda sapaan berstatus <b>Draf</b>. Klik simpan untuk merekam data ke server.</span>
         </div>
         <button onclick="simpanBatchPenyapaanGrid()" class="bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-2 shrink-0">
           <i class="fa-solid fa-floppy-disk"></i> Simpan Sapaan Terpilih
@@ -1634,7 +1620,7 @@ function openFormJamaah(data = null) {
         <div>
           <label class="block text-xs font-semibold mb-1">Desa Binaan</label>
           <select name="Desa" id="form-modal-desa" onchange="onModalDesaChange()" class="w-full border rounded px-3 py-1.5 text-sm">
-            ${desas.map(d => `<option value="${d}" ${data && data.Desa === d ? 'selected' : ''}>${d}</option>`).join("")}
+            ${desas.map(d => `<option value="${d}">${d}</option>`).join("")}
           </select>
         </div>
         <div>
