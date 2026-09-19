@@ -1,5 +1,5 @@
 // ==========================================
-// FRONTEND LOGIC & INTEGRASI REST API KARANGANYAR BARAT (FULL UPDATED & ANTI DUPLIKAT)
+// FRONTEND LOGIC & INTEGRASI REST API KARANGANYAR BARAT (FULL UPDATED & ROBUST)
 // ==========================================
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzciFcbS9cbcYpEuaohamvozKneSW46eFGskkB-1FPczQ5c_2fJQwB2Pko9GziDl4Mu/exec";
@@ -460,12 +460,20 @@ function refreshCurrentActiveView() {
 }
 
 // =========================================================================
-// FITUR PENGELOLAAN DATA (TAMBAH, EDIT, HAPUS, SIMPAN)
+// FITUR PENGELOLAAN DATA (TAMBAH, EDIT, HAPUS, SIMPAN) - DENGAN MAPPING SHEET AMAN
 // =========================================================================
 
 async function deleteRow(sheetName, id) {
   if (!currentAdmin) return alert("Akses Admin diperlukan untuk menghapus data!");
-  const confirmDelete = confirm(`Apakah Anda yakin ingin menghapus data dengan ID: ${id} dari tabel ${sheetName}?`);
+
+  // Pemetaan nama sheet untuk menghindari error "Sheet target tidak ditemukan"
+  let targetSheet = sheetName;
+  if (sheetName === "Pengurus") targetSheet = "Pengurus";
+  if (sheetName === "Inventaris") targetSheet = "Inventaris";
+  if (sheetName === "Kegiatan") targetSheet = "Kegiatan";
+  if (sheetName === "Master_Jamaah") targetSheet = "Master_Jamaah";
+
+  const confirmDelete = confirm(`Apakah Anda yakin ingin menghapus data dengan ID: ${id} dari ${targetSheet}?`);
   if (!confirmDelete) return;
 
   showMessage("Menghapus data...", "info");
@@ -474,7 +482,7 @@ async function deleteRow(sheetName, id) {
       method: "POST",
       body: JSON.stringify({
         action: "delete_row",
-        sheet: sheetName,
+        sheetName: targetSheet,
         id: id
       })
     });
@@ -495,14 +503,8 @@ function editJamaah(id) {
   const jList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
   const j = jList.find(item => String(item.ID_Jamaah || item.ID) === String(id));
   if (!j) return alert("Data jamaah tidak ditemukan.");
-  
-  // Implementasikan logika pembukaan modal edit jamaah di sini sesuai struktur form HTML Anda
   alert("Fitur Edit Jamaah untuk ID: " + id);
 }
-
-// =========================================================================
-// MODUL PRESENSI & PENCEGAHAN DUPLIKASI DATA GANDA (UPSERT)
-// =========================================================================
 
 function renderBerandaKegiatan() {
   const container = document.getElementById("kegiatan-cards-container");
@@ -937,7 +939,6 @@ function updateRekapHarian() {
   }
 }
 
-// Fungsi Submit Presensi dengan Logika Upsert (Mencegah Penumpukan Data Ganda saat Mengubah Status Hadir/Izin/Alfa)
 async function submitPresensi() {
   if (!currentAdmin) return alert("Akses Admin diperlukan untuk menyimpan presensi!");
 
