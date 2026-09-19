@@ -1,5 +1,5 @@
 // ==========================================
-// FRONTEND LOGIC & INTEGRASI REST API KARANGANYAR BARAT (FULL UPDATED & ROBUST)
+// FRONTEND LOGIC & INTEGRASI REST API KARANGANYAR BARAT (FULL UPDATED & MODAL INTERACTION)
 // ==========================================
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzciFcbS9cbcYpEuaohamvozKneSW46eFGskkB-1FPczQ5c_2fJQwB2Pko9GziDl4Mu/exec";
@@ -23,6 +23,7 @@ let currentPetaFilter = "all";
 let analyticsPenyapaan = null;
 let currentActiveTab = "beranda";
 let localPenyapaanData = [];
+let editingRecordId = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   const savedAdmin = sessionStorage.getItem("currentAdmin");
@@ -460,13 +461,291 @@ function refreshCurrentActiveView() {
 }
 
 // =========================================================================
-// FITUR PENGELOLAAN DATA (TAMBAH, EDIT, HAPUS, SIMPAN) - DENGAN MAPPING SHEET AMAN
+// FITUR MODAL & PENGELOLAAN DATA (TAMBAH, EDIT, HAPUS, SIMPAN)
 // =========================================================================
+
+function openModalForm(type, id = null) {
+  if (!currentAdmin) return alert("Akses Admin diperlukan untuk menambah atau mengubah data!");
+  activeFormType = type;
+  editingRecordId = id;
+
+  const modal = document.getElementById("modal-dynamic-form") || createDynamicModal();
+  const titleEl = document.getElementById("dynamic-modal-title");
+  const bodyEl = document.getElementById("dynamic-modal-body");
+
+  if (!modal || !titleEl || !bodyEl) return;
+
+  let formHtml = "";
+  let title = "";
+
+  if (type === "kegiatan") {
+    title = id ? "Edit Agenda Kegiatan" : "Tambah Agenda Kegiatan Baru";
+    let item = id ? (appData.kegiatan || []).find(x => String(x.ID || x.ID_Kegiatan) === String(id)) : {};
+    formHtml = `
+      <input type="hidden" id="form-kegiatan-id" value="${item?.ID || item?.ID_Kegiatan || ''}">
+      <div class="space-y-3 text-xs sm:text-sm">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nama Kegiatan</label>
+          <input type="text" id="form-kegiatan-nama" value="${item?.Kegiatan || item?.Nama_Kegiatan || ''}" required class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Tanggal</label>
+          <input type="date" id="form-kegiatan-tanggal" value="${item?.Tanggal ? item.Tanggal.toString().split('T')[0] : ''}" required class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Hari</label>
+          <input type="text" id="form-kegiatan-hari" value="${item?.Hari || 'Senin'}" class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Jam / Waktu</label>
+          <input type="text" id="form-kegiatan-jam" value="${item?.Jam || '19:30 - Selesai'}" class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Pemateri</label>
+          <input type="text" id="form-kegiatan-pemateri" value="${item?.Pemateri || ''}" class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Keterangan / Lokasi</label>
+          <textarea id="form-kegiatan-ket" rows="3" class="w-full border rounded-lg px-3 py-2">${item?.Keterangan || ''}</textarea>
+        </div>
+      </div>
+    `;
+  } else if (type === "pengurus") {
+    title = id ? "Edit Data Pengurus" : "Tambah Data Pengurus";
+    let item = id ? (appData.pengurus || []).find(x => String(x.ID) === String(id)) : {};
+    formHtml = `
+      <input type="hidden" id="form-pengurus-id" value="${item?.ID || ''}">
+      <div class="space-y-3 text-xs sm:text-sm">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nama Lengkap</label>
+          <input type="text" id="form-pengurus-nama" value="${item?.Nama || ''}" required class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Jabatan</label>
+          <input type="text" id="form-pengurus-jabatan" value="${item?.Jabatan || ''}" required class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">No. HP</label>
+          <input type="text" id="form-pengurus-nohp" value="${item?.NoHP || ''}" class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Status</label>
+          <select id="form-pengurus-status" class="w-full border rounded-lg px-3 py-2 bg-white">
+            <option value="Aktif" ${item?.Status === 'Aktif' ? 'selected' : ''}>Aktif</option>
+            <option value="Non-Aktif" ${item?.Status === 'Non-Aktif' ? 'selected' : ''}>Non-Aktif</option>
+          </select>
+        </div>
+      </div>
+    `;
+  } else if (type === "inventaris") {
+    title = id ? "Edit Inventaris Barang" : "Tambah Inventaris Barang";
+    let item = id ? (appData.inventaris || []).find(x => String(x.ID) === String(id)) : {};
+    formHtml = `
+      <input type="hidden" id="form-inventaris-id" value="${item?.ID || ''}">
+      <div class="space-y-3 text-xs sm:text-sm">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nama Barang</label>
+          <input type="text" id="form-inventaris-nama" value="${item?.NamaBarang || ''}" required class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Jumlah</label>
+          <input type="number" id="form-inventaris-jumlah" value="${item?.Jumlah || 1}" required class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Kondisi</label>
+          <select id="form-inventaris-kondisi" class="w-full border rounded-lg px-3 py-2 bg-white">
+            <option value="Baik" ${item?.Kondisi === 'Baik' ? 'selected' : ''}>Baik</option>
+            <option value="Rusak" ${item?.Kondisi === 'Rusak' ? 'selected' : ''}>Rusak</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Tanggal Masuk</label>
+          <input type="date" id="form-inventaris-tanggal" value="${item?.TanggalMasuk ? item.TanggalMasuk.toString().split('T')[0] : ''}" class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Keterangan</label>
+          <textarea id="form-inventaris-ket" rows="2" class="w-full border rounded-lg px-3 py-2">${item?.Keterangan || ''}</textarea>
+        </div>
+      </div>
+    `;
+  } else if (type === "jamaah") {
+    title = id ? "Edit Data Jamaah" : "Tambah Data Jamaah";
+    let item = id ? (appData.jamaah || []).find(x => String(x.ID_Jamaah || x.ID) === String(id)) : {};
+    
+    let mkList = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
+    let kelOptions = mkList.map(m => `<option value="${m.Nama_Kelompok}" ${item?.Nama_Kelompok === m.Nama_Kelompok ? 'selected' : ''}>${m.Nama_Desa} - ${m.Nama_Kelompok}</option>`).join("");
+
+    formHtml = `
+      <input type="hidden" id="form-jamaah-id" value="${item?.ID_Jamaah || item?.ID || ''}">
+      <div class="space-y-3 text-xs sm:text-sm">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nama Lengkap</label>
+          <input type="text" id="form-jamaah-nama" value="${item?.Nama_Lengkap || item?.Nama || ''}" required class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Tanggal Lahir</label>
+          <input type="date" id="form-jamaah-tgl" value="${item?.TanggalLahir ? item.TanggalLahir.toString().split('T')[0] : ''}" class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Kelompok Usia / Jenjang</label>
+          <select id="form-jamaah-kelas-usia" class="w-full border rounded-lg px-3 py-2 bg-white">
+            <option value="Caberawit" ${String(item?.Kelas_Usia || item?.Kelompok || '').includes('Caberawit') ? 'selected' : ''}>Caberawit</option>
+            <option value="Pra Remaja" ${item?.Kelas_Usia === 'Pra Remaja' ? 'selected' : ''}>Pra Remaja</option>
+            <option value="Remaja" ${item?.Kelas_Usia === 'Remaja' ? 'selected' : ''}>Remaja</option>
+            <option value="Muda-Mudi" ${item?.Kelas_Usia === 'Muda-Mudi' ? 'selected' : ''}>Muda-Mudi</option>
+            <option value="Bapak-Bapak" ${item?.Kelas_Usia === 'Bapak-Bapak' ? 'selected' : ''}>Bapak-Bapak</option>
+            <option value="Ibu-Ibu" ${item?.Kelas_Usia === 'Ibu-Ibu' ? 'selected' : ''}>Ibu-Ibu</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Kelas Caberawit (Jika Caberawit)</label>
+          <select id="form-jamaah-kelas" class="w-full border rounded-lg px-3 py-2 bg-white">
+            <option value="Umum">- (Non-Caberawit)</option>
+            <option value="Caberawit A" ${item?.Kelas === 'Caberawit A' ? 'selected' : ''}>Caberawit A</option>
+            <option value="Caberawit B" ${item?.Kelas === 'Caberawit B' ? 'selected' : ''}>Caberawit B</option>
+            <option value="Caberawit C" ${item?.Kelas === 'Caberawit C' ? 'selected' : ''}>Caberawit C</option>
+            <option value="Caberawit D" ${item?.Kelas === 'Caberawit D' ? 'selected' : ''}>Caberawit D</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Kelompok Binaan</label>
+          <select id="form-jamaah-kelompok-binaan" class="w-full border rounded-lg px-3 py-2 bg-white">
+            ${kelOptions || '<option value="Kelompok 1">Kelompok 1</option>'}
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Gender</label>
+          <select id="form-jamaah-gender" class="w-full border rounded-lg px-3 py-2 bg-white">
+            <option value="Laki-Laki" ${item?.Gender === 'Laki-Laki' ? 'selected' : ''}>Laki-Laki</option>
+            <option value="Perempuan" ${item?.Gender === 'Perempuan' ? 'selected' : ''}>Perempuan</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Alamat</label>
+          <input type="text" id="form-jamaah-alamat" value="${item?.Alamat || ''}" class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Status Keaktifan</label>
+          <select id="form-jamaah-keaktifan" class="w-full border rounded-lg px-3 py-2 bg-white">
+            <option value="Aktif" ${item?.Keaktifan === 'Aktif' || item?.Status === 'Aktif' ? 'selected' : ''}>Aktif</option>
+            <option value="Non-Aktif" ${item?.Keaktifan === 'Non-Aktif' || item?.Status === 'Non-Aktif' ? 'selected' : ''}>Non-Aktif</option>
+          </select>
+        </div>
+      </div>
+    `;
+  }
+
+  titleEl.innerText = title;
+  bodyEl.innerHTML = formHtml;
+  modal.classList.remove("hidden");
+}
+
+function createDynamicModal() {
+  const existing = document.getElementById("modal-dynamic-form");
+  if (existing) existing.remove();
+
+  const div = document.createElement("div");
+  div.id = "modal-dynamic-form";
+  div.className = "fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 hidden";
+  div.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200">
+      <div class="bg-teal-900 text-white px-5 py-4 flex justify-between items-center">
+        <h3 id="dynamic-modal-title" class="font-bold text-base">Formulir Data</h3>
+        <button onclick="closeModal('modal-dynamic-form')" class="text-white hover:text-rose-300"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div id="dynamic-modal-body" class="p-6 max-h-[75vh] overflow-y-auto"></div>
+      <div class="bg-slate-50 px-5 py-3 border-t flex justify-end gap-2">
+        <button onclick="closeModal('modal-dynamic-form')" class="px-4 py-2 rounded-xl text-xs font-bold border bg-white hover:bg-slate-100 text-slate-700">Batal</button>
+        <button onclick="submitDynamicForm()" class="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-md">Simpan Data</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(div);
+  return div;
+}
+
+async function submitDynamicForm() {
+  if (!currentAdmin) return alert("Akses Admin diperlukan!");
+
+  let actionName = "";
+  let payloadData = {};
+  let targetSheetName = "";
+
+  if (activeFormType === "kegiatan") {
+    actionName = "save_kegiatan";
+    targetSheetName = "Kegiatan";
+    payloadData = {
+      ID: document.getElementById("form-kegiatan-id").value,
+      Nama_Kegiatan: document.getElementById("form-kegiatan-nama").value,
+      Tanggal: document.getElementById("form-kegiatan-tanggal").value,
+      Hari: document.getElementById("form-kegiatan-hari").value,
+      Jam: document.getElementById("form-kegiatan-jam").value,
+      Pemateri: document.getElementById("form-kegiatan-pemateri").value,
+      Keterangan: document.getElementById("form-kegiatan-ket").value
+    };
+  } else if (activeFormType === "pengurus") {
+    actionName = "save_pengurus";
+    targetSheetName = "Pengurus";
+    payloadData = {
+      ID: document.getElementById("form-pengurus-id").value,
+      Nama: document.getElementById("form-pengurus-nama").value,
+      Jabatan: document.getElementById("form-pengurus-jabatan").value,
+      NoHP: document.getElementById("form-pengurus-nohp").value,
+      Status: document.getElementById("form-pengurus-status").value
+    };
+  } else if (activeFormType === "inventaris") {
+    actionName = "save_inventaris";
+    targetSheetName = "Inventaris";
+    payloadData = {
+      ID: document.getElementById("form-inventaris-id").value,
+      NamaBarang: document.getElementById("form-inventaris-nama").value,
+      Jumlah: document.getElementById("form-inventaris-jumlah").value,
+      Kondisi: document.getElementById("form-inventaris-kondisi").value,
+      TanggalMasuk: document.getElementById("form-inventaris-tanggal").value,
+      Keterangan: document.getElementById("form-inventaris-ket").value
+    };
+  } else if (activeFormType === "jamaah") {
+    actionName = "save_jamaah";
+    targetSheetName = "Master_Jamaah";
+    payloadData = {
+      ID_Jamaah: document.getElementById("form-jamaah-id").value,
+      Nama_Lengkap: document.getElementById("form-jamaah-nama").value,
+      TanggalLahir: document.getElementById("form-jamaah-tgl").value,
+      Kelas_Usia: document.getElementById("form-jamaah-kelas-usia").value,
+      Kelas: document.getElementById("form-jamaah-kelas").value,
+      Nama_Kelompok: document.getElementById("form-jamaah-kelompok-binaan").value,
+      Gender: document.getElementById("form-jamaah-gender").value,
+      Alamat: document.getElementById("form-jamaah-alamat").value,
+      Keaktifan: document.getElementById("form-jamaah-keaktifan").value
+    };
+  }
+
+  showMessage("Menyimpan data ke server...", "info");
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: actionName,
+        data: payloadData
+      })
+    });
+    const json = await res.json();
+    if (json.success) {
+      showMessage("Data berhasil disimpan!", "success");
+      closeModal("modal-dynamic-form");
+      await loadAllData();
+    } else {
+      showMessage("Gagal menyimpan: " + (json.error || json.message), "error");
+    }
+  } catch (err) {
+    console.error("Save Error:", err);
+    showMessage("Terjadi kesalahan jaringan saat menyimpan data.", "error");
+  }
+}
 
 async function deleteRow(sheetName, id) {
   if (!currentAdmin) return alert("Akses Admin diperlukan untuk menghapus data!");
-
-  // Pemetaan nama sheet untuk menghindari error "Sheet target tidak ditemukan"
+  
   let targetSheet = sheetName;
   if (sheetName === "Pengurus") targetSheet = "Pengurus";
   if (sheetName === "Inventaris") targetSheet = "Inventaris";
@@ -500,11 +779,20 @@ async function deleteRow(sheetName, id) {
 }
 
 function editJamaah(id) {
-  const jList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
-  const j = jList.find(item => String(item.ID_Jamaah || item.ID) === String(id));
-  if (!j) return alert("Data jamaah tidak ditemukan.");
-  alert("Fitur Edit Jamaah untuk ID: " + id);
+  openModalForm("jamaah", id);
 }
+
+function editPengurus(id) {
+  openModalForm("pengurus", id);
+}
+
+function editInventaris(id) {
+  openModalForm("inventaris", id);
+}
+
+// =========================================================================
+// RENDERING VIEW DENGAN INDIKATOR TERSIMPAN (PRESENSI & PENYAPAAN)
+// =========================================================================
 
 function renderBerandaKegiatan() {
   const container = document.getElementById("kegiatan-cards-container");
@@ -539,9 +827,12 @@ function renderBerandaKegiatan() {
             ${k.Keterangan || k.Target_Usia || 'Tidak ada catatan tambahan.'}
           </p>
         </div>
-        <div class="admin-only ${isSuperOrDaerah() ? '' : 'hidden'} flex justify-end pt-2 border-t border-slate-100">
+        <div class="admin-only ${isSuperOrDaerah() ? '' : 'hidden'} flex justify-end gap-2 pt-2 border-t border-slate-100">
+          <button onclick="openModalForm('kegiatan', '${k.ID || k.ID_Kegiatan}')" class="text-amber-600 hover:text-amber-800 text-xs font-semibold flex items-center gap-1 p-1">
+            <i class="fa-solid fa-pen"></i> Edit
+          </button>
           <button onclick="deleteRow('Kegiatan', '${k.ID || k.ID_Kegiatan}')" class="text-rose-600 hover:text-rose-800 text-xs font-semibold flex items-center gap-1 p-1">
-            <i class="fa-solid fa-trash"></i> Hapus Agenda
+            <i class="fa-solid fa-trash"></i> Hapus
           </button>
         </div>
       </div>
@@ -590,7 +881,8 @@ function renderPengurus() {
         <td class="px-4 sm:px-6 py-3.5">${p.Jabatan || '-'}</td>
         <td class="px-4 sm:px-6 py-3.5">${p.NoHP || '-'}</td>
         <td class="px-4 sm:px-6 py-3.5"><span class="px-2 py-1 rounded-full text-xs font-semibold ${p.Status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${p.Status || 'Aktif'}</span></td>
-        <td class="px-4 sm:px-6 py-3.5 text-center admin-only ${isSuperOrDaerah() ? '' : 'hidden'}">
+        <td class="px-4 sm:px-6 py-3.5 text-center admin-only ${isSuperOrDaerah() ? '' : 'hidden'} space-x-2">
+          <button onclick="openModalForm('pengurus', '${p.ID}')" class="text-amber-600 hover:text-amber-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
           <button onclick="deleteRow('Pengurus', '${p.ID}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>
@@ -640,7 +932,8 @@ function renderInventaris() {
         <td class="px-4 sm:px-6 py-3.5"><span class="px-2 py-1 rounded-full text-xs font-semibold ${i.Kondisi === 'Baik' ? 'bg-teal-100 text-teal-800' : 'bg-rose-100 text-rose-800'}">${i.Kondisi || 'Baik'}</span></td>
         <td class="px-4 sm:px-6 py-3.5">${i.TanggalMasuk ? i.TanggalMasuk.toString().split("T")[0] : '-'}</td>
         <td class="px-4 sm:px-6 py-3.5">${i.Keterangan || '-'}</td>
-        <td class="px-4 sm:px-6 py-3.5 text-center admin-only ${isSuperOrDaerah() ? '' : 'hidden'}">
+        <td class="px-4 sm:px-6 py-3.5 text-center admin-only ${isSuperOrDaerah() ? '' : 'hidden'} space-x-2">
+          <button onclick="openModalForm('inventaris', '${i.ID}')" class="text-amber-600 hover:text-amber-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
           <button onclick="deleteRow('Inventaris', '${i.ID}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>
@@ -855,7 +1148,7 @@ function renderPresensiTable() {
           <td class="px-3 py-3 text-center text-xs font-semibold text-slate-500">${idx + 1}</td>
           <td class="px-4 py-3 font-medium text-slate-800">
             ${nama}
-            ${existingStatusMap[namaKey] ? `<span class="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">Tersimpan</span>` : ''}
+            ${existingStatusMap[namaKey] ? `<span class="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200" title="Telah diabsen pada tanggal ${targetDate}">Tersimpan (${existingStatusMap[namaKey].status})</span>` : ''}
           </td>
           <td class="px-3 py-3 text-center">
             <input type="radio" name="presensi-${idx}" value="Hadir" onchange="toggleKetInput(${idx})" ${savedStatus === 'Hadir' ? 'checked' : ''} ${disabledRadio} class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
@@ -1405,6 +1698,7 @@ function renderPetaCards() {
   const desas = [...new Set(localPenyapaanData.map(m => m.nama_desa))];
   const hasDirty = localPenyapaanData.some(k => k.is_dirty);
   const writeAccess = canWritePenyapaan();
+  const selectedSapaDate = document.getElementById("sapaan-batch-date")?.value || new Date().toISOString().split("T")[0];
 
   container.innerHTML = desas.map(desa => {
     let list = localPenyapaanData.filter(k => k.nama_desa === desa);
@@ -1431,11 +1725,20 @@ function renderPetaCards() {
             const isSapaChecked = k.status_sapa;
             const isBelumChecked = k.status_belum_sapa;
 
+            // Indikator Tersimpan pada tanggal yang dipilih
+            const sapaanList = Array.isArray(appData.penyapaan) ? appData.penyapaan : [];
+            const isAlreadySapaToday = sapaanList.some(s => {
+              const sDate = s.Tanggal ? String(s.Tanggal).split("T")[0] : "";
+              return String(s.ID_Kelompok || "").trim() === String(k.id).trim() && sDate === selectedSapaDate;
+            });
+
             let badgeHtml = "";
-            if (k.is_dirty) {
+            if (isAlreadySapaToday) {
+              badgeHtml = `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-300" title="Telah disapa pada tanggal ${selectedSapaDate}">Tersimpan</span>`;
+            } else if (k.is_dirty) {
               badgeHtml = `<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-300">Draf</span>`;
             } else if (k.total_penyapaan > 0) {
-              badgeHtml = `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-300">Disapa</span>`;
+              badgeHtml = `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-300">Disapa (${k.total_penyapaan}x)</span>`;
             } else {
               badgeHtml = `<span class="bg-slate-100 text-slate-500 text-[10px] font-semibold px-2 py-0.5 rounded">Belum</span>`;
             }
@@ -1456,7 +1759,8 @@ function renderPetaCards() {
               <div class="p-3.5 rounded-xl border flex flex-col justify-between space-y-2.5 transition-all ${k.is_dirty ? 'bg-amber-50/60 border-amber-300 shadow-xs' : (k.is_recommended ? 'bg-amber-50/25 border-amber-200 shadow-xs' : (k.total_penyapaan > 0 ? 'bg-emerald-50/30 border-emerald-200' : 'bg-slate-50/70 border-slate-200'))}">
                 <div>
                   <div class="flex items-start justify-between gap-1 mb-1">
-                    <p class="font-extrabold text-sm sm:text-base text-slate-900 leading-snug truncate" title="${k.nama_kelompok}">${k.nama_kelompok}</p>${badgeHtml}
+                    <p class="font-extrabold text-sm sm:text-base text-slate-900 leading-snug truncate" title="${k.nama_kelompok}">${k.nama_kelompok}</p>
+                    ${badgeHtml}
                   </div>
                   <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
                     ${rekomBadge}
