@@ -268,6 +268,7 @@ function switchTab(tabName) {
   if (targetView) targetView.classList.remove("hidden");
   if (targetTab) targetTab.classList.add("active", "border-teal-600", "text-teal-700", "font-bold");
 
+  const presensiWilayahNav = document.getElementById("presensi-wilayah-nav");
   const subnav = document.getElementById("subnav-container");
   const classnav = document.getElementById("classnav-container");
   const filterSearchBox = document.getElementById("nav-filter-search-container");
@@ -281,10 +282,13 @@ function switchTab(tabName) {
     }
   }
 
+  // Tampilkan bar pemilih wilayah khusus dan subnav saat tab Presensi aktif
   if (tabName === "kelompok") {
+    if (presensiWilayahNav) presensiWilayahNav.classList.remove("hidden");
     if (subnav) subnav.classList.remove("hidden");
     selectKelompok(currentKelompok);
   } else {
+    if (presensiWilayahNav) presensiWilayahNav.classList.add("hidden");
     if (subnav) subnav.classList.add("hidden");
     if (classnav) classnav.classList.add("hidden");
   }
