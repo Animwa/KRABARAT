@@ -16,87 +16,85 @@
 
 <!-- HEADER UTAMA -->
 <header class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white shadow-lg pt-safe sticky top-0 z-40">
-  <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <div class="flex items-center space-x-3">
-      <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20 shadow-inner shrink-0">
-        <i class="fa-solid fa-mosque text-xl sm:text-2xl text-emerald-300"></i>
+  <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex justify-between items-center">
+    <div class="flex items-center space-x-2.5 sm:space-x-3">
+      <div class="w-9 h-9 sm:w-11 sm:h-11 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20 shadow-inner shrink-0">
+        <i class="fa-solid fa-mosque text-lg sm:text-xl text-emerald-300"></i>
       </div>
       <div>
-        <h1 class="text-base sm:text-xl font-extrabold tracking-wide leading-tight uppercase">KARANGANYAR BARAT</h1>
-        <p class="text-[10px] sm:text-xs text-emerald-200/90 font-medium hidden sm:block">Sistem Informasi Manajemen, Presensi & Penyapaan</p>
+        <h1 class="text-sm sm:text-lg font-extrabold tracking-wide leading-tight uppercase">KARANGANYAR BARAT</h1>
+        <p class="text-[9px] sm:text-xs text-emerald-200/90 font-medium hidden sm:block">Sistem Informasi Manajemen, Presensi & Penyapaan</p>
       </div>
     </div>
 
-    <div class="flex items-center space-x-2">
-      <span id="admin-badge" class="hidden px-2.5 py-1 bg-amber-400 text-slate-900 text-[11px] font-bold rounded-full items-center shadow-sm">
+    <div class="flex items-center space-x-1.5 sm:space-x-2">
+      <span id="admin-badge" class="hidden px-2 py-1 bg-amber-400 text-slate-900 text-[10px] sm:text-xs font-bold rounded-full items-center shadow-xs">
         <i class="fa-solid fa-user-shield mr-1"></i>
-        <span id="admin-name-display" class="max-w-[80px] sm:max-w-[120px] truncate inline-block align-bottom"></span>
+        <span id="admin-name-display" class="max-w-[70px] sm:max-w-[120px] truncate inline-block align-bottom"></span>
       </span>
 
-      <button id="btn-admin-manage" onclick="openAddAdminModal()" title="Tambah Admin Baru" class="hidden bg-teal-600/80 hover:bg-teal-600 text-white text-xs font-semibold p-2.5 rounded-xl border border-teal-400/30 transition-all shadow-sm">
+      <button id="btn-admin-manage" onclick="openAddAdminModal()" title="Tambah Admin Baru" class="hidden bg-teal-600/80 hover:bg-teal-600 text-white text-xs font-semibold p-2 rounded-xl border border-teal-400/30 transition-all shadow-xs">
         <i class="fa-solid fa-user-plus"></i>
       </button>
 
-      <button id="btn-logout" onclick="logoutAdmin()" title="Logout" class="hidden bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-semibold p-2.5 rounded-xl border border-rose-400/30 transition-all shadow-sm">
+      <button id="btn-logout" onclick="logoutAdmin()" title="Logout" class="hidden bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-semibold p-2 rounded-xl border border-rose-400/30 transition-all shadow-xs">
         <i class="fa-solid fa-power-off"></i>
       </button>
 
-      <button id="btn-login-modal" onclick="openLoginModal()" class="bg-emerald-700/80 hover:bg-emerald-600 active:scale-95 text-emerald-100 text-xs font-semibold px-3 py-2 rounded-xl border border-emerald-500/40 backdrop-blur-md transition-all shadow-sm flex items-center space-x-1.5">
+      <button id="btn-login-modal" onclick="openLoginModal()" class="bg-emerald-700/80 hover:bg-emerald-600 active:scale-95 text-emerald-100 text-xs font-semibold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-emerald-500/40 backdrop-blur-md transition-all shadow-xs flex items-center space-x-1.5">
         <i class="fa-solid fa-right-to-bracket text-emerald-300"></i>
         <span class="hidden sm:inline">Login Admin</span>
       </button>
 
-      <button id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Toggle Menu" class="md:hidden bg-emerald-700/80 hover:bg-emerald-600 active:scale-95 text-white p-2.5 rounded-xl border border-emerald-500/40 backdrop-blur-md transition-all shadow-sm flex items-center justify-center">
-        <i class="fa-solid fa-bars text-base" id="hamburger-icon"></i>
+      <button id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Toggle Menu" class="md:hidden bg-emerald-700/80 hover:bg-emerald-600 active:scale-95 text-white p-2 rounded-xl border border-emerald-500/40 backdrop-blur-md transition-all shadow-xs flex items-center justify-center">
+        <i class="fa-solid fa-bars text-sm" id="hamburger-icon"></i>
       </button>
     </div>
   </div>
 </header>
 
 <!-- NAVIGATION BAR -->
-<nav id="main-nav" class="bg-emerald-950 text-white text-xs sm:text-sm sticky top-14 z-30 shadow-md">
+<nav id="main-nav" class="bg-emerald-950 text-white text-xs sm:text-sm sticky top-[53px] sm:top-[61px] z-30 shadow-md">
   <div id="nav-menu-container" class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between p-2 gap-2">
     <!-- Menu Tabs -->
-    <div class="flex flex-col md:flex-row md:items-center md:space-x-1 gap-1">
-      <button onclick="switchTab('beranda')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2" id="tab-beranda">
-        <i class="fa-solid fa-house"></i><span>Beranda</span>
+    <div id="nav-items-wrapper" class="hidden md:flex flex-col md:flex-row md:items-center md:space-x-1 gap-1 w-full md:w-auto">
+      <button onclick="switchTab('beranda')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2 text-left" id="tab-beranda">
+        <i class="fa-solid fa-house w-4 text-center"></i><span>Beranda</span>
       </button>
-      <button onclick="switchTab('pengurus')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2" id="tab-pengurus">
-        <i class="fa-solid fa-users-gear"></i><span>Pengurus</span>
+      <button onclick="switchTab('pengurus')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2 text-left" id="tab-pengurus">
+        <i class="fa-solid fa-users-gear w-4 text-center"></i><span>Pengurus</span>
       </button>
-      <button onclick="switchTab('inventaris')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2" id="tab-inventaris">
-        <i class="fa-solid fa-boxes-stacked"></i><span>Inventaris</span>
+      <button onclick="switchTab('inventaris')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2 text-left" id="tab-inventaris">
+        <i class="fa-solid fa-boxes-stacked w-4 text-center"></i><span>Inventaris</span>
       </button>
-      <button onclick="switchTab('jamaah')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2" id="tab-jamaah">
-        <i class="fa-solid fa-id-card"></i><span>Data Jamaah</span>
+      <button onclick="switchTab('jamaah')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2 text-left" id="tab-jamaah">
+        <i class="fa-solid fa-id-card w-4 text-center"></i><span>Data Jamaah</span>
       </button>
-      <button onclick="switchTab('kelompok')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2" id="tab-kelompok">
-        <i class="fa-solid fa-people-group"></i><span>Presensi</span>
+      <button onclick="switchTab('kelompok')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2 text-left" id="tab-kelompok">
+        <i class="fa-solid fa-people-group w-4 text-center"></i><span>Presensi</span>
       </button>
-      <button onclick="switchTab('monitoring')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2" id="tab-monitoring">
-        <i class="fa-solid fa-clipboard-check"></i><span>Monitoring</span>
+      <button onclick="switchTab('monitoring')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2 text-left" id="tab-monitoring">
+        <i class="fa-solid fa-clipboard-check w-4 text-center"></i><span>Monitoring</span>
       </button>
-      <button onclick="switchTab('penyapaan')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2" id="tab-penyapaan">
-        <i class="fa-solid fa-handshake-angle"></i><span>Penyapaan</span>
-        <span id="badge-total-sapaan" class="ml-1 px-2 py-0.5 text-[10px] bg-amber-400 text-slate-900 font-extrabold rounded-full">0</span>
+      <button onclick="switchTab('penyapaan')" class="nav-tab px-3 py-2 rounded-lg font-medium hover:bg-emerald-800/80 transition-all flex items-center space-x-2 text-left" id="tab-penyapaan">
+        <i class="fa-solid fa-handshake-angle w-4 text-center"></i><span>Penyapaan</span>
+        <span id="badge-total-sapaan" class="ml-1 px-1.5 py-0.2 text-[10px] bg-amber-400 text-slate-900 font-extrabold rounded-full">0</span>
       </button>
     </div>
 
-    <!-- Kotak Filter & Pencarian (Hanya Tampil di Pengurus, Inventaris, Jamaah, Monitoring) -->
-    <div id="nav-filter-search-container" class="hidden flex flex-wrap items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-emerald-900 shrink-0">
+    <!-- Kotak Filter & Pencarian -->
+    <div id="nav-filter-search-container" class="hidden flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-emerald-900 shrink-0 w-full md:w-auto">
       <div class="relative w-full sm:w-44">
-        <input type="text" id="global-search-input" oninput="onGlobalSearchInput()" placeholder="Cari data..." class="w-full bg-emerald-900/90 border border-emerald-700 text-white rounded-lg pl-7 pr-2.5 py-1.5 text-[11px] focus:ring-1 focus:ring-amber-400 focus:outline-none placeholder-emerald-300/60">
+        <input type="text" id="global-search-input" oninput="onGlobalSearchInput()" placeholder="Cari data..." class="w-full bg-emerald-900/90 border border-emerald-700 text-white rounded-lg pl-7 pr-2.5 py-1.5 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none placeholder-emerald-300/60">
         <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-emerald-300 text-[10px]"></i>
       </div>
 
-      <div class="w-1/2 sm:w-32">
-        <select id="global-filter-desa" onchange="onGlobalDesaChange()" class="w-full bg-emerald-900 border border-emerald-700 text-white rounded-lg px-2 py-1.5 text-[11px] font-semibold focus:ring-1 focus:ring-amber-400 focus:outline-none truncate">
+      <div class="grid grid-cols-2 sm:flex sm:items-center gap-2">
+        <select id="global-filter-desa" onchange="onGlobalDesaChange()" class="bg-emerald-900 border border-emerald-700 text-white rounded-lg px-2 py-1.5 text-xs font-semibold focus:ring-1 focus:ring-amber-400 focus:outline-none truncate w-full sm:w-32">
           <option value="Semua">Semua Desa</option>
         </select>
-      </div>
 
-      <div class="w-[calc(50%-0.5rem)] sm:w-40">
-        <select id="global-filter-kelompok" onchange="onGlobalKelompokChange()" class="w-full bg-emerald-900 border border-emerald-700 text-white rounded-lg px-2 py-1.5 text-[11px] font-semibold focus:ring-1 focus:ring-amber-400 focus:outline-none truncate">
+        <select id="global-filter-kelompok" onchange="onGlobalKelompokChange()" class="bg-emerald-900 border border-emerald-700 text-white rounded-lg px-2 py-1.5 text-xs font-semibold focus:ring-1 focus:ring-amber-400 focus:outline-none truncate w-full sm:w-36">
           <option value="Semua">Semua Kelompok</option>
         </select>
       </div>
@@ -104,18 +102,18 @@
   </div>
 </nav>
 
-<!-- SUB NAV KELOMPOK USIA (HANYA AKTIF DI TAB PRESENSI) -->
+<!-- SUB NAV KELOMPOK USIA (PRESENSI) -->
 <div id="subnav-container" class="bg-slate-200 border-b border-slate-300 hidden">
   <div class="max-w-7xl mx-auto px-3 py-2 flex items-center space-x-2 text-xs font-semibold overflow-x-auto no-scrollbar">
-    <span class="text-slate-600 shrink-0 font-bold flex items-center text-[11px] uppercase tracking-wider"><i class="fa-solid fa-layer-group mr-1 text-emerald-700"></i> Kelompok Usia:</span>
+    <span class="text-slate-600 shrink-0 font-bold flex items-center text-[11px] uppercase tracking-wider"><i class="fa-solid fa-layer-group mr-1 text-emerald-700"></i> Jenjang:</span>
     <div class="flex space-x-1.5 shrink-0">
-      <button onclick="selectKelompok('ASAD')" class="subnav-btn px-3 py-1.5 rounded-full bg-white shadow-sm border border-slate-300 hover:bg-emerald-50 transition-all" id="sub-asad">ASAD</button>
-      <button onclick="selectKelompok('Caberawit')" class="subnav-btn px-3 py-1.5 rounded-full bg-white shadow-sm border border-slate-300 hover:bg-emerald-50 transition-all" id="sub-caberawit">Caberawit (SD)</button>
-      <button onclick="selectKelompok('Pra Remaja')" class="subnav-btn px-3 py-1.5 rounded-full bg-white shadow-sm border border-slate-300 hover:bg-emerald-50 transition-all" id="sub-pra-remaja">Pra Remaja (SMP)</button>
-      <button onclick="selectKelompok('Remaja')" class="subnav-btn px-3 py-1.5 rounded-full bg-white shadow-sm border border-slate-300 hover:bg-emerald-50 transition-all" id="sub-remaja">Remaja (SMA)</button>
-      <button onclick="selectKelompok('Muda-Mudi')" class="subnav-btn px-3 py-1.5 rounded-full bg-white shadow-sm border border-slate-300 hover:bg-emerald-50 transition-all" id="sub-muda-mudi">Muda-Mudi</button>
-      <button onclick="selectKelompok('Bapak-Bapak')" class="subnav-btn px-3 py-1.5 rounded-full bg-white shadow-sm border border-slate-300 hover:bg-emerald-50 transition-all" id="sub-bapak">Bapak-Bapak</button>
-      <button onclick="selectKelompok('Ibu-Ibu')" class="subnav-btn px-3 py-1.5 rounded-full bg-white shadow-sm border border-slate-300 hover:bg-emerald-50 transition-all" id="sub-ibu">Ibu-Ibu</button>
+      <button onclick="selectKelompok('ASAD')" class="subnav-btn px-3 py-1.5 rounded-full bg-white shadow-xs border border-slate-300 hover:bg-emerald-50 transition-all text-xs" id="sub-asad">ASAD</button>
+      <button onclick="selectKelompok('Caberawit')" class="subnav-btn px-3 py-1.5 rounded-full bg-white shadow-xs border border-slate-300 hover:bg-emerald-50 transition-all text-xs" id="sub-caberawit">Caberawit</button>
+      <button onclick="selectKelompok('Pra Remaja')" class="subnav-btn px-3 py-1.5 rounded-full bg-white shadow-xs border border-slate-300 hover:bg-emerald-50 transition-all text-xs" id="sub-pra-remaja">Pra Remaja</button>
+      <button onclick="selectKelompok('Remaja')" class="subnav-btn px-3 py-1.5 rounded-full bg-white shadow-xs border border-slate-300 hover:bg-emerald-50 transition-all text-xs" id="sub-remaja">Remaja</button>
+      <button onclick="selectKelompok('Muda-Mudi')" class="subnav-btn px-3 py-1.5 rounded-full bg-white shadow-xs border border-slate-300 hover:bg-emerald-50 transition-all text-xs" id="sub-muda-mudi">Muda-Mudi</button>
+      <button onclick="selectKelompok('Bapak-Bapak')" class="subnav-btn px-3 py-1.5 rounded-full bg-white shadow-xs border border-slate-300 hover:bg-emerald-50 transition-all text-xs" id="sub-bapak">Bapak-Bapak</button>
+      <button onclick="selectKelompok('Ibu-Ibu')" class="subnav-btn px-3 py-1.5 rounded-full bg-white shadow-xs border border-slate-300 hover:bg-emerald-50 transition-all text-xs" id="sub-ibu">Ibu-Ibu</button>
     </div>
   </div>
 </div>
@@ -123,51 +121,51 @@
 <!-- SUB NAV KELAS CABERAWIT & ASAD -->
 <div id="classnav-container" class="bg-slate-100 border-b border-slate-200 hidden w-full overflow-hidden">
   <div class="max-w-7xl mx-auto px-3 py-2 flex items-center space-x-2 text-xs">
-    <span class="text-slate-500 shrink-0 font-semibold text-[11px]"><i class="fa-solid fa-graduation-cap text-teal-700 mr-1"></i> Tingkat/Kelas:</span>
+    <span class="text-slate-500 shrink-0 font-semibold text-[11px]"><i class="fa-solid fa-graduation-cap text-teal-700 mr-1"></i> Kelas:</span>
     <div id="class-buttons" class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar scroll-smooth w-full pr-4 py-0.5"></div>
   </div>
 </div>
 
 <!-- MAIN CONTENT -->
 <main class="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 flex-grow w-full">
-  <div id="status-message" class="hidden mb-4 p-3.5 sm:p-4 rounded-xl font-medium text-xs sm:text-sm border shadow-sm transition-all duration-300 flex items-center justify-between"></div>
+  <div id="status-message" class="hidden mb-4 p-3.5 sm:p-4 rounded-xl font-medium text-xs sm:text-sm border shadow-xs transition-all duration-300 flex items-center justify-between"></div>
 
   <!-- VIEW 0: BERANDA -->
-  <section id="view-beranda" class="view-section hidden space-y-6">
-    <div class="bg-gradient-to-r from-emerald-800 to-teal-800 rounded-2xl p-6 text-white shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+  <section id="view-beranda" class="view-section hidden space-y-4 sm:space-y-6">
+    <div class="bg-gradient-to-r from-emerald-800 to-teal-800 rounded-2xl p-4 sm:p-6 text-white shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <div>
-        <h2 class="text-xl sm:text-2xl font-extrabold flex items-center gap-2"><i class="fa-solid fa-calendar-check text-amber-300"></i> Agenda Kegiatan & Pengajian</h2>
-        <p class="text-xs sm:text-sm text-emerald-100 mt-1">Daftar agenda kegiatan dan pembinaan mendatang di wilayah Karanganyar Barat.</p>
+        <h2 class="text-lg sm:text-2xl font-extrabold flex items-center gap-2"><i class="fa-solid fa-calendar-check text-amber-300"></i> Agenda Kegiatan</h2>
+        <p class="text-xs sm:text-sm text-emerald-100 mt-1">Daftar agenda pengajian dan pembinaan mendatang.</p>
       </div>
-      <button onclick="openFormKegiatan()" class="admin-only hidden bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-xs px-4 py-2.5 rounded-xl shadow transition-all flex items-center gap-2 shrink-0">
-        <i class="fa-solid fa-calendar-plus"></i> Tambah Kegiatan Baru
+      <button onclick="openModalForm('kegiatan')" class="admin-only hidden w-full sm:w-auto bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 shrink-0">
+        <i class="fa-solid fa-calendar-plus"></i> Tambah Kegiatan
       </button>
     </div>
-    <div id="kegiatan-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    <div id="kegiatan-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4"></div>
   </section>
 
   <!-- VIEW 1: PENGURUS -->
   <section id="view-pengurus" class="view-section hidden space-y-4">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <div>
-        <h2 class="text-lg sm:text-xl font-bold text-slate-800 flex items-center"><i class="fa-solid fa-sitemap text-emerald-700 mr-2"></i>Susunan Pengurus</h2>
-        <p class="text-xs text-slate-500 hidden sm:block">Daftar struktur kepengurusan aktif (tersaring dari Desa & Kelompok asal).</p>
+        <h2 class="text-base sm:text-xl font-bold text-slate-800 flex items-center"><i class="fa-solid fa-sitemap text-emerald-700 mr-2"></i>Susunan Pengurus</h2>
+        <p class="text-xs text-slate-500">Struktur kepengurusan aktif di wilayah binaan.</p>
       </div>
-      <button onclick="openFormPengurus()" class="admin-only hidden w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition-all flex items-center justify-center space-x-1.5">
-        <i class="fa-solid fa-plus"></i><span>Tambah Pengurus</span>
+      <button onclick="openModalForm('pengurus')" class="admin-only hidden w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs transition-all flex items-center justify-center space-x-1.5">
+        <i class="fa-solid fa-user-plus"></i><span>Tambah Pengurus</span>
       </button>
     </div>
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-xs sm:text-sm text-left text-slate-600">
-          <thead class="text-[11px] sm:text-xs text-slate-700 uppercase bg-slate-100 border-b border-slate-200">
+        <table class="w-full text-xs sm:text-sm text-left text-slate-600 min-w-[580px]">
+          <thead class="text-[11px] sm:text-xs text-slate-700 uppercase bg-slate-100 border-b border-slate-200 whitespace-nowrap">
             <tr>
-              <th class="px-4 sm:px-6 py-3 font-bold">Nama</th>
-              <th class="px-4 sm:px-6 py-3 font-bold">Asal Wilayah</th>
-              <th class="px-4 sm:px-6 py-3 font-bold">Jabatan</th>
-              <th class="px-4 sm:px-6 py-3 font-bold">No. HP</th>
-              <th class="px-4 sm:px-6 py-3 font-bold">Status</th>
-              <th class="px-4 sm:px-6 py-3 font-bold admin-only hidden text-center">Aksi</th>
+              <th class="px-3 sm:px-6 py-3 font-bold">Nama</th>
+              <th class="px-3 sm:px-6 py-3 font-bold">Asal Wilayah</th>
+              <th class="px-3 sm:px-6 py-3 font-bold">Jabatan</th>
+              <th class="px-3 sm:px-6 py-3 font-bold">No. HP</th>
+              <th class="px-3 sm:px-6 py-3 font-bold">Status</th>
+              <th class="px-3 sm:px-6 py-3 font-bold admin-only hidden text-center">Aksi</th>
             </tr>
           </thead>
           <tbody id="table-pengurus-body" class="divide-y divide-slate-100"></tbody>
@@ -180,27 +178,27 @@
   <section id="view-inventaris" class="view-section hidden space-y-4">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <div>
-        <h2 class="text-lg sm:text-xl font-bold text-slate-800 flex items-center"><i class="fa-solid fa-boxes-packing text-emerald-700 mr-2"></i>Inventaris Alat & Barang</h2>
-        <p class="text-xs text-slate-500 hidden sm:block">Aset operasional di desa & kelompok yang dipilih.</p>
+        <h2 class="text-base sm:text-xl font-bold text-slate-800 flex items-center"><i class="fa-solid fa-boxes-packing text-emerald-700 mr-2"></i>Inventaris Barang</h2>
+        <p class="text-xs text-slate-500">Pencatatan sarana prasarana perlengkapan.</p>
       </div>
-      <button onclick="openFormInventaris()" class="admin-only hidden w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition-all flex items-center justify-center space-x-1.5">
-        <i class="fa-solid fa-plus"></i><span>Tambah Barang</span>
+      <button onclick="openModalForm('inventaris')" class="admin-only hidden w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs transition-all flex items-center justify-center space-x-1.5">
+        <i class="fa-solid fa-box-open"></i><span>Tambah Barang</span>
       </button>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-xs sm:text-sm text-left text-slate-600">
+        <table class="w-full text-xs sm:text-sm text-left text-slate-600 min-w-[640px]">
           <thead class="text-[11px] sm:text-xs text-slate-700 uppercase bg-slate-100 border-b border-slate-200 whitespace-nowrap">
             <tr>
-              <th class="px-4 sm:px-6 py-3 font-bold">Nama Barang</th>
+              <th class="px-3 sm:px-6 py-3 font-bold">Nama Barang</th>
               <th class="px-3 sm:px-4 py-3 font-bold">Desa</th>
               <th class="px-3 sm:px-4 py-3 font-bold">Kelompok</th>
-              <th class="px-4 sm:px-6 py-3 font-bold">Jumlah</th>
-              <th class="px-4 sm:px-6 py-3 font-bold">Kondisi</th>
-              <th class="px-4 sm:px-6 py-3 font-bold">Tgl Masuk</th>
-              <th class="px-4 sm:px-6 py-3 font-bold">Keterangan</th>
-              <th class="px-4 sm:px-6 py-3 font-bold admin-only hidden text-center">Aksi</th>
+              <th class="px-3 sm:px-4 py-3 font-bold text-center">Jumlah</th>
+              <th class="px-3 sm:px-6 py-3 font-bold">Kondisi</th>
+              <th class="px-3 sm:px-6 py-3 font-bold">Tgl Masuk</th>
+              <th class="px-3 sm:px-6 py-3 font-bold">Keterangan</th>
+              <th class="px-3 sm:px-6 py-3 font-bold admin-only hidden text-center">Aksi</th>
             </tr>
           </thead>
           <tbody id="table-inventaris-body" class="divide-y divide-slate-100"></tbody>
@@ -213,20 +211,20 @@
   <section id="view-jamaah" class="view-section hidden space-y-4">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <div>
-        <h2 class="text-lg sm:text-xl font-bold text-slate-800 flex items-center"><i class="fa-solid fa-users text-emerald-700 mr-2"></i>Database Jamaah</h2>
-        <p class="text-xs text-slate-500 hidden sm:block">Data registrasi jamaah terfilter dari pilihan Desa & Kelompok di navbar.</p>
+        <h2 class="text-base sm:text-xl font-bold text-slate-800 flex items-center"><i class="fa-solid fa-users text-emerald-700 mr-2"></i>Database Jamaah</h2>
+        <p class="text-xs text-slate-500">Data registrasi jamaah per wilayah.</p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
         <span id="jamaah-count-badge" class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg inline-block">0 Jamaah</span>
-        <button onclick="openFormJamaah()" class="admin-only hidden bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition-all flex items-center space-x-1.5">
+        <button onclick="openModalForm('jamaah')" class="admin-only hidden bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs transition-all flex items-center space-x-1.5">
           <i class="fa-solid fa-user-plus"></i><span>Tambah Jamaah</span>
         </button>
       </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-xs sm:text-sm text-left text-slate-600">
+        <table class="w-full text-xs sm:text-sm text-left text-slate-600 min-w-[760px]">
           <thead class="text-[11px] sm:text-xs text-slate-700 uppercase bg-slate-100 border-b border-slate-200 whitespace-nowrap">
             <tr>
               <th class="px-3 sm:px-4 py-3 font-bold">ID</th>
@@ -248,7 +246,7 @@
     </div>
   </section>
 
-  <!-- VIEW 4: PRESENSI KELOMPOK USIA -->
+  <!-- VIEW 4: PRESENSI -->
   <section id="view-kelompok" class="view-section hidden space-y-4">
     <div class="bg-gradient-to-br from-emerald-800 via-emerald-900 to-teal-900 rounded-2xl p-4 sm:p-5 text-white shadow-md">
       <h3 class="text-xs sm:text-sm font-semibold uppercase tracking-wider text-emerald-200 mb-3 flex items-center" id="rekap-mingguan-title">
@@ -270,31 +268,31 @@
       </div>
     </div>
 
-    <div class="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-slate-200 space-y-4">
+    <div class="bg-white rounded-xl p-3.5 sm:p-6 shadow-xs border border-slate-200 space-y-4">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-4">
         <div>
           <h3 class="text-base sm:text-lg font-bold text-slate-800" id="presensi-class-title">Presensi Kelas</h3>
-          <p class="text-xs text-slate-500">Tentukan tanggal, jenis pengajian, dan tandai kehadiran jamaah.</p>
+          <p class="text-xs text-slate-500">Tentukan tanggal dan tandai kehadiran jamaah.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <div>
+          <div class="grow sm:grow-0">
             <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Tanggal</label>
-            <input type="date" id="presensi-date" class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" onchange="updateDayLabel()">
+            <input type="date" id="presensi-date" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" onchange="updateDayLabel()">
           </div>
-          <div class="w-20 shrink-0">
+          <div class="w-16 sm:w-20 shrink-0">
             <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Hari</label>
-            <input type="text" id="presensi-day" readonly class="w-full border border-slate-200 bg-slate-100 rounded-lg px-3 py-1.5 text-xs sm:text-sm text-slate-600 font-medium text-center">
+            <input type="text" id="presensi-day" readonly class="w-full border border-slate-200 bg-slate-100 rounded-lg px-1.5 py-1.5 text-xs sm:text-sm text-slate-600 font-medium text-center">
           </div>
-          <div class="grow sm:w-56">
-            <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Jenis Pengajian / Kegiatan</label>
-            <input type="text" id="presensi-jenis-kegiatan" placeholder="Misal: Rutin / Kajian Kitab" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+          <div class="w-full sm:w-56">
+            <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Jenis Kegiatan</label>
+            <input type="text" id="presensi-jenis-kegiatan" placeholder="Misal: Rutin / Kajian Kitab" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
           </div>
         </div>
       </div>
 
-      <!-- TABEL PRESENSI -->
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm text-left text-slate-600">
+      <!-- TABEL PRESENSI (RESPONSIF DENGAN HORIZONTAL SCROLL) -->
+      <div class="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+        <table class="w-full text-xs sm:text-sm text-left text-slate-600 min-w-[550px]">
           <thead class="text-xs text-slate-700 uppercase bg-slate-100">
             <tr id="presensi-table-header"></tr>
           </thead>
@@ -305,18 +303,18 @@
       <!-- JURNAL & MATERI PENGAJIAN -->
       <div class="mt-6 pt-6 border-t border-slate-200 space-y-4">
         <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-          <i class="fa-solid fa-book-open text-teal-600"></i> Jurnal & Capaian Materi Hari Ini
+          <i class="fa-solid fa-book-open text-teal-600"></i> Jurnal & Capaian Materi
         </h3>
 
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Pemateri / Pengajar</label>
-          <input type="text" id="presensi-pemateri" placeholder="Nama Ustaz / Pengajar hari ini..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500">
+          <input type="text" id="presensi-pemateri" placeholder="Nama Ustaz / Pemateri hari ini..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500">
         </div>
 
         <!-- FORM MATERI KHUSUS CABERAWIT -->
-        <div id="caberawit-materi-container" class="hidden bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-          <p class="text-xs font-bold text-emerald-800 border-b pb-1"><i class="fa-solid fa-list-check mr-1"></i> Rincian Capaian Materi Khusus Caberawit</p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+        <div id="caberawit-materi-container" class="hidden bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 space-y-3">
+          <p class="text-xs font-bold text-emerald-800 border-b pb-1"><i class="fa-solid fa-list-check mr-1"></i> Rincian Capaian Materi Caberawit</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3 text-xs">
             <div><label class="block font-semibold mb-0.5">Akhlakul Karimah</label><input type="text" id="mat-akhlak" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
             <div><label class="block font-semibold mb-0.5">Peraga Tilawati</label><input type="text" id="mat-tilawati" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
             <div><label class="block font-semibold mb-0.5">Bacaan</label><input type="text" id="mat-bacaan" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
@@ -334,7 +332,7 @@
         <!-- FORM MATERI REGULER -->
         <div id="reguler-materi-container">
           <label class="block text-xs font-semibold text-slate-600 mb-1">Capaian Materi / Jurnal Pengajian</label>
-          <input type="text" id="presensi-jurnal" placeholder="Misal: Kajian Kitab Bab Thaharah Hal 12..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500">
+          <input type="text" id="presensi-jurnal" placeholder="Misal: Kitab Bab Thaharah..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500">
         </div>
 
         <div>
@@ -343,9 +341,9 @@
         </div>
 
         <div class="admin-only hidden flex justify-end pt-2">
-          <button onclick="submitPresensi()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm px-6 py-2.5 rounded-lg shadow-md transition-all flex items-center justify-center space-x-2">
+          <button onclick="submitPresensi()" class="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-md transition-all flex items-center justify-center space-x-2">
             <i class="fa-solid fa-floppy-disk"></i>
-            <span>Simpan Presensi & Jurnal</span>
+            <span>Simpan Presensi</span>
           </button>
         </div>
       </div>
@@ -354,19 +352,19 @@
 
   <!-- VIEW 5: MONITORING KEHADIRAN -->
   <section id="view-monitoring" class="view-section hidden space-y-4 pb-12">
-    <div class="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div class="bg-white p-3.5 sm:p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
       <div>
-        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-clipboard-check text-teal-600"></i> Monitoring Kehadiran Jamaah
+        <h2 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-clipboard-check text-teal-600"></i> Monitoring Kehadiran
         </h2>
-        <p class="text-xs text-slate-500 mt-1">Rekapitulasi kehadiran jamaah terfilter dari pilihan Desa & Kelompok di navbar.</p>
+        <p class="text-xs text-slate-500">Rekapitulasi kehadiran jamaah terfilter.</p>
       </div>
 
-      <div class="flex flex-wrap items-end gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200 shrink-0 w-full md:w-auto">
+      <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-2 bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-200 w-full md:w-auto">
         <div>
-          <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Filter Kelas Usia</label>
-          <select id="monitoring-filter-kelompok" onchange="renderMonitoringTable()" class="border border-slate-300 rounded-lg px-2.5 py-1 text-xs bg-white text-slate-700 font-semibold focus:ring-1 focus:ring-teal-500">
-            <option value="Semua">Semua Kelas Usia</option>
+          <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">Kelas Usia</label>
+          <select id="monitoring-filter-kelompok" onchange="renderMonitoringTable()" class="w-full border border-slate-300 rounded-lg px-2 py-1 text-xs bg-white text-slate-700 font-semibold focus:ring-1 focus:ring-teal-500">
+            <option value="Semua">Semua</option>
             <optgroup label="Caberawit">
               <option value="Caberawit">Semua Caberawit</option>
               <option value="Caberawit A">Caberawit A</option>
@@ -383,39 +381,38 @@
             </optgroup>
           </select>
         </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Mulai</label>
-          <input type="date" id="monitoring-date-start" class="border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-700 bg-white focus:ring-1 focus:ring-teal-500">
+        <div class="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">Mulai</label>
+            <input type="date" id="monitoring-date-start" class="w-full border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-700 bg-white focus:ring-1 focus:ring-teal-500">
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">Akhir</label>
+            <input type="date" id="monitoring-date-end" class="w-full border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-700 bg-white focus:ring-1 focus:ring-teal-500">
+          </div>
         </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Akhir</label>
-          <input type="date" id="monitoring-date-end" class="border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-700 bg-white focus:ring-1 focus:ring-teal-500">
-        </div>
-        <button id="btn-filter-monitoring" onclick="onMonitoringFilterChange()" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-3 py-1.5 rounded-lg text-xs shadow transition-all flex items-center gap-1.5 h-[29px]">
+        <button id="btn-filter-monitoring" onclick="onMonitoringFilterChange()" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-3 py-1.5 rounded-lg text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 h-[28px]">
           <i class="fa-solid fa-filter"></i> Filter
-        </button>
-        <button onclick="downloadLembarKerja()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-3 py-1.5 rounded-lg text-xs shadow transition-all flex items-center gap-1.5 h-[29px]" title="Cetak / Unduh Lembar Kerja">
-          <i class="fa-solid fa-file-arrow-down"></i> Lembar Kerja
         </button>
       </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-xs text-left text-slate-600">
+        <table class="w-full text-xs text-left text-slate-600 min-w-[700px]">
           <thead class="text-[11px] text-slate-700 uppercase bg-slate-100 border-b border-slate-200 whitespace-nowrap">
             <tr>
-              <th class="px-3 py-3 text-center w-10">NO</th>
-              <th class="px-4 py-3 font-bold">NAMA JAMAAH</th>
-              <th class="px-3 py-3">DESA</th>
-              <th class="px-3 py-3">KELOMPOK BINAAN</th>
-              <th class="px-3 py-3">KELOMPOK / KELAS</th>
+              <th class="px-2 py-3 text-center w-8">NO</th>
+              <th class="px-3 py-3 font-bold">NAMA JAMAAH</th>
+              <th class="px-2 py-3">DESA</th>
+              <th class="px-2 py-3">KELOMPOK</th>
+              <th class="px-2 py-3">KELAS</th>
               <th class="px-2 py-3 text-center text-emerald-700 font-bold">HADIR</th>
               <th class="px-2 py-3 text-center text-amber-700 font-bold">IZIN</th>
               <th class="px-2 py-3 text-center text-rose-700 font-bold">ALFA</th>
-              <th class="px-4 py-3">ALASAN IZIN</th>
-              <th class="px-3 py-3 text-center">HADIR ASAD</th>
-              <th class="px-3 py-3 text-center text-teal-700">29 KARAKTER</th>
+              <th class="px-3 py-3">ALASAN IZIN</th>
+              <th class="px-2 py-3 text-center">ASAD</th>
+              <th class="px-2 py-3 text-center text-teal-700">29 KARAKTER</th>
             </tr>
           </thead>
           <tbody id="table-monitoring-body" class="divide-y divide-slate-100"></tbody>
@@ -424,147 +421,161 @@
     </div>
   </section>
 
-  <!-- VIEW 6: PENYAPAAN KEGIATAN (TANPA CATAT MANUAL) -->
-  <section id="view-penyapaan" class="view-section hidden space-y-5 pb-12">
-    <div class="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+  <!-- VIEW 6: PENYAPAAN -->
+  <section id="view-penyapaan" class="view-section hidden space-y-4 pb-12">
+    <div class="bg-white p-3.5 sm:p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <div>
-        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-handshake-angle text-teal-600"></i> Monitoring & Log Penyapaan Kegiatan
+        <h2 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-handshake-angle text-teal-600"></i> Modul Penyapaan
         </h2>
-        <p class="text-xs text-slate-500 mt-1">Pemetaan pembinaan wilayah, prioritas kelompok binaan, dan pencatatan sapaan.</p>
+        <p class="text-xs text-slate-500">Pemetaan prioritas sapaan kelompok binaan.</p>
       </div>
-      <div class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
-        <button onclick="switchPenyapaanSubTab('status-peta')" class="subnav-btn active px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0" id="subtab-btn-status-peta">
-          <i class="fa-solid fa-map-location-dot mr-1"></i> Pemetaan Wilayah
+      <div class="flex items-center space-x-1.5 w-full sm:w-auto">
+        <button onclick="switchPenyapaanSubTab('status-peta')" class="subnav-btn active px-3 py-1.5 rounded-xl text-xs font-semibold transition-all w-1/2 sm:w-auto text-center" id="subtab-btn-status-peta">
+          <i class="fa-solid fa-map-location-dot mr-1"></i> Pemetaan
         </button>
-        <button onclick="switchPenyapaanSubTab('rekap-riwayat')" class="subnav-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0" id="subtab-btn-rekap-riwayat">
-          <i class="fa-solid fa-timeline mr-1"></i> Riwayat Sapaan
+        <button onclick="switchPenyapaanSubTab('rekap-riwayat')" class="subnav-btn px-3 py-1.5 rounded-xl text-xs font-semibold transition-all w-1/2 sm:w-auto text-center" id="subtab-btn-rekap-riwayat">
+          <i class="fa-solid fa-timeline mr-1"></i> Riwayat
         </button>
       </div>
     </div>
 
-    <!-- SUB-TAB 1: PEMETAAN & INPUT AGENDA LANGSUNG -->
+    <!-- SUB-TAB 1: PEMETAAN -->
     <div id="subtab-status-peta" class="space-y-4">
-      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
         <div>
-          <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-            <i class="fa-solid fa-calendar-check text-emerald-600"></i> Form Agenda Penyapaan
+          <h3 class="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
+            <i class="fa-solid fa-calendar-check text-emerald-600"></i> Form Agenda Sapaan
           </h3>
-          <p class="text-xs text-slate-500">Tentukan tanggal dan nama kegiatan sapaan sebelum menyimpan draf checklist sapaan.</p>
+          <p class="text-[11px] text-slate-500">Tentukan tanggal dan agenda sapaan hari ini.</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Tanggal</label>
-            <input type="date" id="sapaan-batch-date" class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white" onchange="updateSapaanDayLabel()">
+          <div class="grow sm:grow-0">
+            <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">Tanggal</label>
+            <input type="date" id="sapaan-batch-date" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white" onchange="updateSapaanDayLabel()">
           </div>
-          <div class="w-20 shrink-0">
-            <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Hari</label>
-            <input type="text" id="sapaan-batch-day" readonly class="w-full border border-slate-200 bg-slate-100 rounded-lg px-3 py-1.5 text-xs sm:text-sm text-slate-600 font-medium text-center">
+          <div class="w-16 sm:w-20 shrink-0">
+            <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">Hari</label>
+            <input type="text" id="sapaan-batch-day" readonly class="w-full border border-slate-200 bg-slate-100 rounded-lg px-1 py-1.5 text-xs text-slate-600 font-medium text-center">
           </div>
-          <div class="grow sm:w-64">
-            <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Jenis Pengajian / Kegiatan</label>
-            <input type="text" id="sapaan-batch-agenda" placeholder="Misal: Rutin / Kajian Kitab" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white font-semibold text-slate-800">
+          <div class="w-full sm:w-60">
+            <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">Agenda Kegiatan</label>
+            <input type="text" id="sapaan-batch-agenda" placeholder="Misal: Kunjungan Rutin..." class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white font-semibold text-slate-800">
           </div>
         </div>
       </div>
 
-      <div class="flex items-center justify-between gap-2 pt-1">
-        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Daftar Kelompok Binaan (Rekomendasi di Atas)</h4>
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Kelompok Binaan (Prioritas Teratas)</h4>
         <div class="flex items-center space-x-1">
-          <button onclick="filterPetaCards('all')" id="peta-filter-all" class="px-2.5 py-1 text-[11px] rounded bg-teal-600 text-white font-semibold">Semua</button>
-          <button onclick="filterPetaCards('sudah')" id="peta-filter-sudah" class="px-2.5 py-1 text-[11px] rounded bg-white border border-slate-300 font-semibold text-slate-600 hover:bg-slate-100">Sudah Disapa</button>
-          <button onclick="filterPetaCards('belum')" id="peta-filter-belum" class="px-2.5 py-1 text-[11px] rounded bg-white border border-slate-300 font-semibold text-slate-600 hover:bg-slate-100">Belum Disapa</button>
+          <button onclick="filterPetaCards('all')" id="peta-filter-all" class="px-2 py-1 text-[11px] rounded bg-teal-600 text-white font-semibold">Semua</button>
+          <button onclick="filterPetaCards('sudah')" id="peta-filter-sudah" class="px-2 py-1 text-[11px] rounded bg-white border border-slate-300 font-semibold text-slate-600 hover:bg-slate-100">Disapa</button>
+          <button onclick="filterPetaCards('belum')" id="peta-filter-belum" class="px-2 py-1 text-[11px] rounded bg-white border border-slate-300 font-semibold text-slate-600 hover:bg-slate-100">Belum</button>
         </div>
       </div>
 
-      <div id="peta-desa-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      <div id="peta-desa-grid" class="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4"></div>
     </div>
 
-    <!-- SUB-TAB 2: RIWAYAT AGENDA PENYAPAAN -->
+    <!-- SUB-TAB 2: RIWAYAT -->
     <div id="subtab-rekap-riwayat" class="hidden space-y-4">
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between gap-3">
-        <input type="text" id="search-riwayat" oninput="renderRiwayatPenyapaanTable()" placeholder="Cari agenda kegiatan atau kelompok..." class="border rounded-lg px-3 py-1.5 text-xs w-full sm:w-80 focus:ring-1 focus:ring-teal-500 focus:outline-none">
-        <select id="filter-riwayat-desa" onchange="renderRiwayatPenyapaanTable()" class="border rounded-lg px-3 py-1.5 text-xs bg-white font-semibold text-slate-700">
+      <div class="bg-white p-3 sm:p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row justify-between gap-2.5">
+        <input type="text" id="search-riwayat" oninput="renderRiwayatPenyapaanTable()" placeholder="Cari kegiatan atau kelompok..." class="border rounded-lg px-3 py-1.5 text-xs w-full sm:w-80 focus:ring-1 focus:ring-teal-500 outline-none">
+        <select id="filter-riwayat-desa" onchange="renderRiwayatPenyapaanTable()" class="border rounded-lg px-2.5 py-1.5 text-xs bg-white font-semibold text-slate-700">
           <option value="ALL">Semua Desa</option>
         </select>
       </div>
-      <div id="riwayat-cards-grid-wrapper" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+      <div id="riwayat-cards-grid-wrapper" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </div>
   </section>
 </main>
 
-<!-- MODALS -->
-<div id="modal-login" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-md p-5 sm:p-6 space-y-4 animate-scaleUp">
+<!-- MODAL LOGIN ADMIN -->
+<div id="modal-login" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 hidden">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4 animate-scaleUp">
     <div class="flex justify-between items-center border-b pb-3">
-      <h3 class="text-base sm:text-lg font-bold text-slate-800 flex items-center"><i class="fa-solid fa-lock text-emerald-700 mr-2"></i>Login Admin</h3>
+      <h3 class="text-base font-bold text-slate-800 flex items-center"><i class="fa-solid fa-lock text-emerald-700 mr-2"></i>Login Admin</h3>
       <button onclick="closeModal('modal-login')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
     </div>
     <form onsubmit="handleLogin(event)" class="space-y-4">
       <div>
         <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Admin</label>
-        <input type="text" id="login-nama" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="Masukkan nama">
+        <input type="text" id="login-nama" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Masukkan nama">
       </div>
       <div>
         <label class="block text-xs font-semibold text-slate-600 mb-1">Kode PIN</label>
-        <input type="password" id="login-pin" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="••••••">
+        <input type="password" id="login-pin" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="••••••">
       </div>
       <div class="flex justify-end space-x-2 pt-2">
         <button type="button" onclick="closeModal('modal-login')" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
-        <button type="submit" class="px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm">Masuk Admin</button>
+        <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg shadow-xs">Masuk</button>
       </div>
     </form>
   </div>
 </div>
 
-<div id="modal-add-admin" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-md p-5 sm:p-6 space-y-4 animate-scaleUp">
+<!-- MODAL TAMBAH ADMIN BARU -->
+<div id="modal-add-admin" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 hidden">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4 animate-scaleUp">
     <div class="flex justify-between items-center border-b pb-3">
-      <h3 class="text-base sm:text-lg font-bold text-slate-800 flex items-center"><i class="fa-solid fa-user-plus text-emerald-700 mr-2"></i>Tambah Admin Baru</h3>
+      <h3 class="text-base font-bold text-slate-800 flex items-center"><i class="fa-solid fa-user-plus text-emerald-700 mr-2"></i>Tambah Admin Baru</h3>
       <button onclick="closeModal('modal-add-admin')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
     </div>
     <form onsubmit="handleAddAdmin(event)" class="space-y-4">
       <div>
         <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Admin Baru</label>
-        <input type="text" id="new-admin-nama" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500">
+        <input type="text" id="new-admin-nama" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
       </div>
       <div>
-        <label class="block text-xs font-semibold text-slate-600 mb-1">PIN Admin Baru</label>
-        <input type="password" id="new-admin-pin" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500" placeholder="Angka/Karakter">
+        <label class="block text-xs font-semibold text-slate-600 mb-1">PIN Admin</label>
+        <input type="password" id="new-admin-pin" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Angka / Sandi">
       </div>
       <div class="flex justify-end space-x-2 pt-2">
         <button type="button" onclick="closeModal('modal-add-admin')" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
-        <button type="submit" class="px-5 py-2 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow-sm">Simpan Admin</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div id="modal-form" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-5 sm:p-6 space-y-4 max-h-[85vh] flex flex-col animate-scaleUp">
-    <div class="flex justify-between items-center border-b pb-3 shrink-0">
-      <h3 class="text-base sm:text-lg font-bold text-slate-800" id="modal-form-title">Form Input</h3>
-      <button onclick="closeModal('modal-form')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
-    </div>
-    <form id="generic-form" onsubmit="handleFormSubmit(event)" class="space-y-4 overflow-y-auto pr-1 flex-grow">
-      <div id="modal-form-fields" class="space-y-3"></div>
-      <div class="flex justify-end space-x-2 pt-3 border-t shrink-0">
-        <button type="button" onclick="closeModal('modal-form')" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
-        <button type="submit" class="px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm">Simpan Data</button>
+        <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow-xs">Simpan</button>
       </div>
     </form>
   </div>
 </div>
 
 <!-- FOOTER -->
-<footer class="bg-slate-800 text-slate-400 text-[11px] sm:text-xs py-5 border-t border-slate-700 mt-auto pb-safe">
+<footer class="bg-slate-800 text-slate-400 text-[11px] sm:text-xs py-4 border-t border-slate-700 mt-auto pb-safe">
   <div class="max-w-7xl mx-auto px-4 text-center space-y-1">
-    <p>&copy; 2026 Karanganyar Barat. Seluruh hak cipta dilindungi.</p>
-    <p class="text-slate-500">Terintegrasi dengan Google Apps Script & GitHub Pages</p>
+    <p>&copy; 2026 Karanganyar Barat. All rights reserved.</p>
+    <p class="text-slate-500 text-[10px]">Terintegrasi dengan Google Apps Script & GitHub Pages</p>
   </div>
 </footer>
 
+<script>
+  function toggleMobileMenu() {
+    const navWrapper = document.getElementById("nav-items-wrapper");
+    const icon = document.getElementById("hamburger-icon");
+    if (!navWrapper) return;
+
+    navWrapper.classList.toggle("hidden");
+    if (navWrapper.classList.contains("hidden")) {
+      icon.className = "fa-solid fa-bars text-sm";
+    } else {
+      icon.className = "fa-solid fa-xmark text-sm";
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.nav-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (window.innerWidth < 768) {
+          const navWrapper = document.getElementById("nav-items-wrapper");
+          const icon = document.getElementById("hamburger-icon");
+          if (navWrapper && !navWrapper.classList.contains("hidden")) {
+            navWrapper.classList.add("hidden");
+            if (icon) icon.className = "fa-solid fa-bars text-sm";
+          }
+        }
+      });
+    });
+  });
+</script>
 <script src="app.js"></script>
 </body>
 </html>
