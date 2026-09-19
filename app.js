@@ -217,6 +217,7 @@ async function loadAllData() {
       try {
         await loadPenyapaanAnalytics();
         initGlobalWilayahFilters();
+        initPresensiWilayahFilters();
         updateAdminUI();
         buildLocalPenyapaanState();
         renderAllViews();
@@ -383,6 +384,16 @@ function getDesaByKelompok(namaKelompok) {
   return found ? String(found.Nama_Desa || "-").trim() : "-";
 }
 
+function getKelompokByNama(nama) {
+  const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
+  const found = jamaahList.find(j => String(j.Nama_Lengkap || j.Nama || "").trim().toLowerCase() === String(nama).trim().toLowerCase());
+  return found ? (found.Nama_Kelompok || found.KelompokBinaan || "-") : "-";
+}
+
+// =========================================================================
+// INISIALISASI FILTER WILAYAH (GLOBAL & PRESENSI)
+// =========================================================================
+
 function initGlobalWilayahFilters() {
   const desaSelect = document.getElementById("global-filter-desa");
   if (!desaSelect) return;
@@ -442,6 +453,52 @@ function refreshCurrentActiveView() {
   else if (currentActiveTab === "inventaris") renderInventaris();
   else if (currentActiveTab === "jamaah") renderJamaah();
   else if (currentActiveTab === "monitoring") renderMonitoringTable();
+}
+
+function initPresensiWilayahFilters() {
+  const desaSelect = document.getElementById("presensi-filter-desa");
+  if (!desaSelect) return;
+
+  const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
+  let desas = new Set();
+  mk.forEach(m => {
+    if (m.Nama_Desa && String(m.Nama_Desa).trim() !== "" && m.Nama_Desa !== "-") {
+      desas.add(String(m.Nama_Desa).trim());
+    }
+  });
+
+  if (desas.size === 0) desas = new Set(["Desa 1", "Desa 2", "Desa 3", "Desa 4"]);
+
+  desaSelect.innerHTML = `<option value="Semua">Semua Desa</option>` +
+    Array.from(desas).map(d => `<option value="${d}">${d}</option>`).join("");
+
+  onPresensiDesaChange();
+}
+
+function onPresensiDesaChange() {
+  const desaSelect = document.getElementById("presensi-filter-desa");
+  const kelSelect = document.getElementById("presensi-filter-kelompok");
+  if (!desaSelect || !kelSelect) return;
+
+  const selectedDesa = desaSelect.value;
+  const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
+  let kelompokList = [];
+
+  if (selectedDesa === "Semua") {
+    kelompokList = mk.map(m => String(m.Nama_Kelompok || "").trim()).filter(Boolean);
+  } else {
+    kelompokList = mk
+      .filter(m => String(m.Nama_Desa || "").trim().toLowerCase() === selectedDesa.toLowerCase())
+      .map(m => String(m.Nama_Kelompok || "").trim())
+      .filter(Boolean);
+  }
+
+  const uniqueKelompok = [...new Set(kelompokList)];
+
+  kelSelect.innerHTML = `<option value="Semua">Semua Kelompok</option>` +
+    uniqueKelompok.map(k => `<option value="${k}">${k}</option>`).join("");
+
+  renderPresensiTable();
 }
 
 // =========================================================================
@@ -1030,6 +1087,53 @@ function renderJamaah() {
   }).join("");
 }
 
+// =========================================================================
+// RENDER TABEL PRESENSI DENGAN FILTER WILAYAH
+// =========================================================================
+
+function getFilteredJamaahForPresensi() {
+  const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
+  const desaFilter = document.getElementById("presensi-filter-desa")?.value || "Semua";
+  const kelFilter = document.getElementById("presensi-filter-kelompok")?.value || "Semua";
+
+  return jamaahList.filter(j => {
+    const matchStatus = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
+    if (!matchStatus) return false;
+
+    // Filter Wilayah Presensi
+    const jKel = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
+    const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKel)).trim();
+
+    if (desaFilter !== "Semua" && jDesa.toLowerCase() !== desaFilter.toLowerCase()) return false;
+    if (kelFilter !== "Semua" && jKel.toLowerCase() !== kelFilter.toLowerCase()) return false;
+
+    // Filter Kelompok Usia / Kelas
+    const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "").trim();
+    const rawKelasUsiaLower = rawKelasUsia.toLowerCase();
+    const jGender = String(j.Gender || "").trim().toLowerCase();
+
+    const isItemCaberawit = rawKelasUsiaLower.startsWith("caberawit");
+    let detectedKelas = String(j.Kelas || "").trim().toLowerCase();
+    if (!detectedKelas && isItemCaberawit) detectedKelas = rawKelasUsiaLower;
+
+    if (currentKelompok === "ASAD") {
+      if (currentKelas === "Caberawit Laki-Laki") return isItemCaberawit && jGender === "laki-laki";
+      if (currentKelas === "Caberawit Perempuan") return isItemCaberawit && jGender === "perempuan";
+      if (currentKelas === "Laki-Laki") return !isItemCaberawit && jGender === "laki-laki";
+      if (currentKelas === "Perempuan") return !isItemCaberawit && jGender === "perempuan";
+    }
+
+    if (currentKelompok === "Caberawit") {
+      if (!isItemCaberawit) return false;
+      const targetKelas = currentKelas.trim().toLowerCase();
+      const targetSuffix = targetKelas.replace("caberawit", "").trim();
+      return detectedKelas === targetKelas || detectedKelas === targetSuffix || rawKelasUsiaLower === targetKelas;
+    }
+
+    return rawKelasUsiaLower === currentKelompok.trim().toLowerCase();
+  });
+}
+
 function renderPresensiTable() {
   const isCaberawit = (currentKelompok === "Caberawit");
   const theadTr = document.getElementById("presensi-table-header");
@@ -1069,40 +1173,8 @@ function renderPresensiTable() {
     }
   }
 
-  const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
+  const filteredJamaah = getFilteredJamaahForPresensi();
   const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
-
-  const filteredJamaah = jamaahList.filter(j => {
-    const matchStatus = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
-    if (!matchStatus) return false;
-
-    const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "").trim();
-    const rawKelasUsiaLower = rawKelasUsia.toLowerCase();
-    const jGender = String(j.Gender || "").trim().toLowerCase();
-
-    const isItemCaberawit = rawKelasUsiaLower.startsWith("caberawit");
-    let detectedKelas = String(j.Kelas || "").trim().toLowerCase();
-    if (!detectedKelas && isItemCaberawit) {
-      detectedKelas = rawKelasUsiaLower;
-    }
-
-    if (currentKelompok === "ASAD") {
-      if (currentKelas === "Caberawit Laki-Laki") return isItemCaberawit && jGender === "laki-laki";
-      if (currentKelas === "Caberawit Perempuan") return isItemCaberawit && jGender === "perempuan";
-      if (currentKelas === "Laki-Laki") return !isItemCaberawit && jGender === "laki-laki";
-      if (currentKelas === "Perempuan") return !isItemCaberawit && jGender === "perempuan";
-    }
-
-    if (currentKelompok === "Caberawit") {
-      if (!isItemCaberawit) return false;
-      const targetKelas = currentKelas.trim().toLowerCase();
-      const targetSuffix = targetKelas.replace("caberawit", "").trim();
-      return detectedKelas === targetKelas || detectedKelas === targetSuffix || rawKelasUsiaLower === targetKelas;
-    }
-
-    return rawKelasUsiaLower === currentKelompok.trim().toLowerCase();
-  });
-
   const tbody = document.getElementById("table-presensi-body");
   if (!tbody) return;
 
@@ -1112,7 +1184,7 @@ function renderPresensiTable() {
     tbody.innerHTML = `
       <tr>
         <td colspan="${isCaberawit ? 7 : 6}" class="px-4 py-6 text-center text-slate-400 italic text-xs">
-          Belum ada jamaah yang terdaftar di kelompok ini.
+          Belum ada jamaah yang terdaftar pada wilayah & kelompok ini.
         </td>
       </tr>
     `;
@@ -1308,36 +1380,7 @@ async function submitPresensi() {
     jurnalText = document.getElementById("presensi-jurnal")?.value || "-";
   }
 
-  const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
-  const filteredJamaah = jamaahList.filter(j => {
-    const matchStatus = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
-    if (!matchStatus) return false;
-
-    const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "").trim();
-    const rawKelasUsiaLower = rawKelasUsia.toLowerCase();
-    const jGender = String(j.Gender || "").trim().toLowerCase();
-
-    const isItemCaberawit = rawKelasUsiaLower.startsWith("caberawit");
-    let detectedKelas = String(j.Kelas || "").trim().toLowerCase();
-    if (!detectedKelas && isItemCaberawit) detectedKelas = rawKelasUsiaLower;
-
-    if (currentKelompok === "ASAD") {
-      if (currentKelas === "Caberawit Laki-Laki") return isItemCaberawit && jGender === "laki-laki";
-      if (currentKelas === "Caberawit Perempuan") return isItemCaberawit && jGender === "perempuan";
-      if (currentKelas === "Laki-Laki") return !isItemCaberawit && jGender === "laki-laki";
-      if (currentKelas === "Perempuan") return !isItemCaberawit && jGender === "perempuan";
-    }
-
-    if (currentKelompok === "Caberawit") {
-      if (!isItemCaberawit) return false;
-      const targetKelas = currentKelas.trim().toLowerCase();
-      const targetSuffix = targetKelas.replace("caberawit", "").trim();
-      return detectedKelas === targetKelas || detectedKelas === targetSuffix || rawKelasUsiaLower === targetKelas;
-    }
-
-    return rawKelasUsiaLower === currentKelompok.trim().toLowerCase();
-  });
-
+  const filteredJamaah = getFilteredJamaahForPresensi();
   if (filteredJamaah.length === 0) return alert("Tidak ada data jamaah untuk disimpan.");
 
   const records = filteredJamaah.map((j, idx) => {
@@ -1347,6 +1390,9 @@ async function submitPresensi() {
 
     let selectedStatus = "Hadir";
     for (let r of radios) { if (r.checked) selectedStatus = r.value; }
+
+    const jKelBinaan = j.Nama_Kelompok || j.KelompokBinaan || "-";
+    const jDesa = (j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKelBinaan);
 
     return {
       kelompok: currentKelompok,
@@ -1362,7 +1408,9 @@ async function submitPresensi() {
       jurnal: jurnalText,
       materiCaberawit: materiCaberawitObj ? JSON.stringify(materiCaberawitObj) : "",
       kendala: kendala,
-      admin: currentAdmin ? (currentAdmin.nama || currentAdmin.username) : "Admin"
+      admin: currentAdmin ? (currentAdmin.nama || currentAdmin.username) : "Admin",
+      desa: jDesa,
+      kelompokBinaan: jKelBinaan
     };
   });
 
@@ -1396,7 +1444,9 @@ async function submitPresensi() {
           Karakter29: rec.karakter29,
           Jenis_Kegiatan: rec.jenisKegiatan,
           Pemateri: rec.pemateri,
-          Admin: rec.admin
+          Admin: rec.admin,
+          Desa: rec.desa,
+          KelompokBinaan: rec.kelompokBinaan
         };
 
         if (existIdx >= 0) {
@@ -1417,6 +1467,10 @@ async function submitPresensi() {
     showMessage("Gagal terhubung ke server saat menyimpan presensi.", "error");
   }
 }
+
+// =========================================================================
+// MONITORING: VALIDASI NAMA + DESA + KELOMPOK
+// =========================================================================
 
 function initMonitoringDateFilters() {
   const startDateInput = document.getElementById("monitoring-date-start");
@@ -1508,12 +1562,14 @@ function renderMonitoringTable() {
 
   tbody.innerHTML = targetJamaah.map((j, idx) => {
     const nama = j.Nama_Lengkap || j.Nama;
-    const namaKey = String(nama || "").trim().toLowerCase();
     const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "").trim();
     const isCaberawit = rawKelasUsia.toLowerCase().startsWith("caberawit");
 
     const jKelBinaan = j.Nama_Kelompok || j.KelompokBinaan || "-";
     const jDesa = (j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKelBinaan);
+
+    // Composite Key Validasi: Nama + Desa + Kelompok Binaan
+    const compositeKey = `${String(nama).trim().toLowerCase()}_${String(jDesa).trim().toLowerCase()}_${String(jKelBinaan).trim().toLowerCase()}`;
 
     let countHadir = 0, countIzin = 0, countAlfa = 0;
     let izinReasons = [];
@@ -1523,7 +1579,13 @@ function renderMonitoringTable() {
 
     filteredPresensi.forEach(p => {
       const pNama = String(p.NamaJamaah || p.Nama || p.nama || "").trim().toLowerCase();
-      if (pNama === namaKey) {
+      const pKelBinaan = String(p.KelompokBinaan || p.Nama_Kelompok || getKelompokByNama(pNama)).trim().toLowerCase();
+      const pDesa = String(p.Desa || p.desa || getDesaByKelompok(pKelBinaan)).trim().toLowerCase();
+
+      const pCompositeKey = `${pNama}_${pDesa}_${pKelBinaan}`;
+      const isMatch = (pCompositeKey === compositeKey) || (pNama === String(nama).trim().toLowerCase() && (!pDesa || pDesa === "-" || pDesa === jDesa.toLowerCase()));
+
+      if (isMatch) {
         const pKel = String(p.Kelompok || p.kelompok || "").trim();
         const st = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
 
@@ -1577,6 +1639,259 @@ function renderMonitoringTable() {
       </tr>
     `;
   }).join("");
+}
+
+// =========================================================================
+// DOWNLOAD / CETAK LEMBAR KERJA FORMAT LANSKAP
+// =========================================================================
+
+function downloadLembarKerja() {
+  const filterKelasUsia = document.getElementById("monitoring-filter-kelompok")?.value || "Semua";
+  const desaFilter = document.getElementById("global-filter-desa")?.value || "Semua";
+  const kelFilter = document.getElementById("global-filter-kelompok")?.value || "Semua";
+
+  const startDateVal = document.getElementById("monitoring-date-start")?.value || "";
+  const endDateVal = document.getElementById("monitoring-date-end")?.value || "";
+
+  const periodeText = (startDateVal && endDateVal) 
+    ? `${formatTanggalIndo(startDateVal)} s/d ${formatTanggalIndo(endDateVal)}`
+    : "Awal s/d Akhir";
+
+  const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
+  const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
+
+  const targetJamaah = jamaahList.filter(j => {
+    const isAktif = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
+    if (!isAktif) return false;
+
+    const jKelBinaan = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
+    const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKelBinaan)).trim();
+
+    const matchDesa = (desaFilter === "Semua") || (jDesa.toLowerCase() === desaFilter.toLowerCase());
+    const matchKelBinaan = (kelFilter === "Semua") || (jKelBinaan.toLowerCase() === kelFilter.toLowerCase());
+
+    if (!matchDesa || !matchKelBinaan) return false;
+    if (filterKelasUsia === "Semua") return true;
+
+    const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "").trim().toLowerCase();
+    const filterLower = filterKelasUsia.toLowerCase();
+
+    if (filterLower === "caberawit") return rawKelasUsia.startsWith("caberawit");
+    else if (filterLower.startsWith("caberawit ")) return rawKelasUsia === filterLower || String(j.Kelas || "").trim().toLowerCase() === filterLower;
+    return rawKelasUsia === filterLower;
+  });
+
+  let countLaki = 0;
+  let countPerempuan = 0;
+
+  targetJamaah.forEach(j => {
+    const g = String(j.Gender || "").trim().toLowerCase();
+    if (g === "laki-laki" || g === "l") countLaki++;
+    else if (g === "perempuan" || g === "p") countPerempuan++;
+  });
+
+  const totalJamaah = targetJamaah.length;
+
+  const relevantJurnal = [];
+  presensiList.forEach(p => {
+    if (startDateVal && p.Tanggal && String(p.Tanggal).substring(0, 10) < startDateVal) return;
+    if (endDateVal && p.Tanggal && String(p.Tanggal).substring(0, 10) > endDateVal) return;
+
+    const jText = String(p.Jurnal || p.jurnal || "").trim();
+    const kendalaText = String(p.Kendala || p.kendala || "").trim();
+
+    if (jText && jText !== "-" && !relevantJurnal.includes(jText)) {
+      relevantJurnal.push(jText);
+    }
+    if (kendalaText && kendalaText !== "-" && !relevantJurnal.includes(kendalaText)) {
+      relevantJurnal.push(`Kendala: ${kendalaText}`);
+    }
+  });
+
+  const subJudulWilayah = `Desa: ${desaFilter} | Kelompok: ${kelFilter} | Kelas: ${filterKelasUsia} | Periode: ${periodeText}`;
+  const todayStr = formatTanggalIndo(new Date().toISOString().split("T")[0]);
+
+  const printWindow = window.open("", "_blank");
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+      <meta charset="UTF-8">
+      <title>Cetak Lembar Kerja Presensi</title>
+      <style>
+        @page {
+          size: A4 landscape;
+          margin: 12mm 15mm;
+        }
+        body {
+          font-family: Arial, Helvetica, sans-serif;
+          color: #1e293b;
+          margin: 0;
+          padding: 10px;
+          background: #ffffff;
+        }
+        .no-print {
+          margin-bottom: 15px;
+        }
+        .btn-print {
+          background-color: #0f766e;
+          color: #ffffff;
+          font-size: 13px;
+          font-weight: bold;
+          padding: 8px 16px;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+        }
+        .title {
+          font-size: 17px;
+          font-weight: 800;
+          color: #0f766e;
+          margin: 0 0 4px 0;
+          text-transform: uppercase;
+        }
+        .subtitle {
+          font-size: 11px;
+          color: #475569;
+          font-weight: 600;
+          margin: 0 0 12px 0;
+        }
+        .badge-group {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 14px;
+        }
+        .badge {
+          border: 1px solid #cbd5e1;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: bold;
+        }
+        .badge-total {
+          background-color: #ccfbf1;
+          border-color: #5eead4;
+          color: #0f766e;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 11px;
+          margin-bottom: 20px;
+        }
+        th, td {
+          border: 1px solid #94a3b8;
+          padding: 6px 8px;
+          text-align: center;
+        }
+        th {
+          background-color: #f8fafc;
+          font-weight: 800;
+          text-transform: uppercase;
+        }
+        td.hari-col {
+          font-weight: bold;
+          text-align: left;
+          width: 120px;
+        }
+        tr.rata-rata-row {
+          font-weight: bold;
+          background-color: #f1f5f9;
+        }
+        .section-title {
+          font-size: 12px;
+          font-weight: 800;
+          color: #0f766e;
+          margin-bottom: 6px;
+          text-transform: uppercase;
+        }
+        .jurnal-box {
+          font-size: 10.5px;
+          color: #64748b;
+          font-style: italic;
+          border-bottom: 1px solid #cbd5e1;
+          padding-bottom: 8px;
+          margin-bottom: 25px;
+        }
+        .footer-sign {
+          display: flex;
+          justify-content: space-between;
+          font-size: 11px;
+          font-weight: bold;
+          margin-top: 20px;
+        }
+        .sign-col {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          height: 80px;
+        }
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="no-print">
+        <button class="btn-print" onclick="window.print()">🖨️ Cetak / Simpan sebagai PDF (Lanskap)</button>
+      </div>
+
+      <div class="title">LEMBAR KERJA PRESENSI & CAPAIAN PEMBELAJARAN</div>
+      <div class="subtitle">${subJudulWilayah}</div>
+
+      <div class="badge-group">
+        <div class="badge">Laki-Laki (L): ${countLaki} Org</div>
+        <div class="badge">Perempuan (P): ${countPerempuan} Org</div>
+        <div class="badge badge-total">Total Jamaah: ${totalJamaah} Org</div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>HARI</th>
+            <th>MINGGU 1</th>
+            <th>MINGGU 2</th>
+            <th>MINGGU 3</th>
+            <th>MINGGU 4</th>
+            <th>MINGGU 5</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="hari-col">Senin</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+          <tr><td class="hari-col">Selasa</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+          <tr><td class="hari-col">Rabu</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+          <tr><td class="hari-col">Kamis</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+          <tr><td class="hari-col">Jumat</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+          <tr><td class="hari-col">Sabtu</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+          <tr><td class="hari-col">Minggu</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+          <tr class="rata-rata-row">
+            <td>RATA-RATA</td>
+            <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="section-title">REKAPITULASI CAPAIAN MATERI & KENDALA KBM</div>
+      <div class="jurnal-box">
+        ${relevantJurnal.length > 0 ? relevantJurnal.join("<br>") : "Belum ada catatan materi pembelajaran pada periode ini."}
+      </div>
+
+      <div class="footer-sign">
+        <div class="sign-col">
+          <span>Mengetahui,</span>
+          <span>Ketua Pengurus</span>
+        </div>
+        <div class="sign-col" style="text-align: right;">
+          <span>Dicetak Pada: ${todayStr}</span>
+          <span>Pengajar / Admin</span>
+        </div>
+      </div>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
 }
 
 // =========================================================================
@@ -1869,8 +2184,8 @@ function renderRiwayatPenyapaanTable() {
   if (!wrapper) {
     container.innerHTML = `
       <div class="bg-white p-3 sm:p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row justify-between gap-3 mb-4">
-        <input type="text" id="search-riwayat" oninput="renderRiwayatPenyapaanTable()" placeholder="Cari agenda atau kelompok..." class="border rounded-lg px-3 py-2 text-xs w-full sm:w-80 focus:ring-1 focus:ring-teal-500 outline-none">
-        <select id="filter-riwayat-desa" onchange="renderRiwayatPenyapaanTable()" class="border rounded-lg px-3 py-2 text-xs bg-white font-semibold text-slate-700">
+        <input type="text" id="search-riwayat" oninput="renderRiwayatPenyapaanTable()" placeholder="Cari kegiatan atau kelompok..." class="border rounded-lg px-3 py-1.5 text-xs w-full sm:w-80 focus:ring-1 focus:ring-teal-500 outline-none">
+        <select id="filter-riwayat-desa" onchange="renderRiwayatPenyapaanTable()" class="border rounded-lg px-2.5 py-1.5 text-xs bg-white font-semibold text-slate-700">
           <option value="ALL">Semua Desa</option>
         </select>
       </div>
