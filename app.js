@@ -1,5 +1,5 @@
 // ==========================================
-// FRONTEND LOGIC & INTEGRASI REST API KARANGANYAR BARAT (FULL UPDATED & MODAL INTERACTION)
+// FRONTEND LOGIC & REST API INTEGRATION (FULL UPDATED & MODAL INTERACTION)
 // ==========================================
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzciFcbS9cbcYpEuaohamvozKneSW46eFGskkB-1FPczQ5c_2fJQwB2Pko9GziDl4Mu/exec";
@@ -486,7 +486,7 @@ function openModalForm(type, id = null) {
       <div class="space-y-3 text-xs sm:text-sm">
         <div>
           <label class="block font-bold text-slate-700 mb-1">Nama Kegiatan</label>
-          <input type="text" id="form-kegiatan-nama" value="${item?.Kegiatan || item?.Nama_Kegiatan || ''}" required class="w-full border rounded-lg px-3 py-2">
+          <input type="text" id="form-kegiatan-nama" value="${item?.Kegiatan || item?.Nama_Kegiatan || ''}" required class="w-full border rounded-lg px-3 py-2" placeholder="Misal: CAI Day 1">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Tanggal</label>
@@ -502,11 +502,11 @@ function openModalForm(type, id = null) {
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Pemateri</label>
-          <input type="text" id="form-kegiatan-pemateri" value="${item?.Pemateri || ''}" class="w-full border rounded-lg px-3 py-2">
+          <input type="text" id="form-kegiatan-pemateri" value="${item?.Pemateri || ''}" class="w-full border rounded-lg px-3 py-2" placeholder="Nama Ustaz / Penceramah">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Keterangan / Lokasi</label>
-          <textarea id="form-kegiatan-ket" rows="3" class="w-full border rounded-lg px-3 py-2">${item?.Keterangan || ''}</textarea>
+          <textarea id="form-kegiatan-ket" rows="3" class="w-full border rounded-lg px-3 py-2" placeholder="Catatan lokasi atau perlengkapan">${item?.Keterangan || ''}</textarea>
         </div>
       </div>
     `;
@@ -791,7 +791,7 @@ function editInventaris(id) {
 }
 
 // =========================================================================
-// RENDERING VIEW DENGAN INDIKATOR TERSIMPAN (PRESENSI & PENYAPAAN)
+// RENDERING VIEW & PRESENSI DENGAN INDIKATOR TERSIMPAN
 // =========================================================================
 
 function renderBerandaKegiatan() {
@@ -1725,7 +1725,6 @@ function renderPetaCards() {
             const isSapaChecked = k.status_sapa;
             const isBelumChecked = k.status_belum_sapa;
 
-            // Indikator Tersimpan pada tanggal yang dipilih
             const sapaanList = Array.isArray(appData.penyapaan) ? appData.penyapaan : [];
             const isAlreadySapaToday = sapaanList.some(s => {
               const sDate = s.Tanggal ? String(s.Tanggal).split("T")[0] : "";
