@@ -1,5 +1,5 @@
 // ==========================================
-// FRONTEND LOGIC & INTEGRASI REST API KARANGANYAR BARAT
+// FRONTEND LOGIC & INTEGRASI REST API KARANGANYAR BARAT (FULL UPDATED)
 // ==========================================
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwdXlbzVlxPjo7B_OBSdCF9knc8c9ObeijHCixMBSQh6zidRUcSjsaOSTUALfm2urJY/exec";
@@ -60,7 +60,6 @@ function canWritePenyapaan() {
   return isSuperOrDaerah();
 }
 
-// Fungsi Helper Notifikasi & Pesan
 function showMessage(text, type = "info") {
   const msgBox = document.getElementById("status-message");
   if (!msgBox) return;
@@ -88,7 +87,6 @@ function closeModal(modalId) {
   if (modal) modal.classList.add("hidden");
 }
 
-// Handler Login via API
 async function handleLogin(event) {
   event.preventDefault();
   const namaInput = document.getElementById("login-nama").value.trim();
@@ -337,16 +335,6 @@ function switchTab(tabName) {
     renderInventaris();
   } else if (tabName === "jamaah") {
     renderJamaah();
-  }
-
-  const menuContainer = document.getElementById("nav-menu-container");
-  const icon = document.getElementById("hamburger-icon");
-  if (window.innerWidth < 768 && menuContainer && menuContainer.classList.contains("show-mobile-menu")) {
-    menuContainer.classList.remove("show-mobile-menu");
-    if (icon) {
-      icon.classList.remove("fa-xmark");
-      icon.classList.add("fa-bars");
-    }
   }
 }
 
@@ -933,6 +921,7 @@ function updateRekapHarian() {
   }
 }
 
+// Fungsi Submit Presensi dengan Validasi Anti-Double (Overwrite Konfirmasi)
 async function submitPresensi() {
   if (!currentAdmin) return alert("Akses Admin diperlukan untuk menyimpan presensi!");
 
@@ -943,6 +932,23 @@ async function submitPresensi() {
   const date = dateInput.value;
   const day = dayInput.value;
   const isCaberawit = (currentKelompok === "Caberawit");
+  const targetKelas = (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? currentKelas : "Umum";
+
+  // Cek duplikasi presensi pada tanggal, kelompok, dan kelas yang sama
+  const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
+  const existingOnDate = presensiList.some(p => {
+    let pDateStr = (p.Tanggal instanceof Date) ? p.Tanggal.toISOString().split("T")[0] : String(p.Tanggal).split("T")[0].trim();
+    const pKel = String(p.Kelompok || "").trim().toLowerCase();
+    const pKls = String(p.Kelas || "Umum").trim().toLowerCase();
+    return pKel === String(currentKelompok).trim().toLowerCase() && 
+           pKls === targetKelas.toLowerCase() && 
+           pDateStr === date;
+  });
+
+  if (existingOnDate) {
+    const confirmUpdate = confirm(`Data presensi untuk ${currentKelompok} (${targetKelas}) pada tanggal ${date} sudah ada.\n\nApakah Anda ingin memperbarui (overwrite) data tersebut?`);
+    if (!confirmUpdate) return;
+  }
 
   const jenisKegiatan = document.getElementById("presensi-jenis-kegiatan") ? document.getElementById("presensi-jenis-kegiatan").value : "";
   const pemateri = document.getElementById("presensi-pemateri") ? document.getElementById("presensi-pemateri").value : "";
@@ -1015,7 +1021,7 @@ async function submitPresensi() {
 
     return {
       kelompok: currentKelompok,
-      kelas: (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? currentKelas : "Umum",
+      kelas: targetKelas,
       tanggal: date,
       hari: day,
       nama: j.Nama_Lengkap || j.Nama,
@@ -1303,6 +1309,7 @@ function toggleLocalSapa(idKelompok, actionType) {
   renderPetaCards();
 }
 
+// Fungsi Simpan Penyapaan dengan Cek Duplikasi Berbasis Tanggal
 async function simpanBatchPenyapaanGrid() {
   if (!canWritePenyapaan()) {
     return alert("Akses ditolak: Admin Desa & Admin Kelompok hanya dapat melihat riwayat penyapaan.");
@@ -1318,6 +1325,21 @@ async function simpanBatchPenyapaanGrid() {
 
   const tanggalStr = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().split("T")[0];
   const agendaStr = agendaInput && agendaInput.value.trim() ? agendaInput.value.trim() : "Kunjungan & Evaluasi Pembinaan Rutin";
+
+  // Cek apakah ada kelompok yang sudah tercatat disapa pada tanggal yang sama
+  const riwayatSapaan = Array.isArray(appData.penyapaan) ? appData.penyapaan : [];
+  const duplicates = dirtyItems.filter(item => {
+    return riwayatSapaan.some(r => {
+      const rDate = r.Tanggal ? String(r.Tanggal).split("T")[0] : "";
+      return String(r.ID_Kelompok || "").trim() === String(item.id).trim() && rDate === tanggalStr;
+    });
+  });
+
+  if (duplicates.length > 0) {
+    const dupNames = duplicates.map(d => d.nama_kelompok).join(", ");
+    const proceed = confirm(`Peringatan: Kelompok (${dupNames}) tercatat sudah pernah disapa pada tanggal ${tanggalStr}.\n\nApakah Anda tetap ingin melanjutkan penyimpanan?`);
+    if (!proceed) return;
+  }
 
   showMessage("Menyimpan data penyapaan...", "info");
 
@@ -1449,8 +1471,7 @@ function renderPetaCards() {
               <div class="p-3.5 rounded-xl border flex flex-col justify-between space-y-2.5 transition-all ${k.is_dirty ? 'bg-amber-50/60 border-amber-300 shadow-xs' : (k.is_recommended ? 'bg-amber-50/25 border-amber-200 shadow-xs' : (k.total_penyapaan > 0 ? 'bg-emerald-50/30 border-emerald-200' : 'bg-slate-50/70 border-slate-200'))}">
                 <div>
                   <div class="flex items-start justify-between gap-1 mb-1">
-                    <p class="font-extrabold text-sm sm:text-base text-slate-900 leading-snug truncate" title="${k.nama_kelompok}">${k.nama_kelompok}</p>
-                    ${badgeHtml}
+                    <p class="font-extrabold text-sm sm:text-base text-slate-900 leading-snug truncate" title="${k.nama_kelompok}">${k.nama_kelompok}</p>${badgeHtml}
                   </div>
                   <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
                     ${rekomBadge}
