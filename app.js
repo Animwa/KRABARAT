@@ -1554,9 +1554,8 @@ function renderMonitoringTable() {
     `;
   }).join("");
 }
-
 // =========================================================================
-// DOWNLOAD / CETAK LEMBAR KERJA FORMAT LANSKAP (DINAMIS REKAP L/P & RATA-RATA)
+// DOWNLOAD / CETAK LEMBAR KERJA FORMAT LANSKAP (DATA DINAMIS LENGKAP)
 // =========================================================================
 
 function downloadLembarKerja() {
@@ -1574,7 +1573,7 @@ function downloadLembarKerja() {
   const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
   const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
 
-  // Filter jamaah yang dianalisis pada laporan lembar kerja
+  // 1. Filter Daftar Jamaah yang Berada pada Wilayah & Jenjang Terpilih
   const targetJamaah = jamaahList.filter(j => {
     const isAktif = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
     if (!isAktif) return false;
@@ -1599,19 +1598,15 @@ function downloadLembarKerja() {
   let countLaki = 0;
   let countPerempuan = 0;
   const genderMap = {};
-  const validJamaahKeys = new Set();
+  const validNamaSet = new Set();
 
   targetJamaah.forEach(j => {
     const namaClean = String(j.Nama_Lengkap || j.Nama || "").trim().toLowerCase();
-    const kelClean = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim().toLowerCase();
-    const desaClean = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(kelClean)).trim().toLowerCase();
-    const compositeKey = `${namaClean}_${desaClean}_${kelClean}`;
-
-    validJamaahKeys.add(compositeKey);
+    validNamaSet.add(namaClean);
 
     const g = String(j.Gender || "").trim().toLowerCase();
     const isLaki = (g === "laki-laki" || g === "l");
-    genderMap[compositeKey] = isLaki ? "L" : "P";
+    genderMap[namaClean] = isLaki ? "L" : "P";
 
     if (isLaki) countLaki++;
     else countPerempuan++;
@@ -1619,72 +1614,113 @@ function downloadLembarKerja() {
 
   const totalJamaah = targetJamaah.length;
 
-  const relevantJurnal = [];
-  const sessionPresenceMap = {}; // Key: "YYYY-MM-DD" -> { L: count, P: count }
+  // 2. Ekstraksi Kehadiran L/P & Seluruh Rincian Materi/Kendala
+  const relevantJurnal = new Set();
+  const sessionPresenceMap = {}; // Key: "YYYY-MM-DD" -> { L: 0, P: 0 }
 
   presensiList.forEach(p => {
-    if (!p.Tanggal) return;
-    const dateStr = (p.Tanggal instanceof Date) ? p.Tanggal.toISOString().split("T")[0] : String(p.Tanggal).substring(0, 10);
+    if (!p.Tanggal && !p.tanggal) return;
+
+    const rawTgl = p.Tanggal || p.tanggal;
+    const dateStr = (rawTgl instanceof Date) ? rawTgl.toISOString().split("T")[0] : String(rawTgl).substring(0, 10);
+
     if (startDateVal && dateStr < startDateVal) return;
     if (endDateVal && dateStr > endDateVal) return;
 
     const pNama = String(p.NamaJamaah || p.Nama || p.nama || "").trim().toLowerCase();
-    const pKelBinaan = String(p.KelompokBinaan || p.Nama_Kelompok || getKelompokByNama(pNama)).trim().toLowerCase();
-    const pDesa = String(p.Desa || p.desa || getDesaByKelompok(pKelBinaan)).trim().toLowerCase();
+    const pKel = String(p.Kelompok || p.kelompok || "").trim().toLowerCase();
+    const pKls = String(p.Kelas || p.kelas || "Umum").trim().toLowerCase();
 
-    const compositeKey = `${pNama}_${pDesa}_${pKelBinaan}`;
-    if (!validJamaahKeys.has(compositeKey)) return;
+    // Validasi kecocokan jenjang/kelas usia
+    if (filterKelasUsia !== "Semua") {
+      const fLower = filterKelasUsia.toLowerCase();
+      if (fLower === "caberawit" && pKel !== "caberawit") return;
+      if (fLower.startsWith("caberawit ") && (pKel !== "caberawit" || pKls !== fLower)) return;
+      if (!fLower.startsWith("caberawit") && pKel !== fLower) return;
+    }
 
-    // Catat Jurnal & Kendala KBM
+    // Validasi apakah jamaah termasuk dalam wilayah yang difilter
+    if (validNamaSet.size > 0 && !validNamaSet.has(pNama)) return;
+
+    // --- Ekstraksi Materi Pembelajaran & Catatan Kendala ---
+    const tglLabel = formatTanggalIndo(dateStr);
+
+    // a. Materi reguler / jurnal umum
     const jText = String(p.Jurnal || p.jurnal || "").trim();
-    const kendalaText = String(p.Kendala || p.kendala || "").trim();
-    if (jText && jText !== "-" && !relevantJurnal.includes(jText)) {
-      relevantJurnal.push(jText);
-    }
-    if (kendalaText && kendalaText !== "-" && !relevantJurnal.includes(kendalaText)) {
-      relevantJurnal.push(`Kendala: ${kendalaText}`);
+    if (jText && jText !== "-" && jText !== "null" && jText !== "undefined") {
+      relevantJurnal.add(`<b>[${tglLabel}]</b> ${jText}`);
     }
 
-    // Hitung kehadiran Hadir L dan P
+    // b. Materi khusus Caberawit (JSON)
+    const rawCaberawit = p.MateriCaberawit || p.materiCaberawit;
+    if (rawCaberawit && String(rawCaberawit).trim() !== "" && String(rawCaberawit) !== "-") {
+      try {
+        const matObj = (typeof rawCaberawit === "object") ? rawCaberawit : JSON.parse(rawCaberawit);
+        const rincian = [];
+        if (matObj.akhlak) rincian.push(`Akhlak: ${matObj.akhlak}`);
+        if (matObj.tilawati) rincian.push(`Tilawati: ${matObj.tilawati}`);
+        if (matObj.bacaan) rincian.push(`Bacaan: ${matObj.bacaan}`);
+        if (matObj.tajwid) rincian.push(`Tajwid: ${matObj.tajwid}`);
+        if (matObj.maknaQuran) rincian.push(`Al-Qur'an: ${matObj.maknaQuran}`);
+        if (matObj.maknaHadist) rincian.push(`Al-Hadist: ${matObj.maknaHadist}`);
+        if (matObj.hafalanDalil) rincian.push(`Dalil: ${matObj.hafalanDalil}`);
+        if (matObj.hafalanSurat) rincian.push(`Surat: ${matObj.hafalanSurat}`);
+        if (matObj.hafalanDoa) rincian.push(`Doa: ${matObj.hafalanDoa}`);
+        if (matObj.bcm) rincian.push(`BCM: ${matObj.bcm}`);
+        if (matObj.praktek) rincian.push(`Praktek: ${matObj.praktek}`);
+
+        if (rincian.length > 0) {
+          relevantJurnal.add(`<b>[${tglLabel} - Capaian Caberawit]</b> ${rincian.join(" | ")}`);
+        }
+      } catch (e) {
+        relevantJurnal.add(`<b>[${tglLabel}]</b> ${rawCaberawit}`);
+      }
+    }
+
+    // c. Catatan kendala KBM
+    const kendalaText = String(p.Kendala || p.kendala || "").trim();
+    if (kendalaText && kendalaText !== "-" && kendalaText !== "null" && kendalaText !== "undefined") {
+      relevantJurnal.add(`<b>[${tglLabel} - Kendala KBM]</b> ${kendalaText}`);
+    }
+
+    // --- Rekap Kehadiran Hadir L dan P ---
     const st = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
     if (st === "Hadir") {
       if (!sessionPresenceMap[dateStr]) sessionPresenceMap[dateStr] = { L: 0, P: 0 };
-      const g = genderMap[compositeKey] || "L";
+      const g = genderMap[pNama] || "L";
       if (g === "L") sessionPresenceMap[dateStr].L++;
       else sessionPresenceMap[dateStr].P++;
     }
   });
 
-  // Matriks Kehadiran: Hari [0..6] (Senin..Minggu) x Minggu [0..4] (Minggu 1..5)
+  // 3. Matriks Hari x Minggu 1-5
   const gridAttendance = Array.from({ length: 7 }, () => Array.from({ length: 5 }, () => null));
 
   Object.keys(sessionPresenceMap).forEach(dStr => {
     const curD = new Date(dStr + "T00:00:00");
     if (isNaN(curD.getTime())) return;
-    
-    // Hitung kolom minggu (0-indexed berdasarkan tanggal 1-7, 8-14, dst)
+
     const dom = curD.getDate();
     const weekIdx = Math.min(Math.floor((dom - 1) / 7), 4);
 
-    // Konversi getDay() JS (0=Minggu, 1=Senin..6=Sabtu) ke (0=Senin..6=Minggu)
-    const jsDay = curD.getDay();
-    const rowDay = (jsDay === 0) ? 6 : (jsDay - 1);
+    const jsDay = curD.getDay(); // 0=Minggu, 1=Senin..6=Sabtu
+    const rowDay = (jsDay === 0) ? 6 : (jsDay - 1); // 0=Senin..6=Minggu
 
     gridAttendance[rowDay][weekIdx] = sessionPresenceMap[dStr];
   });
 
-  // Hitung nilai RATA-RATA per Minggu (Minggu 1 - 5)
+  // Hitung Nilai Rata-rata Mingguan
   const weekAverages = [0, 1, 2, 3, 4].map(wIdx => {
-    let totalPresence = 0;
+    let totalHadir = 0;
     let activeDays = 0;
     for (let r = 0; r < 7; r++) {
       const cell = gridAttendance[r][wIdx];
       if (cell) {
-        totalPresence += (cell.L + cell.P);
+        totalHadir += (cell.L + cell.P);
         activeDays++;
       }
     }
-    return activeDays > 0 ? (totalPresence / activeDays).toFixed(1) : "-";
+    return activeDays > 0 ? (totalHadir / activeDays).toFixed(1) : "-";
   });
 
   const hariLabels = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
@@ -1700,6 +1736,11 @@ function downloadLembarKerja() {
   const subJudulWilayah = `Desa: ${desaFilter} | Kelompok: ${kelFilter} | Kelas: ${filterKelasUsia} | Periode: ${periodeText}`;
   const todayStr = formatTanggalIndo(new Date().toISOString().split("T")[0]);
 
+  const listMateriHtml = relevantJurnal.size > 0 
+    ? Array.from(relevantJurnal).map(item => `<div style="margin-bottom: 5px;">• ${item}</div>`).join("")
+    : "Belum ada catatan materi pembelajaran pada periode ini.";
+
+  // 4. Output Pop-up Dokumen Cetak Lanskap
   const printWindow = window.open("", "_blank");
   printWindow.document.write(`
     <!DOCTYPE html>
@@ -1710,7 +1751,7 @@ function downloadLembarKerja() {
       <style>
         @page {
           size: A4 landscape;
-          margin: 12mm 15mm;
+          margin: 10mm 12mm;
         }
         body {
           font-family: Arial, Helvetica, sans-serif;
@@ -1720,7 +1761,7 @@ function downloadLembarKerja() {
           background: #ffffff;
         }
         .no-print {
-          margin-bottom: 15px;
+          margin-bottom: 12px;
         }
         .btn-print {
           background-color: #0f766e;
@@ -1736,19 +1777,19 @@ function downloadLembarKerja() {
           font-size: 16px;
           font-weight: 800;
           color: #0f766e;
-          margin: 0 0 4px 0;
+          margin: 0 0 3px 0;
           text-transform: uppercase;
         }
         .subtitle {
           font-size: 11px;
           color: #475569;
           font-weight: 600;
-          margin: 0 0 12px 0;
+          margin: 0 0 10px 0;
         }
         .badge-group {
           display: flex;
           gap: 8px;
-          margin-bottom: 14px;
+          margin-bottom: 12px;
         }
         .badge {
           border: 1px solid #cbd5e1;
@@ -1766,7 +1807,7 @@ function downloadLembarKerja() {
           width: 100%;
           border-collapse: collapse;
           font-size: 11px;
-          margin-bottom: 18px;
+          margin-bottom: 16px;
         }
         th, td {
           border: 1px solid #94a3b8;
@@ -1781,7 +1822,7 @@ function downloadLembarKerja() {
         td.hari-col {
           font-weight: bold;
           text-align: left;
-          width: 120px;
+          width: 110px;
         }
         tr.rata-rata-row {
           font-weight: bold;
@@ -1795,26 +1836,27 @@ function downloadLembarKerja() {
           text-transform: uppercase;
         }
         .jurnal-box {
-          font-size: 10.5px;
-          color: #64748b;
-          font-style: italic;
-          border-bottom: 1px solid #cbd5e1;
-          padding-bottom: 8px;
-          margin-bottom: 25px;
-          min-height: 20px;
+          font-size: 11px;
+          color: #334155;
+          border: 1px solid #cbd5e1;
+          background-color: #f8fafc;
+          border-radius: 6px;
+          padding: 8px 12px;
+          margin-bottom: 20px;
+          line-height: 1.5;
         }
         .footer-sign {
           display: flex;
           justify-content: space-between;
           font-size: 11px;
           font-weight: bold;
-          margin-top: 20px;
+          margin-top: 15px;
         }
         .sign-col {
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          height: 80px;
+          height: 75px;
         }
         @media print {
           .no-print {
@@ -1859,7 +1901,7 @@ function downloadLembarKerja() {
 
       <div class="section-title">REKAPITULASI CAPAIAN MATERI & KENDALA KBM</div>
       <div class="jurnal-box">
-        ${relevantJurnal.length > 0 ? relevantJurnal.join("<br>") : "Belum ada catatan materi pembelajaran pada periode ini."}
+        ${listMateriHtml}
       </div>
 
       <div class="footer-sign">
