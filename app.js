@@ -1,6 +1,6 @@
-// ==========================================
-// FRONTEND LOGIC & REST API INTEGRATION (FULL UPDATED & MODAL INTERACTION)
-// ==========================================
+// =========================================================================
+// FRONTEND LOGIC & REST API INTEGRATION (MOBILE OPTIMIZED & FULL CRUD)
+// =========================================================================
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxsKkUaZguZ61zXtj17hi2tHQ7lP3TtPensR_ptmlhkWeGta3hyw1JjMAMmJ5MNzRu3/exec";
 
@@ -41,10 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
   switchTab("beranda");
 });
 
-// =========================================================================
-// SISTEM HAK AKSES ROLE-BASED ACCESS CONTROL (RBAC) & LOGIN
-// =========================================================================
-
+// RBAC & AUTHENTICATION
 function getAdminRole() {
   if (!currentAdmin) return "guest";
   return String(currentAdmin.role || "").trim().toLowerCase();
@@ -62,7 +59,7 @@ function canWritePenyapaan() {
 function showMessage(text, type = "info") {
   const msgBox = document.getElementById("status-message");
   if (!msgBox) return;
-  msgBox.className = `mb-4 p-3.5 sm:p-4 rounded-xl font-medium text-xs sm:text-sm border shadow-sm flex items-center justify-between ${
+  msgBox.className = `mb-4 p-3 rounded-xl font-medium text-xs sm:text-sm border shadow-xs flex items-center justify-between ${
     type === "success" ? "bg-emerald-50 text-emerald-800 border-emerald-200" :
     type === "error" ? "bg-rose-50 text-rose-800 border-rose-200" :
     "bg-teal-50 text-teal-800 border-teal-200"
@@ -151,10 +148,7 @@ function updateAdminUI() {
     } else if (btnManage) {
       btnManage.classList.add("hidden");
     }
-
-    document.querySelectorAll(".admin-only").forEach(el => {
-      el.classList.remove("hidden");
-    });
+    document.querySelectorAll(".admin-only").forEach(el => el.classList.remove("hidden"));
   } else {
     if (badgeContainer) badgeContainer.classList.add("hidden");
     if (btnLogin) btnLogin.classList.remove("hidden");
@@ -191,7 +185,6 @@ function updateDayLabel() {
   const d = new Date(dateInput.value + "T00:00:00");
   const dayEl = document.getElementById("presensi-day");
   if (dayEl) dayEl.value = days[d.getDay()];
-
   renderPresensiTable();
 }
 
@@ -235,7 +228,7 @@ async function loadAllData() {
       showMessage("Gagal memuat data: " + (json.error || json.message), "error");
     }
   } catch (err) {
-    console.error("CORS / Network Error:", err);
+    console.error("Network Error:", err);
     showMessage("Gagal terhubung ke Google Apps Script.", "error");
   }
 }
@@ -267,12 +260,12 @@ function renderAllViews() {
 function switchTab(tabName) {
   currentActiveTab = tabName;
   document.querySelectorAll(".view-section").forEach(s => s.classList.add("hidden"));
-  document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active", "border-teal-600", "text-teal-700", "font-bold"));
 
   const targetView = document.getElementById(`view-${tabName}`);
   const targetTab = document.getElementById(`tab-${tabName}`);
   if (targetView) targetView.classList.remove("hidden");
-  if (targetTab) targetTab.classList.add("active");
+  if (targetTab) targetTab.classList.add("active", "border-teal-600", "text-teal-700", "font-bold");
 
   const subnav = document.getElementById("subnav-container");
   const classnav = document.getElementById("classnav-container");
@@ -295,24 +288,17 @@ function switchTab(tabName) {
     if (classnav) classnav.classList.add("hidden");
   }
 
-  if (tabName === "monitoring") {
-    renderMonitoringTable();
-  } else if (tabName === "penyapaan") {
-    renderPenyapaanModule();
-  } else if (tabName === "beranda") {
-    renderBerandaKegiatan();
-  } else if (tabName === "pengurus") {
-    renderPengurus();
-  } else if (tabName === "inventaris") {
-    renderInventaris();
-  } else if (tabName === "jamaah") {
-    renderJamaah();
-  }
+  if (tabName === "monitoring") renderMonitoringTable();
+  else if (tabName === "penyapaan") renderPenyapaanModule();
+  else if (tabName === "beranda") renderBerandaKegiatan();
+  else if (tabName === "pengurus") renderPengurus();
+  else if (tabName === "inventaris") renderInventaris();
+  else if (tabName === "jamaah") renderJamaah();
 }
 
 function selectKelompok(kelompok) {
   currentKelompok = kelompok;
-  document.querySelectorAll(".subnav-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".subnav-btn").forEach(b => b.classList.remove("active", "bg-teal-700", "text-white"));
 
   const idMap = {
     "ASAD": "sub-asad",
@@ -324,7 +310,7 @@ function selectKelompok(kelompok) {
     "Ibu-Ibu": "sub-ibu"
   };
   if (idMap[kelompok] && document.getElementById(idMap[kelompok])) {
-    document.getElementById(idMap[kelompok]).classList.add("active");
+    document.getElementById(idMap[kelompok]).classList.add("active", "bg-teal-700", "text-white");
   }
 
   const classnav = document.getElementById("classnav-container");
@@ -337,7 +323,7 @@ function selectKelompok(kelompok) {
       classBtnContainer.innerHTML = "";
       classes.forEach((cls, idx) => {
         const btn = document.createElement("button");
-        btn.className = `classnav-btn px-3 py-1 rounded-md bg-white border border-slate-300 hover:bg-teal-50 text-xs shrink-0 ${idx === 0 ? 'active' : ''}`;
+        btn.className = `classnav-btn px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-teal-50 text-xs shrink-0 font-medium ${idx === 0 ? 'bg-teal-600 text-white border-teal-600' : ''}`;
         btn.innerText = cls;
         btn.onclick = () => selectKelas(cls, btn);
         classBtnContainer.appendChild(btn);
@@ -351,7 +337,7 @@ function selectKelompok(kelompok) {
       classBtnContainer.innerHTML = "";
       classes.forEach((cls, idx) => {
         const btn = document.createElement("button");
-        btn.className = `classnav-btn px-3 py-1 rounded-md bg-white border border-slate-300 hover:bg-teal-50 text-xs shrink-0 ${idx === 0 ? 'active' : ''}`;
+        btn.className = `classnav-btn px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-teal-50 text-xs shrink-0 font-medium ${idx === 0 ? 'bg-teal-600 text-white border-teal-600' : ''}`;
         btn.innerText = cls;
         btn.onclick = () => selectKelas(cls, btn);
         classBtnContainer.appendChild(btn);
@@ -367,8 +353,8 @@ function selectKelompok(kelompok) {
 function selectKelas(kelas, btnEl) {
   currentKelas = kelas;
   if (btnEl) {
-    document.querySelectorAll(".classnav-btn").forEach(b => b.classList.remove("active"));
-    btnEl.classList.add("active");
+    document.querySelectorAll(".classnav-btn").forEach(b => b.classList.remove("bg-teal-600", "text-white", "border-teal-600"));
+    btnEl.classList.add("bg-teal-600", "text-white", "border-teal-600");
   }
   const titleEl = document.getElementById("presensi-class-title");
   if (titleEl) {
@@ -409,9 +395,7 @@ function initGlobalWilayahFilters() {
     }
   });
 
-  if (desas.size === 0) {
-    desas = new Set(["Desa 1", "Desa 2", "Desa 3", "Desa 4"]);
-  }
+  if (desas.size === 0) desas = new Set(["Desa 1", "Desa 2", "Desa 3", "Desa 4"]);
 
   desaSelect.innerHTML = `<option value="Semua">Semua Desa</option>` +
     Array.from(desas).map(d => `<option value="${d}">${d}</option>`).join("");
@@ -461,26 +445,26 @@ function refreshCurrentActiveView() {
 }
 
 // =========================================================================
-// FITUR MODAL & PENGELOLAAN DATA (TAMBAH, EDIT, HAPUS, SIMPAN)
+// SISTEM MODAL FORM GENERATOR (ROBUST DOM INJECTION)
 // =========================================================================
 
 function createDynamicModal() {
-  const existing = document.getElementById("modal-dynamic-form");
+  let existing = document.getElementById("modal-dynamic-form");
   if (existing) existing.remove();
 
   const div = document.createElement("div");
   div.id = "modal-dynamic-form";
-  div.className = "fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 hidden";
+  div.className = "fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 hidden";
   div.innerHTML = `
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200">
-      <div class="bg-teal-900 text-white px-5 py-4 flex justify-between items-center">
-        <h3 id="dynamic-modal-title" class="font-bold text-base">Formulir Data</h3>
-        <button onclick="closeModal('modal-dynamic-form')" class="text-white hover:text-rose-300"><i class="fa-solid fa-xmark text-lg"></i></button>
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+      <div class="bg-teal-900 text-white px-4 py-3.5 sm:px-5 sm:py-4 flex justify-between items-center shrink-0">
+        <h3 id="dynamic-modal-title" class="font-bold text-sm sm:text-base">Formulir Data</h3>
+        <button type="button" onclick="closeModal('modal-dynamic-form')" class="text-white hover:text-rose-300 text-lg"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <div id="dynamic-modal-body" class="p-6 max-h-[75vh] overflow-y-auto"></div>
-      <div class="bg-slate-50 px-5 py-3 border-t flex justify-end gap-2">
-        <button onclick="closeModal('modal-dynamic-form')" class="px-4 py-2 rounded-xl text-xs font-bold border bg-white hover:bg-slate-100 text-slate-700">Batal</button>
-        <button onclick="submitDynamicForm()" class="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-md">Simpan Data</button>
+      <div id="dynamic-modal-body" class="p-4 sm:p-6 overflow-y-auto grow"></div>
+      <div class="bg-slate-50 px-4 py-3 sm:px-5 sm:py-3 border-t flex justify-end gap-2 shrink-0">
+        <button type="button" onclick="closeModal('modal-dynamic-form')" class="px-3.5 py-2 rounded-xl text-xs font-bold border bg-white hover:bg-slate-100 text-slate-700">Batal</button>
+        <button type="button" onclick="submitDynamicForm()" class="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-md">Simpan Data</button>
       </div>
     </div>
   `;
@@ -519,30 +503,30 @@ function openModalForm(type, id = null) {
       <input type="hidden" id="form-kegiatan-id" value="${item?.ID || item?.ID_Kegiatan || ''}">
       <div class="space-y-3 text-xs sm:text-sm">
         <div>
-          <label class="block font-bold text-slate-700 mb-1">Nama Kegiatan</label>
-          <input type="text" id="form-kegiatan-nama" value="${item?.Kegiatan || item?.Nama_Kegiatan || ''}" required class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none" placeholder="Contoh: Pengajian Rutin">
+          <label class="block font-bold text-slate-700 mb-1">Nama Kegiatan *</label>
+          <input type="text" id="form-kegiatan-nama" value="${item?.Kegiatan || item?.Nama_Kegiatan || ''}" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500" placeholder="Misal: Pengajian Rutin Daerah">
         </div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block font-bold text-slate-700 mb-1">Tanggal</label>
-            <input type="date" id="form-kegiatan-tanggal" value="${tglVal}" required class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+            <label class="block font-bold text-slate-700 mb-1">Tanggal *</label>
+            <input type="date" id="form-kegiatan-tanggal" value="${tglVal}" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1">Hari</label>
-            <input type="text" id="form-kegiatan-hari" value="${item?.Hari || 'Minggu'}" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+            <input type="text" id="form-kegiatan-hari" value="${item?.Hari || 'Minggu'}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
           </div>
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Jam / Waktu</label>
-          <input type="text" id="form-kegiatan-jam" value="${item?.Jam || '19:30 - Selesai'}" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+          <input type="text" id="form-kegiatan-jam" value="${item?.Jam || '19:30 - Selesai'}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Pemateri</label>
-          <input type="text" id="form-kegiatan-pemateri" value="${item?.Pemateri || ''}" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none" placeholder="Nama Ustaz / Pemateri">
+          <input type="text" id="form-kegiatan-pemateri" value="${item?.Pemateri || ''}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500" placeholder="Nama Ustaz / Pemateri">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Keterangan / Lokasi</label>
-          <textarea id="form-kegiatan-ket" rows="3" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none" placeholder="Catatan tempat atau keterangan">${item?.Keterangan || ''}</textarea>
+          <textarea id="form-kegiatan-ket" rows="2" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500" placeholder="Lokasi majelis atau detail agenda">${item?.Keterangan || ''}</textarea>
         </div>
       </div>
     `;
@@ -555,26 +539,26 @@ function openModalForm(type, id = null) {
       <input type="hidden" id="form-pengurus-id" value="${item?.ID || ''}">
       <div class="space-y-3 text-xs sm:text-sm">
         <div>
-          <label class="block font-bold text-slate-700 mb-1">Nama Lengkap</label>
-          <input type="text" id="form-pengurus-nama" value="${item?.Nama || ''}" required class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+          <label class="block font-bold text-slate-700 mb-1">Nama Lengkap *</label>
+          <input type="text" id="form-pengurus-nama" value="${item?.Nama || ''}" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Kelompok Wilayah</label>
-          <select id="form-pengurus-kelompok" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+          <select id="form-pengurus-kelompok" class="w-full border rounded-lg px-3 py-2 bg-white outline-none focus:ring-1 focus:ring-teal-500">
             ${kelOptions || '<option value="-">-</option>'}
           </select>
         </div>
         <div>
-          <label class="block font-bold text-slate-700 mb-1">Jabatan</label>
-          <input type="text" id="form-pengurus-jabatan" value="${item?.Jabatan || ''}" required class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none" placeholder="Contoh: Ketua, Sekretaris, Pembina">
+          <label class="block font-bold text-slate-700 mb-1">Jabatan *</label>
+          <input type="text" id="form-pengurus-jabatan" value="${item?.Jabatan || ''}" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500" placeholder="Contoh: Ketua, Sekretaris, Pembina">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">No. HP</label>
-          <input type="text" id="form-pengurus-nohp" value="${item?.NoHP || ''}" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+          <input type="text" id="form-pengurus-nohp" value="${item?.NoHP || ''}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Status</label>
-          <select id="form-pengurus-status" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+          <select id="form-pengurus-status" class="w-full border rounded-lg px-3 py-2 bg-white outline-none focus:ring-1 focus:ring-teal-500">
             <option value="Aktif" ${item?.Status !== 'Non-Aktif' ? 'selected' : ''}>Aktif</option>
             <option value="Non-Aktif" ${item?.Status === 'Non-Aktif' ? 'selected' : ''}>Non-Aktif</option>
           </select>
@@ -591,23 +575,23 @@ function openModalForm(type, id = null) {
       <input type="hidden" id="form-inventaris-id" value="${item?.ID || ''}">
       <div class="space-y-3 text-xs sm:text-sm">
         <div>
-          <label class="block font-bold text-slate-700 mb-1">Nama Barang</label>
-          <input type="text" id="form-inventaris-nama" value="${item?.NamaBarang || ''}" required class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+          <label class="block font-bold text-slate-700 mb-1">Nama Barang *</label>
+          <input type="text" id="form-inventaris-nama" value="${item?.NamaBarang || ''}" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Kelompok Lokasi</label>
-          <select id="form-inventaris-kelompok" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+          <select id="form-inventaris-kelompok" class="w-full border rounded-lg px-3 py-2 bg-white outline-none focus:ring-1 focus:ring-teal-500">
             ${kelOptions || '<option value="-">-</option>'}
           </select>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block font-bold text-slate-700 mb-1">Jumlah</label>
-            <input type="number" id="form-inventaris-jumlah" value="${item?.Jumlah || 1}" min="1" required class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+            <input type="number" id="form-inventaris-jumlah" value="${item?.Jumlah || 1}" min="1" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1">Kondisi</label>
-            <select id="form-inventaris-kondisi" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+            <select id="form-inventaris-kondisi" class="w-full border rounded-lg px-3 py-2 bg-white outline-none focus:ring-1 focus:ring-teal-500">
               <option value="Baik" ${item?.Kondisi !== 'Rusak' ? 'selected' : ''}>Baik</option>
               <option value="Rusak" ${item?.Kondisi === 'Rusak' ? 'selected' : ''}>Rusak</option>
             </select>
@@ -615,11 +599,11 @@ function openModalForm(type, id = null) {
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Tanggal Masuk</label>
-          <input type="date" id="form-inventaris-tanggal" value="${tglMasukVal}" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+          <input type="date" id="form-inventaris-tanggal" value="${tglMasukVal}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Keterangan</label>
-          <textarea id="form-inventaris-ket" rows="2" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">${item?.Keterangan || ''}</textarea>
+          <textarea id="form-inventaris-ket" rows="2" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">${item?.Keterangan || ''}</textarea>
         </div>
       </div>
     `;
@@ -633,17 +617,17 @@ function openModalForm(type, id = null) {
       <input type="hidden" id="form-jamaah-id" value="${item?.ID_Jamaah || item?.ID || ''}">
       <div class="space-y-3 text-xs sm:text-sm">
         <div>
-          <label class="block font-bold text-slate-700 mb-1">Nama Lengkap</label>
-          <input type="text" id="form-jamaah-nama" value="${item?.Nama_Lengkap || item?.Nama || ''}" required class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+          <label class="block font-bold text-slate-700 mb-1">Nama Lengkap *</label>
+          <input type="text" id="form-jamaah-nama" value="${item?.Nama_Lengkap || item?.Nama || ''}" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Tanggal Lahir</label>
-          <input type="date" id="form-jamaah-tgl" value="${tglLahirVal}" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+          <input type="date" id="form-jamaah-tgl" value="${tglLahirVal}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
         </div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block font-bold text-slate-700 mb-1">Jenjang Usia</label>
-            <select id="form-jamaah-kelas-usia" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+            <select id="form-jamaah-kelas-usia" class="w-full border rounded-lg px-3 py-2 bg-white outline-none focus:ring-1 focus:ring-teal-500">
               <option value="Caberawit" ${String(item?.Kelas_Usia || item?.Kelompok || '').includes('Caberawit') ? 'selected' : ''}>Caberawit</option>
               <option value="Pra Remaja" ${item?.Kelas_Usia === 'Pra Remaja' ? 'selected' : ''}>Pra Remaja</option>
               <option value="Remaja" ${item?.Kelas_Usia === 'Remaja' ? 'selected' : ''}>Remaja</option>
@@ -654,7 +638,7 @@ function openModalForm(type, id = null) {
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1">Kelas (Caberawit)</label>
-            <select id="form-jamaah-kelas" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+            <select id="form-jamaah-kelas" class="w-full border rounded-lg px-3 py-2 bg-white outline-none focus:ring-1 focus:ring-teal-500">
               <option value="Umum">- (Non-Caberawit)</option>
               <option value="Caberawit A" ${item?.Kelas === 'Caberawit A' ? 'selected' : ''}>Caberawit A</option>
               <option value="Caberawit B" ${item?.Kelas === 'Caberawit B' ? 'selected' : ''}>Caberawit B</option>
@@ -665,24 +649,24 @@ function openModalForm(type, id = null) {
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Kelompok Binaan</label>
-          <select id="form-jamaah-kelompok-binaan" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+          <select id="form-jamaah-kelompok-binaan" class="w-full border rounded-lg px-3 py-2 bg-white outline-none focus:ring-1 focus:ring-teal-500">
             ${kelOptions || '<option value="Kelompok 1">Kelompok 1</option>'}
           </select>
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Gender</label>
-          <select id="form-jamaah-gender" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+          <select id="form-jamaah-gender" class="w-full border rounded-lg px-3 py-2 bg-white outline-none focus:ring-1 focus:ring-teal-500">
             <option value="Laki-Laki" ${item?.Gender !== 'Perempuan' ? 'selected' : ''}>Laki-Laki</option>
             <option value="Perempuan" ${item?.Gender === 'Perempuan' ? 'selected' : ''}>Perempuan</option>
           </select>
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Alamat</label>
-          <input type="text" id="form-jamaah-alamat" value="${item?.Alamat || ''}" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+          <input type="text" id="form-jamaah-alamat" value="${item?.Alamat || ''}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Status Keaktifan</label>
-          <select id="form-jamaah-keaktifan" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+          <select id="form-jamaah-keaktifan" class="w-full border rounded-lg px-3 py-2 bg-white outline-none focus:ring-1 focus:ring-teal-500">
             <option value="Aktif" ${item?.Keaktifan !== 'Non-Aktif' && item?.Status !== 'Non-Aktif' ? 'selected' : ''}>Aktif</option>
             <option value="Non-Aktif" ${item?.Keaktifan === 'Non-Aktif' || item?.Status === 'Non-Aktif' ? 'selected' : ''}>Non-Aktif</option>
           </select>
@@ -802,13 +786,7 @@ async function submitDynamicForm() {
 async function deleteRow(sheetName, id) {
   if (!currentAdmin) return alert("Akses Admin diperlukan untuk menghapus data!");
 
-  let targetSheet = sheetName;
-  if (sheetName === "Pengurus") targetSheet = "Pengurus";
-  if (sheetName === "Inventaris") targetSheet = "Inventaris";
-  if (sheetName === "Kegiatan") targetSheet = "Kegiatan";
-  if (sheetName === "Master_Jamaah") targetSheet = "Master_Jamaah";
-
-  const confirmDelete = confirm(`Apakah Anda yakin ingin menghapus data dengan ID: ${id} dari ${targetSheet}?`);
+  const confirmDelete = confirm(`Apakah Anda yakin ingin menghapus data ini?`);
   if (!confirmDelete) return;
 
   showMessage("Menghapus data...", "info");
@@ -817,7 +795,7 @@ async function deleteRow(sheetName, id) {
       method: "POST",
       body: JSON.stringify({
         action: "delete_row",
-        sheetName: targetSheet,
+        sheetName: sheetName,
         id: id
       })
     });
@@ -834,20 +812,12 @@ async function deleteRow(sheetName, id) {
   }
 }
 
-function editJamaah(id) {
-  openModalForm("jamaah", id);
-}
-
-function editPengurus(id) {
-  openModalForm("pengurus", id);
-}
-
-function editInventaris(id) {
-  openModalForm("inventaris", id);
-}
+function editJamaah(id) { openModalForm("jamaah", id); }
+function editPengurus(id) { openModalForm("pengurus", id); }
+function editInventaris(id) { openModalForm("inventaris", id); }
 
 // =========================================================================
-// RENDERING VIEW & PRESENSI DENGAN INDIKATOR TERSIMPAN
+// RENDERING VIEWS DENGAN TOMBOL TAMBAH DATA & MOBILE CARD LAYOUT
 // =========================================================================
 
 function renderBerandaKegiatan() {
@@ -858,24 +828,24 @@ function renderBerandaKegiatan() {
 
   if (kegiatanList.length === 0) {
     container.innerHTML = `
-      <div class="col-span-full bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-400">
-        <i class="fa-solid fa-calendar-xmark text-4xl mb-2 text-slate-300"></i>
-        <p class="text-sm font-medium">Belum ada agenda kegiatan mendatang yang ditambahkan.</p>
+      <div class="col-span-full bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 text-center text-slate-400">
+        <i class="fa-solid fa-calendar-xmark text-3xl sm:text-4xl mb-2 text-slate-300"></i>
+        <p class="text-xs sm:text-sm font-medium">Belum ada agenda kegiatan mendatang.</p>
       </div>
     `;
   } else {
     container.innerHTML = kegiatanList.map(k => `
-      <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-3">
         <div>
-          <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-3 mb-3">
-            <span class="text-xs px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold rounded-full border border-emerald-200 flex items-center gap-1">
+          <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5 mb-2.5">
+            <span class="text-[11px] px-2.5 py-0.5 bg-emerald-50 text-emerald-700 font-bold rounded-full border border-emerald-200 flex items-center gap-1">
               <i class="fa-solid fa-calendar-day"></i> ${k.Hari || '-'}, ${k.Tanggal ? String(k.Tanggal).split("T")[0] : '-'}
             </span>
-            <span class="text-xs text-amber-600 font-bold flex items-center gap-1">
+            <span class="text-[11px] text-amber-600 font-bold flex items-center gap-1">
               <i class="fa-solid fa-clock"></i> ${k.Jam || 'WIB'}
             </span>
           </div>
-          <h3 class="font-bold text-slate-800 text-base mb-1">${k.Kegiatan || k.Nama_Kegiatan || '-'}</h3>
+          <h3 class="font-bold text-slate-800 text-sm sm:text-base mb-1">${k.Kegiatan || k.Nama_Kegiatan || '-'}</h3>
           <p class="text-xs text-slate-600 flex items-center gap-1 mb-2">
             <i class="fa-solid fa-user-tie text-teal-600"></i> <b>Pemateri:</b> ${k.Pemateri || '-'}
           </p>
@@ -883,11 +853,11 @@ function renderBerandaKegiatan() {
             ${k.Keterangan || k.Target_Usia || 'Tidak ada catatan tambahan.'}
           </p>
         </div>
-        <div class="admin-only ${isSuperOrDaerah() ? '' : 'hidden'} flex justify-end gap-2 pt-2 border-t border-slate-100">
-          <button onclick="openModalForm('kegiatan', '${k.ID || k.ID_Kegiatan}')" class="text-amber-600 hover:text-amber-800 text-xs font-semibold flex items-center gap-1 p-1">
+        <div class="admin-only ${isSuperOrDaerah() ? '' : 'hidden'} flex justify-end gap-3 pt-2 border-t border-slate-100">
+          <button onclick="openModalForm('kegiatan', '${k.ID || k.ID_Kegiatan}')" class="text-amber-600 hover:text-amber-800 text-xs font-semibold flex items-center gap-1">
             <i class="fa-solid fa-pen"></i> Edit
           </button>
-          <button onclick="deleteRow('Kegiatan', '${k.ID || k.ID_Kegiatan}')" class="text-rose-600 hover:text-rose-800 text-xs font-semibold flex items-center gap-1 p-1">
+          <button onclick="deleteRow('Kegiatan', '${k.ID || k.ID_Kegiatan}')" class="text-rose-600 hover:text-rose-800 text-xs font-semibold flex items-center gap-1">
             <i class="fa-solid fa-trash"></i> Hapus
           </button>
         </div>
@@ -901,14 +871,13 @@ function renderPengurus() {
   if (!tbody) return;
 
   const data = Array.isArray(appData.pengurus) ? appData.pengurus : [];
-  const desaFilter = document.getElementById("global-filter-desa") ? document.getElementById("global-filter-desa").value : "Semua";
-  const kelFilter = document.getElementById("global-filter-kelompok") ? document.getElementById("global-filter-kelompok").value : "Semua";
-  const search = (document.getElementById("global-search-input") ? document.getElementById("global-search-input").value : "").toLowerCase().trim();
+  const desaFilter = document.getElementById("global-filter-desa")?.value || "Semua";
+  const kelFilter = document.getElementById("global-filter-kelompok")?.value || "Semua";
+  const search = (document.getElementById("global-search-input")?.value || "").toLowerCase().trim();
 
   const filtered = data.filter(p => {
     const kel = String(p.Kelompok || p.Nama_Kelompok || "-").trim();
     const desa = String((p.Desa && p.Desa !== "-") ? p.Desa : getDesaByKelompok(kel)).trim();
-
     const matchDesa = (desaFilter === "Semua") || (desa.toLowerCase() === desaFilter.toLowerCase());
     const matchKel = (kelFilter === "Semua") || (kel.toLowerCase() === kelFilter.toLowerCase());
 
@@ -921,7 +890,7 @@ function renderPengurus() {
   });
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 italic">Tidak ada data pengurus yang sesuai kriteria.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 italic text-xs sm:text-sm">Tidak ada data pengurus yang sesuai kriteria.</td></tr>`;
     return;
   }
 
@@ -931,13 +900,13 @@ function renderPengurus() {
     const wilayahLabel = (desa !== "-" && kel !== "-") ? `${desa} - ${kel}` : (desa !== "-" ? desa : (kel !== "-" ? kel : "-"));
 
     return `
-      <tr class="bg-white border-b hover:bg-slate-50">
-        <td class="px-4 sm:px-6 py-3.5 font-semibold text-slate-800">${p.Nama || '-'}</td>
-        <td class="px-4 sm:px-6 py-3.5 text-xs text-slate-600 font-medium">${wilayahLabel}</td>
-        <td class="px-4 sm:px-6 py-3.5">${p.Jabatan || '-'}</td>
-        <td class="px-4 sm:px-6 py-3.5">${p.NoHP || '-'}</td>
-        <td class="px-4 sm:px-6 py-3.5"><span class="px-2 py-1 rounded-full text-xs font-semibold ${p.Status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${p.Status || 'Aktif'}</span></td>
-        <td class="px-4 sm:px-6 py-3.5 text-center admin-only ${isSuperOrDaerah() ? '' : 'hidden'} space-x-2">
+      <tr class="bg-white border-b hover:bg-slate-50 text-xs sm:text-sm">
+        <td class="px-3 sm:px-6 py-3 font-semibold text-slate-800">${p.Nama || '-'}</td>
+        <td class="px-3 sm:px-6 py-3 text-xs text-slate-600">${wilayahLabel}</td>
+        <td class="px-3 sm:px-6 py-3">${p.Jabatan || '-'}</td>
+        <td class="px-3 sm:px-6 py-3 whitespace-nowrap">${p.NoHP || '-'}</td>
+        <td class="px-3 sm:px-6 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${p.Status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${p.Status || 'Aktif'}</span></td>
+        <td class="px-3 sm:px-6 py-3 text-center admin-only ${isSuperOrDaerah() ? '' : 'hidden'} space-x-2 whitespace-nowrap">
           <button onclick="openModalForm('pengurus', '${p.ID}')" class="text-amber-600 hover:text-amber-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
           <button onclick="deleteRow('Pengurus', '${p.ID}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
         </td>
@@ -951,14 +920,13 @@ function renderInventaris() {
   if (!tbody) return;
 
   const data = Array.isArray(appData.inventaris) ? appData.inventaris : [];
-  const desaFilter = document.getElementById("global-filter-desa") ? document.getElementById("global-filter-desa").value : "Semua";
-  const kelFilter = document.getElementById("global-filter-kelompok") ? document.getElementById("global-filter-kelompok").value : "Semua";
-  const search = (document.getElementById("global-search-input") ? document.getElementById("global-search-input").value : "").toLowerCase().trim();
+  const desaFilter = document.getElementById("global-filter-desa")?.value || "Semua";
+  const kelFilter = document.getElementById("global-filter-kelompok")?.value || "Semua";
+  const search = (document.getElementById("global-search-input")?.value || "").toLowerCase().trim();
 
   const filtered = data.filter(i => {
     const kel = String(i.Kelompok || i.Nama_Kelompok || "-").trim();
     const desa = String((i.Desa && i.Desa !== "-") ? i.Desa : getDesaByKelompok(kel)).trim();
-
     const matchDesa = (desaFilter === "Semua") || (desa.toLowerCase() === desaFilter.toLowerCase());
     const matchKel = (kelFilter === "Semua") || (kel.toLowerCase() === kelFilter.toLowerCase());
 
@@ -971,7 +939,7 @@ function renderInventaris() {
   });
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-6 text-center text-slate-400 italic">Tidak ada data inventaris pada wilayah binaan yang dipilih.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-6 text-center text-slate-400 italic text-xs sm:text-sm">Tidak ada data inventaris pada wilayah yang dipilih.</td></tr>`;
     return;
   }
 
@@ -980,15 +948,15 @@ function renderInventaris() {
     const desa = (i.Desa && i.Desa !== "-") ? i.Desa : getDesaByKelompok(kel);
 
     return `
-      <tr class="bg-white border-b hover:bg-slate-50">
-        <td class="px-4 sm:px-6 py-3.5 font-semibold text-slate-800">${i.NamaBarang || '-'}</td>
-        <td class="px-3 sm:px-4 py-3.5 text-xs text-slate-600">${desa}</td>
-        <td class="px-3 sm:px-4 py-3.5 text-xs font-semibold text-slate-700">${kel}</td>
-        <td class="px-4 sm:px-6 py-3.5">${i.Jumlah || 0}</td>
-        <td class="px-4 sm:px-6 py-3.5"><span class="px-2 py-1 rounded-full text-xs font-semibold ${i.Kondisi === 'Baik' ? 'bg-teal-100 text-teal-800' : 'bg-rose-100 text-rose-800'}">${i.Kondisi || 'Baik'}</span></td>
-        <td class="px-4 sm:px-6 py-3.5">${i.TanggalMasuk ? String(i.TanggalMasuk).split("T")[0] : '-'}</td>
-        <td class="px-4 sm:px-6 py-3.5">${i.Keterangan || '-'}</td>
-        <td class="px-4 sm:px-6 py-3.5 text-center admin-only ${isSuperOrDaerah() ? '' : 'hidden'} space-x-2">
+      <tr class="bg-white border-b hover:bg-slate-50 text-xs sm:text-sm">
+        <td class="px-3 sm:px-6 py-3 font-semibold text-slate-800">${i.NamaBarang || '-'}</td>
+        <td class="px-3 sm:px-4 py-3 text-xs text-slate-600">${desa}</td>
+        <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-700">${kel}</td>
+        <td class="px-3 sm:px-6 py-3 text-center font-bold">${i.Jumlah || 0}</td>
+        <td class="px-3 sm:px-6 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${i.Kondisi === 'Baik' ? 'bg-teal-100 text-teal-800' : 'bg-rose-100 text-rose-800'}">${i.Kondisi || 'Baik'}</span></td>
+        <td class="px-3 sm:px-6 py-3 whitespace-nowrap text-xs">${i.TanggalMasuk ? String(i.TanggalMasuk).split("T")[0] : '-'}</td>
+        <td class="px-3 sm:px-6 py-3 text-xs text-slate-500">${i.Keterangan || '-'}</td>
+        <td class="px-3 sm:px-6 py-3 text-center admin-only ${isSuperOrDaerah() ? '' : 'hidden'} space-x-2 whitespace-nowrap">
           <button onclick="openModalForm('inventaris', '${i.ID}')" class="text-amber-600 hover:text-amber-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
           <button onclick="deleteRow('Inventaris', '${i.ID}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
         </td>
@@ -1002,14 +970,13 @@ function renderJamaah() {
   if (!tbody) return;
 
   const data = Array.isArray(appData.jamaah) ? appData.jamaah : [];
-  const desaFilter = document.getElementById("global-filter-desa") ? document.getElementById("global-filter-desa").value : "Semua";
-  const kelFilter = document.getElementById("global-filter-kelompok") ? document.getElementById("global-filter-kelompok").value : "Semua";
-  const search = (document.getElementById("global-search-input") ? document.getElementById("global-search-input").value : "").toLowerCase().trim();
+  const desaFilter = document.getElementById("global-filter-desa")?.value || "Semua";
+  const kelFilter = document.getElementById("global-filter-kelompok")?.value || "Semua";
+  const search = (document.getElementById("global-search-input")?.value || "").toLowerCase().trim();
 
   const filtered = data.filter(j => {
     const jKel = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
     const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKel)).trim();
-
     const matchDesa = (desaFilter === "Semua") || (jDesa.toLowerCase() === desaFilter.toLowerCase());
     const matchKel = (kelFilter === "Semua") || (jKel.toLowerCase() === kelFilter.toLowerCase());
 
@@ -1022,10 +989,10 @@ function renderJamaah() {
   });
 
   const badgeCount = document.getElementById("jamaah-count-badge");
-  if (badgeCount) badgeCount.innerText = `${filtered.length} Jamaah Ditemukan`;
+  if (badgeCount) badgeCount.innerText = `${filtered.length} Jamaah`;
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="11" class="px-4 py-6 text-center text-slate-400 italic">Tidak ada data jamaah pada kriteria yang dipilih.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="px-4 py-6 text-center text-slate-400 italic text-xs sm:text-sm">Tidak ada data jamaah yang sesuai.</td></tr>`;
     return;
   }
 
@@ -1043,19 +1010,19 @@ function renderJamaah() {
     const jDesa = (j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKel);
 
     return `
-      <tr class="bg-white border-b hover:bg-slate-50">
-        <td class="px-3 sm:px-4 py-3 text-xs font-mono text-slate-500">${j.ID_Jamaah || j.ID || '-'}</td>
+      <tr class="bg-white border-b hover:bg-slate-50 text-xs sm:text-sm">
+        <td class="px-3 sm:px-4 py-3 font-mono text-[11px] text-slate-400">${j.ID_Jamaah || j.ID || '-'}</td>
         <td class="px-3 sm:px-4 py-3 font-semibold text-slate-800">${j.Nama_Lengkap || j.Nama || '-'}</td>
-        <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-700">${jDesa}</td>
-        <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-900">${jKel}</td>
-        <td class="px-3 sm:px-4 py-3 whitespace-nowrap">${j.TanggalLahir ? String(j.TanggalLahir).split("T")[0] : '-'} <span class="text-xs text-emerald-600 font-bold">(${calculateAge(j.TanggalLahir)})</span></td>
-        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-1 rounded bg-teal-50 text-teal-700 font-semibold text-xs">${displayKelompok}</span></td>
-        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-1 rounded bg-slate-100 text-slate-700 font-semibold text-xs">${displayKelas}</span></td>
+        <td class="px-3 sm:px-4 py-3 text-xs text-slate-600">${jDesa}</td>
+        <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-800">${jKel}</td>
+        <td class="px-3 sm:px-4 py-3 whitespace-nowrap text-xs">${j.TanggalLahir ? String(j.TanggalLahir).split("T")[0] : '-'} <span class="text-[10px] text-emerald-600 font-bold">(${calculateAge(j.TanggalLahir)})</span></td>
+        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-0.5 rounded bg-teal-50 text-teal-700 font-semibold text-[11px]">${displayKelompok}</span></td>
+        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[11px]">${displayKelas}</span></td>
         <td class="px-3 sm:px-4 py-3">${j.Gender || '-'}</td>
-        <td class="px-3 sm:px-4 py-3">${j.Alamat || '-'}</td>
-        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-1 rounded-full text-xs font-semibold ${j.Keaktifan === 'Aktif' || j.Status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${j.Keaktifan || j.Status || 'Aktif'}</span></td>
-        <td class="px-3 sm:px-4 py-3 text-center admin-only space-x-2 ${isSuperOrDaerah() ? '' : 'hidden'}">
-          <button onclick="editJamaah('${j.ID_Jamaah || j.ID}')" class="text-amber-600 hover:text-amber-800 font-semibold p-1"><i class="fa-solid fa-pen-to-square"></i></button>
+        <td class="px-3 sm:px-4 py-3 text-slate-500">${j.Alamat || '-'}</td>
+        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${j.Keaktifan === 'Aktif' || j.Status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${j.Keaktifan || j.Status || 'Aktif'}</span></td>
+        <td class="px-3 sm:px-4 py-3 text-center admin-only space-x-2 ${isSuperOrDaerah() ? '' : 'hidden'} whitespace-nowrap">
+          <button onclick="editJamaah('${j.ID_Jamaah || j.ID}')" class="text-amber-600 hover:text-amber-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
           <button onclick="deleteRow('Master_Jamaah', '${j.ID_Jamaah || j.ID}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>
@@ -1071,21 +1038,21 @@ function renderPresensiTable() {
     if (isCaberawit) {
       theadTr.innerHTML = `
         <th scope="col" class="px-3 py-3 text-center w-12">NO</th>
-        <th scope="col" class="px-4 py-3">NAMA JAMAAH</th>
-        <th scope="col" class="px-3 py-3 text-center w-16">HADIR</th>
-        <th scope="col" class="px-3 py-3 text-center w-16">IZIN</th>
-        <th scope="col" class="px-3 py-3 text-center w-16">ALFA</th>
-        <th scope="col" class="px-3 py-3 text-center w-36 text-teal-800">29 KARAKTER</th>
-        <th scope="col" class="px-3 py-3 text-left w-48">KETERANGAN</th>
+        <th scope="col" class="px-4 py-3 min-w-[140px]">NAMA JAMAAH</th>
+        <th scope="col" class="px-3 py-3 text-center w-14">HADIR</th>
+        <th scope="col" class="px-3 py-3 text-center w-14">IZIN</th>
+        <th scope="col" class="px-3 py-3 text-center w-14">ALFA</th>
+        <th scope="col" class="px-3 py-3 text-center w-28 text-teal-800">29 KARAKTER</th>
+        <th scope="col" class="px-3 py-3 text-left min-w-[160px]">KETERANGAN</th>
       `;
     } else {
       theadTr.innerHTML = `
         <th scope="col" class="px-3 py-3 text-center w-12">NO</th>
-        <th scope="col" class="px-4 py-3">NAMA JAMAAH</th>
-        <th scope="col" class="px-3 py-3 text-center w-16">HADIR</th>
-        <th scope="col" class="px-3 py-3 text-center w-16">IZIN</th>
-        <th scope="col" class="px-3 py-3 text-center w-16">ALFA</th>
-        <th scope="col" class="px-3 py-3 text-left w-48">KETERANGAN</th>
+        <th scope="col" class="px-4 py-3 min-w-[140px]">NAMA JAMAAH</th>
+        <th scope="col" class="px-3 py-3 text-center w-14">HADIR</th>
+        <th scope="col" class="px-3 py-3 text-center w-14">IZIN</th>
+        <th scope="col" class="px-3 py-3 text-center w-14">ALFA</th>
+        <th scope="col" class="px-3 py-3 text-left min-w-[160px]">KETERANGAN</th>
       `;
     }
   }
@@ -1139,15 +1106,13 @@ function renderPresensiTable() {
   const tbody = document.getElementById("table-presensi-body");
   if (!tbody) return;
 
-  const displayTitle = (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? `${currentKelompok} (${currentKelas})` : currentKelompok;
   const isReadOnly = !currentAdmin;
 
   if (filteredJamaah.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="${isCaberawit ? 7 : 6}" class="px-4 py-6 text-center text-slate-400 italic">
-          Belum ada jamaah yang terdaftar di kelompok <b>${displayTitle}</b>.<br>
-          <span class="text-xs text-slate-500">Buka menu <b>Data Jamaah</b> untuk menambahkan jamaah.</span>
+        <td colspan="${isCaberawit ? 7 : 6}" class="px-4 py-6 text-center text-slate-400 italic text-xs">
+          Belum ada jamaah yang terdaftar di kelompok ini.
         </td>
       </tr>
     `;
@@ -1166,14 +1131,8 @@ function renderPresensiTable() {
 
     const pKel = String(p.Kelompok || p.kelompok || "").trim().toLowerCase();
     const pKls = String(p.Kelas || p.kelas || "Umum").trim().toLowerCase();
-    
     const rawTgl = p.Tanggal || p.tanggal;
-    let pDateStr = "";
-    if (rawTgl instanceof Date) {
-      pDateStr = rawTgl.toISOString().split("T")[0];
-    } else {
-      pDateStr = String(rawTgl).substring(0, 10);
-    }
+    let pDateStr = (rawTgl instanceof Date) ? rawTgl.toISOString().split("T")[0] : String(rawTgl).substring(0, 10);
 
     const checkKelas = (currentKelompok === "Caberawit" || currentKelompok === "ASAD")
       ? (pKls === String(currentKelas).trim().toLowerCase())
@@ -1193,7 +1152,7 @@ function renderPresensiTable() {
     const namaKey = String(nama).trim().toLowerCase();
     const isSaved = Boolean(existingStatusMap[namaKey]);
     const exData = existingStatusMap[namaKey] || { status: "Hadir", keterangan: "", karakter29: "Belum" };
-    
+
     const savedStatus = exData.status;
     const savedKet = exData.keterangan;
     const savedKarakter = exData.karakter29;
@@ -1206,7 +1165,7 @@ function renderPresensiTable() {
     if (isCaberawit) {
       caberawitExtraTd = `
         <td class="px-2 py-3 text-center">
-          <select id="karakter-${idx}" ${isReadOnly ? 'disabled' : ''} class="text-[11px] px-2 py-1 rounded border border-slate-300 bg-white font-semibold ${savedKarakter === 'Sudah' ? 'text-emerald-700 bg-emerald-50 border-emerald-300' : 'text-slate-600'}">
+          <select id="karakter-${idx}" ${isReadOnly ? 'disabled' : ''} class="text-[11px] px-1.5 py-1 rounded border border-slate-300 bg-white font-semibold ${savedKarakter === 'Sudah' ? 'text-emerald-700 bg-emerald-50 border-emerald-300' : 'text-slate-600'}">
             <option value="Belum" ${savedKarakter === 'Belum' ? 'selected' : ''}>Belum</option>
             <option value="Sudah" ${savedKarakter === 'Sudah' ? 'selected' : ''}>Sudah</option>
           </select>
@@ -1215,30 +1174,30 @@ function renderPresensiTable() {
     }
 
     const badgeTersimpan = isSaved
-      ? `<span class="ml-2 text-[10px] inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold border border-emerald-200" title="Telah diabsen pada tanggal ${targetDate}">
+      ? `<span class="mt-1 inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
           <i class="fa-solid fa-check"></i> Tersimpan (${savedStatus})
          </span>`
-      : `<span class="ml-2 text-[10px] inline-flex items-center px-1.5 py-0.5 rounded text-slate-400 border border-dashed border-slate-200">Belum Disimpan</span>`;
+      : `<span class="mt-1 inline-flex items-center text-[9px] px-1 py-0.5 rounded text-slate-400 border border-dashed border-slate-200">Belum Disimpan</span>`;
 
     return `
-      <tr class="bg-white border-b hover:bg-slate-50 transition-colors">
-        <td class="px-3 py-3 text-center text-xs font-semibold text-slate-500">${idx + 1}</td>
-        <td class="px-4 py-3 font-medium text-slate-800">
-          <span class="align-middle">${nama}</span>
+      <tr class="bg-white border-b hover:bg-slate-50 transition-colors text-xs sm:text-sm">
+        <td class="px-2 sm:px-3 py-3 text-center text-xs font-semibold text-slate-500">${idx + 1}</td>
+        <td class="px-3 sm:px-4 py-3 font-medium text-slate-800">
+          <div>${nama}</div>
           ${badgeTersimpan}
         </td>
-        <td class="px-3 py-3 text-center">
+        <td class="px-2 sm:px-3 py-3 text-center">
           <input type="radio" name="presensi-${idx}" value="Hadir" onchange="toggleKetInput(${idx})" ${savedStatus === 'Hadir' ? 'checked' : ''} ${disabledRadio} class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
         </td>
-        <td class="px-3 py-3 text-center">
+        <td class="px-2 sm:px-3 py-3 text-center">
           <input type="radio" name="presensi-${idx}" value="Izin" onchange="toggleKetInput(${idx})" ${savedStatus === 'Izin' ? 'checked' : ''} ${disabledRadio} class="w-4 h-4 text-amber-500 focus:ring-amber-500">
         </td>
-        <td class="px-3 py-3 text-center">
+        <td class="px-2 sm:px-3 py-3 text-center">
           <input type="radio" name="presensi-${idx}" value="Alfa" onchange="toggleKetInput(${idx})" ${savedStatus === 'Alfa' ? 'checked' : ''} ${disabledRadio} class="w-4 h-4 text-rose-600 focus:ring-rose-500">
         </td>
         ${caberawitExtraTd}
-        <td class="px-3 py-3">
-          <input type="text" id="ket-${idx}" value="${savedKet}" placeholder="${isReadOnly ? '-' : 'Alasan izin...'}" ${disabledKet} class="w-full text-xs px-2 py-1 border rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-amber-500 transition-all ${!isIzinChecked ? 'opacity-40' : ''}">
+        <td class="px-2 sm:px-3 py-3">
+          <input type="text" id="ket-${idx}" value="${savedKet}" placeholder="${isReadOnly ? '-' : 'Alasan...'}" ${disabledKet} class="w-full text-xs px-2 py-1 border rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-amber-500 transition-all ${!isIzinChecked ? 'opacity-40' : ''}">
         </td>
       </tr>
     `;
@@ -1307,7 +1266,7 @@ function updateRekapHarian() {
 
   if (document.getElementById("rekap-mingguan-title")) {
     const displayTitle = (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? `${currentKelompok} (${currentKelas})` : currentKelompok;
-    document.getElementById("rekap-mingguan-title").innerHTML = `<i class="fa-solid fa-calendar-day mr-2"></i> Rekapan Presensi Hari Ini (${targetDate}): ${displayTitle}`;
+    document.getElementById("rekap-mingguan-title").innerHTML = `<i class="fa-solid fa-calendar-day mr-1"></i> Rekapan: ${displayTitle}`;
   }
 }
 
@@ -1323,34 +1282,33 @@ async function submitPresensi() {
   const isCaberawit = (currentKelompok === "Caberawit");
   const targetKelas = (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? currentKelas : "Umum";
 
-  const jenisKegiatan = document.getElementById("presensi-jenis-kegiatan") ? document.getElementById("presensi-jenis-kegiatan").value : "Rutin";
-  const pemateri = document.getElementById("presensi-pemateri") ? document.getElementById("presensi-pemateri").value : "-";
-  const kendala = document.getElementById("presensi-kendala") ? document.getElementById("presensi-kendala").value : "-";
+  const jenisKegiatan = document.getElementById("presensi-jenis-kegiatan")?.value || "Rutin";
+  const pemateri = document.getElementById("presensi-pemateri")?.value || "-";
+  const kendala = document.getElementById("presensi-kendala")?.value || "-";
 
   let jurnalText = "";
   let materiCaberawitObj = null;
 
   if (isCaberawit) {
     materiCaberawitObj = {
-      akhlak: document.getElementById("mat-akhlak") ? document.getElementById("mat-akhlak").value : "",
-      tilawati: document.getElementById("mat-tilawati") ? document.getElementById("mat-tilawati").value : "",
-      bacaan: document.getElementById("mat-bacaan") ? document.getElementById("mat-bacaan").value : "",
-      tajwid: document.getElementById("mat-tajwid") ? document.getElementById("mat-tajwid").value : "",
-      maknaQuran: document.getElementById("mat-makna-quran") ? document.getElementById("mat-makna-quran").value : "",
-      maknaHadist: document.getElementById("mat-makna-hadist") ? document.getElementById("mat-makna-hadist").value : "",
-      hafalanDalil: document.getElementById("mat-hafalan-dalil") ? document.getElementById("mat-hafalan-dalil").value : "",
-      hafalanSurat: document.getElementById("mat-hafalan-surat") ? document.getElementById("mat-hafalan-surat").value : "",
-      hafalanDoa: document.getElementById("mat-hafalan-doa") ? document.getElementById("mat-hafalan-doa").value : "",
-      bcm: document.getElementById("mat-bcm") ? document.getElementById("mat-bcm").value : "",
-      praktek: document.getElementById("mat-praktek") ? document.getElementById("mat-praktek").value : ""
+      akhlak: document.getElementById("mat-akhlak")?.value || "",
+      tilawati: document.getElementById("mat-tilawati")?.value || "",
+      bacaan: document.getElementById("mat-bacaan")?.value || "",
+      tajwid: document.getElementById("mat-tajwid")?.value || "",
+      maknaQuran: document.getElementById("mat-makna-quran")?.value || "",
+      maknaHadist: document.getElementById("mat-makna-hadist")?.value || "",
+      hafalanDalil: document.getElementById("mat-hafalan-dalil")?.value || "",
+      hafalanSurat: document.getElementById("mat-hafalan-surat")?.value || "",
+      hafalanDoa: document.getElementById("mat-hafalan-doa")?.value || "",
+      bcm: document.getElementById("mat-bcm")?.value || "",
+      praktek: document.getElementById("mat-praktek")?.value || ""
     };
     jurnalText = `Akhlak: ${materiCaberawitObj.akhlak || '-'} | Tilawati: ${materiCaberawitObj.tilawati || '-'}`;
   } else {
-    jurnalText = document.getElementById("presensi-jurnal") ? document.getElementById("presensi-jurnal").value : "-";
+    jurnalText = document.getElementById("presensi-jurnal")?.value || "-";
   }
 
   const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
-
   const filteredJamaah = jamaahList.filter(j => {
     const matchStatus = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
     if (!matchStatus) return false;
@@ -1361,9 +1319,7 @@ async function submitPresensi() {
 
     const isItemCaberawit = rawKelasUsiaLower.startsWith("caberawit");
     let detectedKelas = String(j.Kelas || "").trim().toLowerCase();
-    if (!detectedKelas && isItemCaberawit) {
-      detectedKelas = rawKelasUsiaLower;
-    }
+    if (!detectedKelas && isItemCaberawit) detectedKelas = rawKelasUsiaLower;
 
     if (currentKelompok === "ASAD") {
       if (currentKelas === "Caberawit Laki-Laki") return isItemCaberawit && jGender === "laki-laki";
@@ -1410,7 +1366,7 @@ async function submitPresensi() {
     };
   });
 
-  showMessage("Menyimpan presensi ke database...", "info");
+  showMessage("Menyimpan presensi ke server...", "info");
   try {
     const res = await fetch(SCRIPT_URL, {
       method: "POST",
@@ -1451,7 +1407,7 @@ async function submitPresensi() {
       });
 
       renderPresensiTable();
-      showMessage("Data presensi berhasil disimpan! Status tersimpan telah diperbarui.", "success");
+      showMessage("Data presensi berhasil disimpan!", "success");
       loadAllData();
     } else {
       showMessage("Gagal menyimpan: " + (json.error || json.message), "error");
@@ -1501,15 +1457,13 @@ function renderMonitoringTable() {
 
   initMonitoringDateFilters();
 
-  const filterKelasUsia = document.getElementById("monitoring-filter-kelompok") ? document.getElementById("monitoring-filter-kelompok").value : "Semua";
-  const desaFilter = document.getElementById("global-filter-desa") ? document.getElementById("global-filter-desa").value : "Semua";
-  const kelFilter = document.getElementById("global-filter-kelompok") ? document.getElementById("global-filter-kelompok").value : "Semua";
-  const search = (document.getElementById("global-search-input") ? document.getElementById("global-search-input").value : "").toLowerCase().trim();
+  const filterKelasUsia = document.getElementById("monitoring-filter-kelompok")?.value || "Semua";
+  const desaFilter = document.getElementById("global-filter-desa")?.value || "Semua";
+  const kelFilter = document.getElementById("global-filter-kelompok")?.value || "Semua";
+  const search = (document.getElementById("global-search-input")?.value || "").toLowerCase().trim();
 
-  const startDateInput = document.getElementById("monitoring-date-start");
-  const endDateInput = document.getElementById("monitoring-date-end");
-  const startDateVal = startDateInput ? startDateInput.value : "";
-  const endDateVal = endDateInput ? endDateInput.value : "";
+  const startDateVal = document.getElementById("monitoring-date-start")?.value || "";
+  const endDateVal = document.getElementById("monitoring-date-end")?.value || "";
 
   const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
   const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
@@ -1537,24 +1491,18 @@ function renderMonitoringTable() {
     const matchSearch = !search || namaStr.includes(search);
 
     if (!matchDesa || !matchKelBinaan || !matchSearch) return false;
-
     if (filterKelasUsia === "Semua") return true;
 
-    const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "").trim();
-    const rawLower = rawKelasUsia.toLowerCase();
+    const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "").trim().toLowerCase();
     const filterLower = filterKelasUsia.toLowerCase();
 
-    if (filterLower === "caberawit") {
-      return rawLower.startsWith("caberawit");
-    } else if (filterLower.startsWith("caberawit ")) {
-      return rawLower === filterLower || String(j.Kelas || "").trim().toLowerCase() === filterLower;
-    } else {
-      return rawLower === filterLower;
-    }
+    if (filterLower === "caberawit") return rawKelasUsia.startsWith("caberawit");
+    else if (filterLower.startsWith("caberawit ")) return rawKelasUsia === filterLower || String(j.Kelas || "").trim().toLowerCase() === filterLower;
+    return rawKelasUsia === filterLower;
   });
 
   if (targetJamaah.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="11" class="px-4 py-6 text-center text-slate-400 italic">Tidak ada data jamaah pada wilayah/kelas usia yang dipilih.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="px-4 py-6 text-center text-slate-400 italic text-xs sm:text-sm">Tidak ada data jamaah yang sesuai.</td></tr>`;
     return;
   }
 
@@ -1605,27 +1553,27 @@ function renderMonitoringTable() {
     let karakterStatusBadge = "-";
     if (isCaberawit) {
       karakterStatusBadge = (totalCaberawitPertemuan > 0 && sudahKarakterCount > 0)
-        ? `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">${sudahKarakterCount}/${totalCaberawitPertemuan} Sudah</span>`
-        : `<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Belum</span>`;
+        ? `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">${sudahKarakterCount}/${totalCaberawitPertemuan} Sudah</span>`
+        : `<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px]">Belum</span>`;
     }
 
     const asadBadge = attendedAsad
-      ? `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold"><i class="fa-solid fa-check mr-1"></i>Hadir</span>`
-      : `<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Tidak/Belum</span>`;
+      ? `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]"><i class="fa-solid fa-check mr-1"></i>Hadir</span>`
+      : `<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px]">Tidak/Belum</span>`;
 
     return `
-      <tr class="bg-white border-b hover:bg-slate-50">
-        <td class="px-3 py-3 text-center font-semibold text-slate-500">${idx + 1}</td>
-        <td class="px-4 py-3 font-semibold text-slate-800">${nama}</td>
-        <td class="px-3 py-3 text-xs text-slate-600">${jDesa}</td>
-        <td class="px-3 py-3 text-xs font-semibold text-slate-700">${jKelBinaan}</td>
-        <td class="px-3 py-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-slate-100 font-medium">${displayKelas}</span></td>
+      <tr class="bg-white border-b hover:bg-slate-50 text-xs sm:text-sm">
+        <td class="px-2 sm:px-3 py-3 text-center font-semibold text-slate-500">${idx + 1}</td>
+        <td class="px-3 sm:px-4 py-3 font-semibold text-slate-800">${nama}</td>
+        <td class="px-2 sm:px-3 py-3 text-xs text-slate-600">${jDesa}</td>
+        <td class="px-2 sm:px-3 py-3 text-xs font-semibold text-slate-700">${jKelBinaan}</td>
+        <td class="px-2 sm:px-3 py-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-slate-100 font-medium text-[11px]">${displayKelas}</span></td>
         <td class="px-2 py-3 text-center font-bold text-emerald-600">${countHadir}</td>
         <td class="px-2 py-3 text-center font-bold text-amber-600">${countIzin}</td>
         <td class="px-2 py-3 text-center font-bold text-rose-600">${countAlfa}</td>
-        <td class="px-4 py-3 text-xs text-slate-500 max-w-xs truncate" title="${reasonsText}">${reasonsText}</td>
-        <td class="px-3 py-3 text-center whitespace-nowrap">${asadBadge}</td>
-        <td class="px-3 py-3 text-center whitespace-nowrap">${karakterStatusBadge}</td>
+        <td class="px-3 py-3 text-xs text-slate-500 max-w-[150px] truncate" title="${reasonsText}">${reasonsText}</td>
+        <td class="px-2 py-3 text-center whitespace-nowrap">${asadBadge}</td>
+        <td class="px-2 py-3 text-center whitespace-nowrap">${karakterStatusBadge}</td>
       </tr>
     `;
   }).join("");
@@ -1674,18 +1622,13 @@ function buildLocalPenyapaanState() {
 
 function calculateRekomendasi16Kelompok() {
   localPenyapaanData.forEach(k => k.is_recommended = false);
-
   const desas = [...new Set(localPenyapaanData.map(k => k.nama_desa))];
   desas.forEach(desa => {
     const kelompokInDesa = localPenyapaanData.filter(k => k.nama_desa === desa);
     if (kelompokInDesa.length === 0) return;
-
     kelompokInDesa.sort((a, b) => parseInt(a.total_penyapaan || 0, 10) - parseInt(b.total_penyapaan || 0, 10));
-
     const lowest4 = kelompokInDesa.slice(0, 4);
-    lowest4.forEach(item => {
-      item.is_recommended = true;
-    });
+    lowest4.forEach(item => { item.is_recommended = true; });
   });
 }
 
@@ -1700,19 +1643,11 @@ function toggleLocalSapa(idKelompok, actionType) {
   if (!item) return;
 
   if (actionType === "sapa") {
-    if (item.status_sapa) {
-      item.status_sapa = false;
-    } else {
-      item.status_sapa = true;
-      item.status_belum_sapa = false;
-    }
+    item.status_sapa = !item.status_sapa;
+    if (item.status_sapa) item.status_belum_sapa = false;
   } else if (actionType === "belum_sapa") {
-    if (item.status_belum_sapa) {
-      item.status_belum_sapa = false;
-    } else {
-      item.status_belum_sapa = true;
-      item.status_sapa = false;
-    }
+    item.status_belum_sapa = !item.status_belum_sapa;
+    if (item.status_belum_sapa) item.status_sapa = false;
   }
 
   item.total_penyapaan = item.base_total + (item.status_sapa ? 1 : 0);
@@ -1724,7 +1659,7 @@ function toggleLocalSapa(idKelompok, actionType) {
 
 async function simpanBatchPenyapaanGrid() {
   if (!canWritePenyapaan()) {
-    return alert("Akses ditolak: Admin Desa & Admin Kelompok hanya dapat melihat riwayat penyapaan.");
+    return alert("Akses ditolak: Admin Desa & Kelompok hanya dapat melihat riwayat penyapaan.");
   }
 
   const dirtyItems = localPenyapaanData.filter(k => k.is_dirty && k.status_sapa);
@@ -1771,13 +1706,13 @@ function switchPenyapaanSubTab(subTabName) {
     const el = document.getElementById(`subtab-${name}`);
     const btn = document.getElementById(`subtab-btn-${name}`);
     if (el) el.classList.add("hidden");
-    if (btn) btn.classList.remove("active");
+    if (btn) btn.classList.remove("active", "bg-teal-700", "text-white");
   });
 
   const activeEl = document.getElementById(`subtab-${subTabName}`);
   const activeBtn = document.getElementById(`subtab-btn-${subTabName}`);
   if (activeEl) activeEl.classList.remove("hidden");
-  if (activeBtn) activeBtn.classList.add("active");
+  if (activeBtn) activeBtn.classList.add("active", "bg-teal-700", "text-white");
 }
 
 function renderPenyapaanModule() {
@@ -1832,14 +1767,14 @@ function renderPetaCards() {
     });
 
     return `
-      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+      <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
         <div class="border-b pb-2 flex justify-between items-center">
-          <h4 class="font-bold text-slate-800 text-sm uppercase flex items-center gap-1.5">
+          <h4 class="font-bold text-slate-800 text-xs sm:text-sm uppercase flex items-center gap-1.5">
             <i class="fa-solid fa-location-dot text-emerald-600"></i> ${desa}
           </h4>
-          <span class="text-xs text-slate-500 font-semibold">${list.length} Kelompok</span>
+          <span class="text-[11px] text-slate-500 font-semibold">${list.length} Kelompok</span>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
           ${list.map(k => {
             const isSapaChecked = k.status_sapa;
             const isBelumChecked = k.status_belum_sapa;
@@ -1852,20 +1787,20 @@ function renderPetaCards() {
 
             let badgeHtml = "";
             if (isAlreadySapaToday) {
-              badgeHtml = `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-300" title="Telah disapa pada tanggal ${selectedSapaDate}">Tersimpan</span>`;
+              badgeHtml = `<span class="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-emerald-300">Tersimpan</span>`;
             } else if (k.is_dirty) {
-              badgeHtml = `<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-300">Draf</span>`;
+              badgeHtml = `<span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-amber-300">Draf</span>`;
             } else if (k.total_penyapaan > 0) {
-              badgeHtml = `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-300">Disapa (${k.total_penyapaan}x)</span>`;
+              badgeHtml = `<span class="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-emerald-300">${k.total_penyapaan}x Disapa</span>`;
             } else {
-              badgeHtml = `<span class="bg-slate-100 text-slate-500 text-[10px] font-semibold px-2 py-0.5 rounded">Belum</span>`;
+              badgeHtml = `<span class="bg-slate-100 text-slate-500 text-[9px] font-semibold px-1.5 py-0.5 rounded">Belum</span>`;
             }
 
             let rekomBadge = "";
             if (k.is_recommended) {
               rekomBadge = `
-                <span class="text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-md flex items-center gap-1">
-                  <i class="fa-solid fa-star text-amber-500 text-[9px]"></i> Rekomendasi
+                <span class="text-[9px] font-black bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded flex items-center gap-1">
+                  <i class="fa-solid fa-star text-amber-500 text-[8px]"></i> Rekomendasi
                 </span>
               `;
             }
@@ -1874,33 +1809,33 @@ function renderPetaCards() {
             const cursorClass = writeAccess ? 'cursor-pointer' : 'cursor-not-allowed opacity-60';
 
             return `
-              <div class="p-3.5 rounded-xl border flex flex-col justify-between space-y-2.5 transition-all ${k.is_dirty ? 'bg-amber-50/60 border-amber-300 shadow-xs' : (k.is_recommended ? 'bg-amber-50/25 border-amber-200 shadow-xs' : (k.total_penyapaan > 0 ? 'bg-emerald-50/30 border-emerald-200' : 'bg-slate-50/70 border-slate-200'))}">
+              <div class="p-3 rounded-xl border flex flex-col justify-between space-y-2 ${k.is_dirty ? 'bg-amber-50/60 border-amber-300' : (k.is_recommended ? 'bg-amber-50/20 border-amber-200' : (k.total_penyapaan > 0 ? 'bg-emerald-50/30 border-emerald-200' : 'bg-slate-50/70 border-slate-200'))}">
                 <div>
                   <div class="flex items-start justify-between gap-1 mb-1">
-                    <p class="font-extrabold text-sm sm:text-base text-slate-900 leading-snug truncate" title="${k.nama_kelompok}">${k.nama_kelompok}</p>${badgeHtml}
+                    <p class="font-extrabold text-xs sm:text-sm text-slate-900 leading-snug truncate" title="${k.nama_kelompok}">${k.nama_kelompok}</p>${badgeHtml}
                   </div>
-                  <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
+                  <div class="flex items-center gap-1.5 flex-wrap">
                     ${rekomBadge}
-                    <span class="text-[10px] text-slate-400 font-medium">Terakhir: ${k.tanggal_terakhir !== '-' ? String(k.tanggal_terakhir).split('T')[0] : '-'}</span>
+                    <span class="text-[9px] text-slate-400 font-medium">Terakhir: ${k.tanggal_terakhir !== '-' ? String(k.tanggal_terakhir).split('T')[0] : '-'}</span>
                   </div>
                 </div>
 
-                <div class="pt-2.5 border-t border-slate-200/80 flex items-center justify-between">
-                  <div class="flex items-center gap-3">
-                    <label class="flex items-center gap-1.5 ${cursorClass}">
-                      <input type="checkbox" ${isSapaChecked ? 'checked' : ''} ${inputDisabledAttr} onchange="toggleLocalSapa('${k.id}', 'sapa')" class="rounded text-teal-600 focus:ring-teal-500 w-4 h-4">
+                <div class="pt-2 border-t border-slate-200/80 flex items-center justify-between">
+                  <div class="flex items-center gap-2.5">
+                    <label class="flex items-center gap-1 ${cursorClass}">
+                      <input type="checkbox" ${isSapaChecked ? 'checked' : ''} ${inputDisabledAttr} onchange="toggleLocalSapa('${k.id}', 'sapa')" class="rounded text-teal-600 focus:ring-teal-500 w-3.5 h-3.5">
                       <span class="text-xs font-bold text-slate-800">Sapa</span>
                     </label>
 
-                    <label class="flex items-center gap-1.5 ${cursorClass}">
-                      <input type="checkbox" ${isBelumChecked ? 'checked' : ''} ${inputDisabledAttr} onchange="toggleLocalSapa('${k.id}', 'belum_sapa')" class="rounded text-rose-600 focus:ring-rose-500 w-4 h-4">
+                    <label class="flex items-center gap-1 ${cursorClass}">
+                      <input type="checkbox" ${isBelumChecked ? 'checked' : ''} ${inputDisabledAttr} onchange="toggleLocalSapa('${k.id}', 'belum_sapa')" class="rounded text-rose-600 focus:ring-rose-500 w-3.5 h-3.5">
                       <span class="text-xs font-bold text-slate-500">Belum</span>
                     </label>
                   </div>
 
-                  <div class="text-right pl-2">
-                    <span class="text-[9px] text-slate-400 block leading-none font-bold uppercase tracking-wider">Total Sapa</span>
-                    <span class="text-base sm:text-lg font-black text-teal-950 leading-tight">${k.total_penyapaan}x</span>
+                  <div class="text-right pl-1">
+                    <span class="text-[8px] text-slate-400 block font-bold uppercase tracking-wider">Total</span>
+                    <span class="text-sm font-black text-teal-950">${k.total_penyapaan}x</span>
                   </div>
                 </div>
               </div>
@@ -1913,13 +1848,13 @@ function renderPetaCards() {
 
   if (writeAccess && hasDirty) {
     container.innerHTML += `
-      <div class="col-span-full bg-amber-50 border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm sticky bottom-4 z-20">
-        <div class="flex items-center gap-2 text-xs font-semibold text-amber-900">
+      <div class="col-span-full bg-amber-50 border border-amber-300 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md sticky bottom-3 z-20">
+        <div class="flex items-center gap-2 text-xs font-semibold text-amber-900 text-center sm:text-left">
           <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm"></i>
-          <span>Perubahan tanda sapaan berstatus <b>Draf</b>. Klik simpan untuk merekam data ke server.</span>
+          <span>Perubahan tanda sapaan berstatus <b>Draf</b>. Klik simpan untuk mencatat ke server.</span>
         </div>
-        <button onclick="simpanBatchPenyapaanGrid()" class="bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-2 shrink-0">
-          <i class="fa-solid fa-floppy-disk"></i> Simpan Sapaan Terpilih
+        <button onclick="simpanBatchPenyapaanGrid()" class="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
+          <i class="fa-solid fa-floppy-disk"></i> Simpan Sapaan
         </button>
       </div>
     `;
@@ -1932,25 +1867,24 @@ function renderRiwayatPenyapaanTable() {
 
   let wrapper = document.getElementById("riwayat-cards-grid-wrapper");
   if (!wrapper) {
-    const oldContent = document.getElementById("subtab-rekap-riwayat");
-    oldContent.innerHTML = `
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between gap-3">
-        <input type="text" id="search-riwayat" oninput="renderRiwayatPenyapaanTable()" placeholder="Cari agenda kegiatan atau kelompok..." class="border rounded-lg px-3 py-1.5 text-xs w-full sm:w-80 focus:ring-1 focus:ring-teal-500 focus:outline-none">
-        <select id="filter-riwayat-desa" onchange="renderRiwayatPenyapaanTable()" class="border rounded-lg px-3 py-1.5 text-xs bg-white font-semibold text-slate-700">
+    container.innerHTML = `
+      <div class="bg-white p-3 sm:p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row justify-between gap-3 mb-4">
+        <input type="text" id="search-riwayat" oninput="renderRiwayatPenyapaanTable()" placeholder="Cari agenda atau kelompok..." class="border rounded-lg px-3 py-2 text-xs w-full sm:w-80 focus:ring-1 focus:ring-teal-500 outline-none">
+        <select id="filter-riwayat-desa" onchange="renderRiwayatPenyapaanTable()" class="border rounded-lg px-3 py-2 text-xs bg-white font-semibold text-slate-700">
           <option value="ALL">Semua Desa</option>
         </select>
       </div>
-      <div id="riwayat-cards-grid-wrapper" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+      <div id="riwayat-cards-grid-wrapper" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     `;
     wrapper = document.getElementById("riwayat-cards-grid-wrapper");
   }
 
-  const search = (document.getElementById("search-riwayat") ? document.getElementById("search-riwayat").value : "").toLowerCase().trim();
-  const desaFilter = document.getElementById("filter-riwayat-desa") ? document.getElementById("filter-riwayat-desa").value : "ALL";
+  const search = (document.getElementById("search-riwayat")?.value || "").toLowerCase().trim();
+  const desaFilter = document.getElementById("filter-riwayat-desa")?.value || "ALL";
 
   let list = analyticsPenyapaan.riwayat || [];
-
   const sessionsMap = {};
+
   list.forEach(r => {
     const agenda = String(r.Jenis_Kegiatan_Sapaan || "Penyapaan Rutin").trim();
     const tanggal = r.Tanggal ? String(r.Tanggal).split("T")[0] : "-";
@@ -1987,7 +1921,7 @@ function renderRiwayatPenyapaanTable() {
   }
 
   if (sessionsArray.length === 0) {
-    wrapper.innerHTML = `<div class="col-span-full bg-white p-8 text-center text-slate-400 italic rounded-xl border border-slate-200">Tidak ada riwayat penyapaan kegiatan yang ditemukan.</div>`;
+    wrapper.innerHTML = `<div class="col-span-full bg-white p-6 text-center text-slate-400 italic rounded-xl border border-slate-200 text-xs">Tidak ada riwayat penyapaan ditemukan.</div>`;
     return;
   }
 
@@ -2001,13 +1935,13 @@ function renderRiwayatPenyapaanTable() {
       if (items.length === 0) return '';
 
       const namesHtml = items.map(i => `
-        <span class="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-md text-xs font-semibold">
+        <span class="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md text-[11px] font-semibold">
           ${i.nama_kelompok}
         </span>
       `).join(' ');
 
       return `
-        <div class="space-y-1.5">
+        <div class="space-y-1">
           <p class="text-xs font-bold text-slate-700">Desa ${desa} (${items.length}):</p>
           <div class="flex flex-wrap gap-1.5">${namesHtml}</div>
         </div>
@@ -2017,23 +1951,23 @@ function renderRiwayatPenyapaanTable() {
     const formattedDateText = formatTanggalIndo(session.tanggal);
 
     return `
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4 flex flex-col justify-between">
-        <div class="flex justify-between items-start border-b border-slate-100 pb-4 gap-3">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-5 space-y-3 flex flex-col justify-between">
+        <div class="flex justify-between items-start border-b border-slate-100 pb-3 gap-2">
           <div>
-            <h3 class="font-extrabold text-lg text-slate-900 leading-snug uppercase">${session.nama_kegiatan}</h3>
-            <p class="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
-              <i class="fa-solid fa-calendar-days text-blue-600"></i>
+            <h3 class="font-bold text-sm sm:text-base text-slate-900 leading-snug uppercase">${session.nama_kegiatan}</h3>
+            <p class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+              <i class="fa-solid fa-calendar-days text-teal-600"></i>
               <span class="font-semibold text-slate-700">${formattedDateText}</span>
             </p>
           </div>
-          <div class="bg-blue-50 border border-blue-100 text-blue-700 px-3.5 py-1.5 rounded-xl text-right shrink-0">
-            <span class="text-base sm:text-lg font-black">${totalDisapa}</span>
-            <span class="text-xs font-bold"> Kelompok Disapa</span>
+          <div class="bg-teal-50 border border-teal-100 text-teal-800 px-2.5 py-1 rounded-xl text-right shrink-0">
+            <span class="text-sm sm:text-base font-black">${totalDisapa}</span>
+            <span class="text-[10px] font-bold block sm:inline"> Kelompok</span>
           </div>
         </div>
 
-        <div class="space-y-3.5 pt-1">
-          ${desaHtmlList || '<p class="text-xs text-slate-400 italic">Belum ada kelompok yang disapa pada kegiatan ini.</p>'}
+        <div class="space-y-2.5 pt-1">
+          ${desaHtmlList || '<p class="text-xs text-slate-400 italic">Belum ada kelompok yang disapa.</p>'}
         </div>
       </div>
     `;
