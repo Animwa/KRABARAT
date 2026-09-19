@@ -113,7 +113,7 @@ async function handleLogin(event) {
       currentAdmin = json.admin;
       sessionStorage.setItem("currentAdmin", JSON.stringify(currentAdmin));
       closeModal("modal-login");
-      showMessage("Login berhasil! Selamat datang, " + currentAdmin.nama, "success");
+      showMessage("Login berhasil! Selamat datang, " + (currentAdmin.nama || currentAdmin.username), "success");
       updateAdminUI();
       loadAllData();
     } else {
@@ -464,182 +464,6 @@ function refreshCurrentActiveView() {
 // FITUR MODAL & PENGELOLAAN DATA (TAMBAH, EDIT, HAPUS, SIMPAN)
 // =========================================================================
 
-function openModalForm(type, id = null) {
-  if (!currentAdmin) return alert("Akses Admin diperlukan untuk menambah atau mengubah data!");
-  activeFormType = type;
-  editingRecordId = id;
-
-  const modal = document.getElementById("modal-dynamic-form") || createDynamicModal();
-  const titleEl = document.getElementById("dynamic-modal-title");
-  const bodyEl = document.getElementById("dynamic-modal-body");
-
-  if (!modal || !titleEl || !bodyEl) return;
-
-  let formHtml = "";
-  let title = "";
-
-  if (type === "kegiatan") {
-    title = id ? "Edit Agenda Kegiatan" : "Tambah Agenda Kegiatan Baru";
-    let item = id ? (appData.kegiatan || []).find(x => String(x.ID || x.ID_Kegiatan) === String(id)) : {};
-    formHtml = `
-      <input type="hidden" id="form-kegiatan-id" value="${item?.ID || item?.ID_Kegiatan || ''}">
-      <div class="space-y-3 text-xs sm:text-sm">
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Nama Kegiatan</label>
-          <input type="text" id="form-kegiatan-nama" value="${item?.Kegiatan || item?.Nama_Kegiatan || ''}" required class="w-full border rounded-lg px-3 py-2" placeholder="Misal: CAI Day 1">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Tanggal</label>
-          <input type="date" id="form-kegiatan-tanggal" value="${item?.Tanggal ? item.Tanggal.toString().split('T')[0] : ''}" required class="w-full border rounded-lg px-3 py-2">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Hari</label>
-          <input type="text" id="form-kegiatan-hari" value="${item?.Hari || 'Senin'}" class="w-full border rounded-lg px-3 py-2">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Jam / Waktu</label>
-          <input type="text" id="form-kegiatan-jam" value="${item?.Jam || '19:30 - Selesai'}" class="w-full border rounded-lg px-3 py-2">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Pemateri</label>
-          <input type="text" id="form-kegiatan-pemateri" value="${item?.Pemateri || ''}" class="w-full border rounded-lg px-3 py-2" placeholder="Nama Ustaz / Penceramah">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Keterangan / Lokasi</label>
-          <textarea id="form-kegiatan-ket" rows="3" class="w-full border rounded-lg px-3 py-2" placeholder="Catatan lokasi atau perlengkapan">${item?.Keterangan || ''}</textarea>
-        </div>
-      </div>
-    `;
-  } else if (type === "pengurus") {
-    title = id ? "Edit Data Pengurus" : "Tambah Data Pengurus";
-    let item = id ? (appData.pengurus || []).find(x => String(x.ID) === String(id)) : {};
-    formHtml = `
-      <input type="hidden" id="form-pengurus-id" value="${item?.ID || ''}">
-      <div class="space-y-3 text-xs sm:text-sm">
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Nama Lengkap</label>
-          <input type="text" id="form-pengurus-nama" value="${item?.Nama || ''}" required class="w-full border rounded-lg px-3 py-2">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Jabatan</label>
-          <input type="text" id="form-pengurus-jabatan" value="${item?.Jabatan || ''}" required class="w-full border rounded-lg px-3 py-2">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">No. HP</label>
-          <input type="text" id="form-pengurus-nohp" value="${item?.NoHP || ''}" class="w-full border rounded-lg px-3 py-2">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Status</label>
-          <select id="form-pengurus-status" class="w-full border rounded-lg px-3 py-2 bg-white">
-            <option value="Aktif" ${item?.Status === 'Aktif' ? 'selected' : ''}>Aktif</option>
-            <option value="Non-Aktif" ${item?.Status === 'Non-Aktif' ? 'selected' : ''}>Non-Aktif</option>
-          </select>
-        </div>
-      </div>
-    `;
-  } else if (type === "inventaris") {
-    title = id ? "Edit Inventaris Barang" : "Tambah Inventaris Barang";
-    let item = id ? (appData.inventaris || []).find(x => String(x.ID) === String(id)) : {};
-    formHtml = `
-      <input type="hidden" id="form-inventaris-id" value="${item?.ID || ''}">
-      <div class="space-y-3 text-xs sm:text-sm">
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Nama Barang</label>
-          <input type="text" id="form-inventaris-nama" value="${item?.NamaBarang || ''}" required class="w-full border rounded-lg px-3 py-2">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Jumlah</label>
-          <input type="number" id="form-inventaris-jumlah" value="${item?.Jumlah || 1}" required class="w-full border rounded-lg px-3 py-2">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Kondisi</label>
-          <select id="form-inventaris-kondisi" class="w-full border rounded-lg px-3 py-2 bg-white">
-            <option value="Baik" ${item?.Kondisi === 'Baik' ? 'selected' : ''}>Baik</option>
-            <option value="Rusak" ${item?.Kondisi === 'Rusak' ? 'selected' : ''}>Rusak</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Tanggal Masuk</label>
-          <input type="date" id="form-inventaris-tanggal" value="${item?.TanggalMasuk ? item.TanggalMasuk.toString().split('T')[0] : ''}" class="w-full border rounded-lg px-3 py-2">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Keterangan</label>
-          <textarea id="form-inventaris-ket" rows="2" class="w-full border rounded-lg px-3 py-2">${item?.Keterangan || ''}</textarea>
-        </div>
-      </div>
-    `;
-  } else if (type === "jamaah") {
-    title = id ? "Edit Data Jamaah" : "Tambah Data Jamaah";
-    let item = id ? (appData.jamaah || []).find(x => String(x.ID_Jamaah || x.ID) === String(id)) : {};
-    
-    let mkList = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
-    let kelOptions = mkList.map(m => `<option value="${m.Nama_Kelompok}" ${item?.Nama_Kelompok === m.Nama_Kelompok ? 'selected' : ''}>${m.Nama_Desa} - ${m.Nama_Kelompok}</option>`).join("");
-
-    formHtml = `
-      <input type="hidden" id="form-jamaah-id" value="${item?.ID_Jamaah || item?.ID || ''}">
-      <div class="space-y-3 text-xs sm:text-sm">
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Nama Lengkap</label>
-          <input type="text" id="form-jamaah-nama" value="${item?.Nama_Lengkap || item?.Nama || ''}" required class="w-full border rounded-lg px-3 py-2">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Tanggal Lahir</label>
-          <input type="date" id="form-jamaah-tgl" value="${item?.TanggalLahir ? item.TanggalLahir.toString().split('T')[0] : ''}" class="w-full border rounded-lg px-3 py-2">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Kelompok Usia / Jenjang</label>
-          <select id="form-jamaah-kelas-usia" class="w-full border rounded-lg px-3 py-2 bg-white">
-            <option value="Caberawit" ${String(item?.Kelas_Usia || item?.Kelompok || '').includes('Caberawit') ? 'selected' : ''}>Caberawit</option>
-            <option value="Pra Remaja" ${item?.Kelas_Usia === 'Pra Remaja' ? 'selected' : ''}>Pra Remaja</option>
-            <option value="Remaja" ${item?.Kelas_Usia === 'Remaja' ? 'selected' : ''}>Remaja</option>
-            <option value="Muda-Mudi" ${item?.Kelas_Usia === 'Muda-Mudi' ? 'selected' : ''}>Muda-Mudi</option>
-            <option value="Bapak-Bapak" ${item?.Kelas_Usia === 'Bapak-Bapak' ? 'selected' : ''}>Bapak-Bapak</option>
-            <option value="Ibu-Ibu" ${item?.Kelas_Usia === 'Ibu-Ibu' ? 'selected' : ''}>Ibu-Ibu</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Kelas Caberawit (Jika Caberawit)</label>
-          <select id="form-jamaah-kelas" class="w-full border rounded-lg px-3 py-2 bg-white">
-            <option value="Umum">- (Non-Caberawit)</option>
-            <option value="Caberawit A" ${item?.Kelas === 'Caberawit A' ? 'selected' : ''}>Caberawit A</option>
-            <option value="Caberawit B" ${item?.Kelas === 'Caberawit B' ? 'selected' : ''}>Caberawit B</option>
-            <option value="Caberawit C" ${item?.Kelas === 'Caberawit C' ? 'selected' : ''}>Caberawit C</option>
-            <option value="Caberawit D" ${item?.Kelas === 'Caberawit D' ? 'selected' : ''}>Caberawit D</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Kelompok Binaan</label>
-          <select id="form-jamaah-kelompok-binaan" class="w-full border rounded-lg px-3 py-2 bg-white">
-            ${kelOptions || '<option value="Kelompok 1">Kelompok 1</option>'}
-          </select>
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Gender</label>
-          <select id="form-jamaah-gender" class="w-full border rounded-lg px-3 py-2 bg-white">
-            <option value="Laki-Laki" ${item?.Gender === 'Laki-Laki' ? 'selected' : ''}>Laki-Laki</option>
-            <option value="Perempuan" ${item?.Gender === 'Perempuan' ? 'selected' : ''}>Perempuan</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Alamat</label>
-          <input type="text" id="form-jamaah-alamat" value="${item?.Alamat || ''}" class="w-full border rounded-lg px-3 py-2">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Status Keaktifan</label>
-          <select id="form-jamaah-keaktifan" class="w-full border rounded-lg px-3 py-2 bg-white">
-            <option value="Aktif" ${item?.Keaktifan === 'Aktif' || item?.Status === 'Aktif' ? 'selected' : ''}>Aktif</option>
-            <option value="Non-Aktif" ${item?.Keaktifan === 'Non-Aktif' || item?.Status === 'Non-Aktif' ? 'selected' : ''}>Non-Aktif</option>
-          </select>
-        </div>
-      </div>
-    `;
-  }
-
-  titleEl.innerText = title;
-  bodyEl.innerHTML = formHtml;
-  modal.classList.remove("hidden");
-}
-
 function createDynamicModal() {
   const existing = document.getElementById("modal-dynamic-form");
   if (existing) existing.remove();
@@ -664,59 +488,291 @@ function createDynamicModal() {
   return div;
 }
 
+function openModalForm(type, id = null) {
+  if (!currentAdmin) {
+    alert("Akses Admin diperlukan untuk menambah atau mengubah data!");
+    return;
+  }
+
+  activeFormType = type;
+  editingRecordId = id;
+
+  let modal = document.getElementById("modal-dynamic-form");
+  if (!modal) {
+    modal = createDynamicModal();
+  }
+
+  const titleEl = document.getElementById("dynamic-modal-title");
+  const bodyEl = document.getElementById("dynamic-modal-body");
+  if (!modal || !titleEl || !bodyEl) return;
+
+  const mkList = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
+  let formHtml = "";
+  let title = "";
+
+  if (type === "kegiatan") {
+    title = id ? "Edit Agenda Kegiatan" : "Tambah Agenda Kegiatan Baru";
+    const item = id ? (appData.kegiatan || []).find(x => String(x.ID || x.ID_Kegiatan) === String(id)) : {};
+    const tglVal = item?.Tanggal ? String(item.Tanggal).split("T")[0] : new Date().toISOString().split("T")[0];
+
+    formHtml = `
+      <input type="hidden" id="form-kegiatan-id" value="${item?.ID || item?.ID_Kegiatan || ''}">
+      <div class="space-y-3 text-xs sm:text-sm">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nama Kegiatan</label>
+          <input type="text" id="form-kegiatan-nama" value="${item?.Kegiatan || item?.Nama_Kegiatan || ''}" required class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none" placeholder="Contoh: Pengajian Rutin">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Tanggal</label>
+            <input type="date" id="form-kegiatan-tanggal" value="${tglVal}" required class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Hari</label>
+            <input type="text" id="form-kegiatan-hari" value="${item?.Hari || 'Minggu'}" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Jam / Waktu</label>
+          <input type="text" id="form-kegiatan-jam" value="${item?.Jam || '19:30 - Selesai'}" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Pemateri</label>
+          <input type="text" id="form-kegiatan-pemateri" value="${item?.Pemateri || ''}" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none" placeholder="Nama Ustaz / Pemateri">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Keterangan / Lokasi</label>
+          <textarea id="form-kegiatan-ket" rows="3" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none" placeholder="Catatan tempat atau keterangan">${item?.Keterangan || ''}</textarea>
+        </div>
+      </div>
+    `;
+  } else if (type === "pengurus") {
+    title = id ? "Edit Data Pengurus" : "Tambah Data Pengurus";
+    const item = id ? (appData.pengurus || []).find(x => String(x.ID) === String(id)) : {};
+    const kelOptions = mkList.map(m => `<option value="${m.Nama_Kelompok}" ${item?.Kelompok === m.Nama_Kelompok || item?.Nama_Kelompok === m.Nama_Kelompok ? 'selected' : ''}>${m.Nama_Desa} - ${m.Nama_Kelompok}</option>`).join("");
+
+    formHtml = `
+      <input type="hidden" id="form-pengurus-id" value="${item?.ID || ''}">
+      <div class="space-y-3 text-xs sm:text-sm">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nama Lengkap</label>
+          <input type="text" id="form-pengurus-nama" value="${item?.Nama || ''}" required class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Kelompok Wilayah</label>
+          <select id="form-pengurus-kelompok" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+            ${kelOptions || '<option value="-">-</option>'}
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Jabatan</label>
+          <input type="text" id="form-pengurus-jabatan" value="${item?.Jabatan || ''}" required class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none" placeholder="Contoh: Ketua, Sekretaris, Pembina">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">No. HP</label>
+          <input type="text" id="form-pengurus-nohp" value="${item?.NoHP || ''}" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Status</label>
+          <select id="form-pengurus-status" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+            <option value="Aktif" ${item?.Status !== 'Non-Aktif' ? 'selected' : ''}>Aktif</option>
+            <option value="Non-Aktif" ${item?.Status === 'Non-Aktif' ? 'selected' : ''}>Non-Aktif</option>
+          </select>
+        </div>
+      </div>
+    `;
+  } else if (type === "inventaris") {
+    title = id ? "Edit Inventaris Barang" : "Tambah Inventaris Barang";
+    const item = id ? (appData.inventaris || []).find(x => String(x.ID) === String(id)) : {};
+    const tglMasukVal = item?.TanggalMasuk ? String(item.TanggalMasuk).split("T")[0] : new Date().toISOString().split("T")[0];
+    const kelOptions = mkList.map(m => `<option value="${m.Nama_Kelompok}" ${item?.Kelompok === m.Nama_Kelompok || item?.Nama_Kelompok === m.Nama_Kelompok ? 'selected' : ''}>${m.Nama_Desa} - ${m.Nama_Kelompok}</option>`).join("");
+
+    formHtml = `
+      <input type="hidden" id="form-inventaris-id" value="${item?.ID || ''}">
+      <div class="space-y-3 text-xs sm:text-sm">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nama Barang</label>
+          <input type="text" id="form-inventaris-nama" value="${item?.NamaBarang || ''}" required class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Kelompok Lokasi</label>
+          <select id="form-inventaris-kelompok" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+            ${kelOptions || '<option value="-">-</option>'}
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Jumlah</label>
+            <input type="number" id="form-inventaris-jumlah" value="${item?.Jumlah || 1}" min="1" required class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Kondisi</label>
+            <select id="form-inventaris-kondisi" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+              <option value="Baik" ${item?.Kondisi !== 'Rusak' ? 'selected' : ''}>Baik</option>
+              <option value="Rusak" ${item?.Kondisi === 'Rusak' ? 'selected' : ''}>Rusak</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Tanggal Masuk</label>
+          <input type="date" id="form-inventaris-tanggal" value="${tglMasukVal}" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Keterangan</label>
+          <textarea id="form-inventaris-ket" rows="2" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">${item?.Keterangan || ''}</textarea>
+        </div>
+      </div>
+    `;
+  } else if (type === "jamaah") {
+    title = id ? "Edit Data Jamaah" : "Tambah Data Jamaah";
+    const item = id ? (appData.jamaah || []).find(x => String(x.ID_Jamaah || x.ID) === String(id)) : {};
+    const tglLahirVal = item?.TanggalLahir ? String(item.TanggalLahir).split("T")[0] : "";
+    const kelOptions = mkList.map(m => `<option value="${m.Nama_Kelompok}" ${item?.Nama_Kelompok === m.Nama_Kelompok || item?.KelompokBinaan === m.Nama_Kelompok ? 'selected' : ''}>${m.Nama_Desa} - ${m.Nama_Kelompok}</option>`).join("");
+
+    formHtml = `
+      <input type="hidden" id="form-jamaah-id" value="${item?.ID_Jamaah || item?.ID || ''}">
+      <div class="space-y-3 text-xs sm:text-sm">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nama Lengkap</label>
+          <input type="text" id="form-jamaah-nama" value="${item?.Nama_Lengkap || item?.Nama || ''}" required class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Tanggal Lahir</label>
+          <input type="date" id="form-jamaah-tgl" value="${tglLahirVal}" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Jenjang Usia</label>
+            <select id="form-jamaah-kelas-usia" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+              <option value="Caberawit" ${String(item?.Kelas_Usia || item?.Kelompok || '').includes('Caberawit') ? 'selected' : ''}>Caberawit</option>
+              <option value="Pra Remaja" ${item?.Kelas_Usia === 'Pra Remaja' ? 'selected' : ''}>Pra Remaja</option>
+              <option value="Remaja" ${item?.Kelas_Usia === 'Remaja' ? 'selected' : ''}>Remaja</option>
+              <option value="Muda-Mudi" ${item?.Kelas_Usia === 'Muda-Mudi' ? 'selected' : ''}>Muda-Mudi</option>
+              <option value="Bapak-Bapak" ${item?.Kelas_Usia === 'Bapak-Bapak' ? 'selected' : ''}>Bapak-Bapak</option>
+              <option value="Ibu-Ibu" ${item?.Kelas_Usia === 'Ibu-Ibu' ? 'selected' : ''}>Ibu-Ibu</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Kelas (Caberawit)</label>
+            <select id="form-jamaah-kelas" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+              <option value="Umum">- (Non-Caberawit)</option>
+              <option value="Caberawit A" ${item?.Kelas === 'Caberawit A' ? 'selected' : ''}>Caberawit A</option>
+              <option value="Caberawit B" ${item?.Kelas === 'Caberawit B' ? 'selected' : ''}>Caberawit B</option>
+              <option value="Caberawit C" ${item?.Kelas === 'Caberawit C' ? 'selected' : ''}>Caberawit C</option>
+              <option value="Caberawit D" ${item?.Kelas === 'Caberawit D' ? 'selected' : ''}>Caberawit D</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Kelompok Binaan</label>
+          <select id="form-jamaah-kelompok-binaan" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+            ${kelOptions || '<option value="Kelompok 1">Kelompok 1</option>'}
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Gender</label>
+          <select id="form-jamaah-gender" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+            <option value="Laki-Laki" ${item?.Gender !== 'Perempuan' ? 'selected' : ''}>Laki-Laki</option>
+            <option value="Perempuan" ${item?.Gender === 'Perempuan' ? 'selected' : ''}>Perempuan</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Alamat</label>
+          <input type="text" id="form-jamaah-alamat" value="${item?.Alamat || ''}" class="w-full border rounded-lg px-3 py-2 focus:ring-1 focus:ring-teal-500 outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Status Keaktifan</label>
+          <select id="form-jamaah-keaktifan" class="w-full border rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+            <option value="Aktif" ${item?.Keaktifan !== 'Non-Aktif' && item?.Status !== 'Non-Aktif' ? 'selected' : ''}>Aktif</option>
+            <option value="Non-Aktif" ${item?.Keaktifan === 'Non-Aktif' || item?.Status === 'Non-Aktif' ? 'selected' : ''}>Non-Aktif</option>
+          </select>
+        </div>
+      </div>
+    `;
+  }
+
+  titleEl.innerText = title;
+  bodyEl.innerHTML = formHtml;
+  modal.classList.remove("hidden");
+}
+
 async function submitDynamicForm() {
   if (!currentAdmin) return alert("Akses Admin diperlukan!");
 
   let actionName = "";
   let payloadData = {};
-  let targetSheetName = "";
 
   if (activeFormType === "kegiatan") {
     actionName = "save_kegiatan";
-    targetSheetName = "Kegiatan";
+    const nama = document.getElementById("form-kegiatan-nama")?.value.trim();
+    const tanggal = document.getElementById("form-kegiatan-tanggal")?.value;
+    if (!nama || !tanggal) return alert("Nama kegiatan dan tanggal wajib diisi!");
+
     payloadData = {
-      ID: document.getElementById("form-kegiatan-id").value,
-      Nama_Kegiatan: document.getElementById("form-kegiatan-nama").value,
-      Tanggal: document.getElementById("form-kegiatan-tanggal").value,
-      Hari: document.getElementById("form-kegiatan-hari").value,
-      Jam: document.getElementById("form-kegiatan-jam").value,
-      Pemateri: document.getElementById("form-kegiatan-pemateri").value,
-      Keterangan: document.getElementById("form-kegiatan-ket").value
+      ID: document.getElementById("form-kegiatan-id")?.value || `KEG-${Date.now()}`,
+      Kegiatan: nama,
+      Nama_Kegiatan: nama,
+      Tanggal: tanggal,
+      Hari: document.getElementById("form-kegiatan-hari")?.value || "Minggu",
+      Jam: document.getElementById("form-kegiatan-jam")?.value || "19:30 - Selesai",
+      Pemateri: document.getElementById("form-kegiatan-pemateri")?.value || "-",
+      Keterangan: document.getElementById("form-kegiatan-ket")?.value || "-"
     };
   } else if (activeFormType === "pengurus") {
     actionName = "save_pengurus";
-    targetSheetName = "Pengurus";
+    const nama = document.getElementById("form-pengurus-nama")?.value.trim();
+    const jabatan = document.getElementById("form-pengurus-jabatan")?.value.trim();
+    const kel = document.getElementById("form-pengurus-kelompok")?.value || "-";
+    if (!nama || !jabatan) return alert("Nama pengurus dan jabatan wajib diisi!");
+
     payloadData = {
-      ID: document.getElementById("form-pengurus-id").value,
-      Nama: document.getElementById("form-pengurus-nama").value,
-      Jabatan: document.getElementById("form-pengurus-jabatan").value,
-      NoHP: document.getElementById("form-pengurus-nohp").value,
-      Status: document.getElementById("form-pengurus-status").value
+      ID: document.getElementById("form-pengurus-id")?.value || `PGR-${Date.now()}`,
+      Nama: nama,
+      Jabatan: jabatan,
+      Kelompok: kel,
+      Nama_Kelompok: kel,
+      Desa: getDesaByKelompok(kel),
+      NoHP: document.getElementById("form-pengurus-nohp")?.value || "-",
+      Status: document.getElementById("form-pengurus-status")?.value || "Aktif"
     };
   } else if (activeFormType === "inventaris") {
     actionName = "save_inventaris";
-    targetSheetName = "Inventaris";
+    const namaBarang = document.getElementById("form-inventaris-nama")?.value.trim();
+    const kel = document.getElementById("form-inventaris-kelompok")?.value || "-";
+    if (!namaBarang) return alert("Nama barang inventaris wajib diisi!");
+
     payloadData = {
-      ID: document.getElementById("form-inventaris-id").value,
-      NamaBarang: document.getElementById("form-inventaris-nama").value,
-      Jumlah: document.getElementById("form-inventaris-jumlah").value,
-      Kondisi: document.getElementById("form-inventaris-kondisi").value,
-      TanggalMasuk: document.getElementById("form-inventaris-tanggal").value,
-      Keterangan: document.getElementById("form-inventaris-ket").value
+      ID: document.getElementById("form-inventaris-id")?.value || `INV-${Date.now()}`,
+      NamaBarang: namaBarang,
+      Kelompok: kel,
+      Nama_Kelompok: kel,
+      Desa: getDesaByKelompok(kel),
+      Jumlah: Number(document.getElementById("form-inventaris-jumlah")?.value) || 1,
+      Kondisi: document.getElementById("form-inventaris-kondisi")?.value || "Baik",
+      TanggalMasuk: document.getElementById("form-inventaris-tanggal")?.value || new Date().toISOString().split("T")[0],
+      Keterangan: document.getElementById("form-inventaris-ket")?.value || "-"
     };
   } else if (activeFormType === "jamaah") {
     actionName = "save_jamaah";
-    targetSheetName = "Master_Jamaah";
+    const nama = document.getElementById("form-jamaah-nama")?.value.trim();
+    const kelBinaan = document.getElementById("form-jamaah-kelompok-binaan")?.value || "-";
+    if (!nama) return alert("Nama lengkap jamaah wajib diisi!");
+
     payloadData = {
-      ID_Jamaah: document.getElementById("form-jamaah-id").value,
-      Nama_Lengkap: document.getElementById("form-jamaah-nama").value,
-      TanggalLahir: document.getElementById("form-jamaah-tgl").value,
-      Kelas_Usia: document.getElementById("form-jamaah-kelas-usia").value,
-      Kelas: document.getElementById("form-jamaah-kelas").value,
-      Nama_Kelompok: document.getElementById("form-jamaah-kelompok-binaan").value,
-      Gender: document.getElementById("form-jamaah-gender").value,
-      Alamat: document.getElementById("form-jamaah-alamat").value,
-      Keaktifan: document.getElementById("form-jamaah-keaktifan").value
+      ID_Jamaah: document.getElementById("form-jamaah-id")?.value || `JAM-${Date.now()}`,
+      ID: document.getElementById("form-jamaah-id")?.value || `JAM-${Date.now()}`,
+      Nama_Lengkap: nama,
+      Nama: nama,
+      TanggalLahir: document.getElementById("form-jamaah-tgl")?.value || "",
+      Kelas_Usia: document.getElementById("form-jamaah-kelas-usia")?.value || "Caberawit",
+      Kelas: document.getElementById("form-jamaah-kelas")?.value || "Umum",
+      Nama_Kelompok: kelBinaan,
+      KelompokBinaan: kelBinaan,
+      Desa: getDesaByKelompok(kelBinaan),
+      Gender: document.getElementById("form-jamaah-gender")?.value || "Laki-Laki",
+      Alamat: document.getElementById("form-jamaah-alamat")?.value || "-",
+      Keaktifan: document.getElementById("form-jamaah-keaktifan")?.value || "Aktif",
+      Status: document.getElementById("form-jamaah-keaktifan")?.value || "Aktif"
     };
   }
 
@@ -745,7 +801,7 @@ async function submitDynamicForm() {
 
 async function deleteRow(sheetName, id) {
   if (!currentAdmin) return alert("Akses Admin diperlukan untuk menghapus data!");
-  
+
   let targetSheet = sheetName;
   if (sheetName === "Pengurus") targetSheet = "Pengurus";
   if (sheetName === "Inventaris") targetSheet = "Inventaris";
@@ -813,7 +869,7 @@ function renderBerandaKegiatan() {
         <div>
           <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-3 mb-3">
             <span class="text-xs px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold rounded-full border border-emerald-200 flex items-center gap-1">
-              <i class="fa-solid fa-calendar-day"></i> ${k.Hari || '-'}, ${k.Tanggal ? k.Tanggal.toString().split("T")[0] : '-'}
+              <i class="fa-solid fa-calendar-day"></i> ${k.Hari || '-'}, ${k.Tanggal ? String(k.Tanggal).split("T")[0] : '-'}
             </span>
             <span class="text-xs text-amber-600 font-bold flex items-center gap-1">
               <i class="fa-solid fa-clock"></i> ${k.Jam || 'WIB'}
@@ -930,7 +986,7 @@ function renderInventaris() {
         <td class="px-3 sm:px-4 py-3.5 text-xs font-semibold text-slate-700">${kel}</td>
         <td class="px-4 sm:px-6 py-3.5">${i.Jumlah || 0}</td>
         <td class="px-4 sm:px-6 py-3.5"><span class="px-2 py-1 rounded-full text-xs font-semibold ${i.Kondisi === 'Baik' ? 'bg-teal-100 text-teal-800' : 'bg-rose-100 text-rose-800'}">${i.Kondisi || 'Baik'}</span></td>
-        <td class="px-4 sm:px-6 py-3.5">${i.TanggalMasuk ? i.TanggalMasuk.toString().split("T")[0] : '-'}</td>
+        <td class="px-4 sm:px-6 py-3.5">${i.TanggalMasuk ? String(i.TanggalMasuk).split("T")[0] : '-'}</td>
         <td class="px-4 sm:px-6 py-3.5">${i.Keterangan || '-'}</td>
         <td class="px-4 sm:px-6 py-3.5 text-center admin-only ${isSuperOrDaerah() ? '' : 'hidden'} space-x-2">
           <button onclick="openModalForm('inventaris', '${i.ID}')" class="text-amber-600 hover:text-amber-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
@@ -992,7 +1048,7 @@ function renderJamaah() {
         <td class="px-3 sm:px-4 py-3 font-semibold text-slate-800">${j.Nama_Lengkap || j.Nama || '-'}</td>
         <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-700">${jDesa}</td>
         <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-900">${jKel}</td>
-        <td class="px-3 sm:px-4 py-3 whitespace-nowrap">${j.TanggalLahir ? j.TanggalLahir.toString().split("T")[0] : '-'} <span class="text-xs text-emerald-600 font-bold">(${calculateAge(j.TanggalLahir)})</span></td>
+        <td class="px-3 sm:px-4 py-3 whitespace-nowrap">${j.TanggalLahir ? String(j.TanggalLahir).split("T")[0] : '-'} <span class="text-xs text-emerald-600 font-bold">(${calculateAge(j.TanggalLahir)})</span></td>
         <td class="px-3 sm:px-4 py-3"><span class="px-2 py-1 rounded bg-teal-50 text-teal-700 font-semibold text-xs">${displayKelompok}</span></td>
         <td class="px-3 sm:px-4 py-3"><span class="px-2 py-1 rounded bg-slate-100 text-slate-700 font-semibold text-xs">${displayKelas}</span></td>
         <td class="px-3 sm:px-4 py-3">${j.Gender || '-'}</td>
@@ -1095,78 +1151,98 @@ function renderPresensiTable() {
         </td>
       </tr>
     `;
-  } else {
-    const selectedDateInput = document.getElementById("presensi-date");
-    const targetDate = selectedDateInput ? selectedDateInput.value : "";
-
-    let existingStatusMap = {};
-    presensiList.forEach(p => {
-      if (!p.Tanggal || !p.NamaJamaah) return;
-      const pKel = String(p.Kelompok || "").trim().toLowerCase();
-      const pKls = String(p.Kelas || "Umum").trim().toLowerCase();
-      let pDateStr = (p.Tanggal instanceof Date) ? p.Tanggal.toISOString().split("T")[0] : String(p.Tanggal).split("T")[0].trim();
-
-      const checkKelas = (currentKelompok === "Caberawit" || currentKelompok === "ASAD")
-        ? (pKls === String(currentKelas).trim().toLowerCase())
-        : true;
-
-      if (pKel === String(currentKelompok).trim().toLowerCase() && checkKelas && pDateStr === targetDate) {
-        existingStatusMap[String(p.NamaJamaah).trim().toLowerCase()] = {
-          status: String(p.StatusPresensi || "Hadir").trim(),
-          keterangan: String(p.Keterangan || "").trim(),
-          karakter29: String(p.Karakter29 || p.karakter29 || "Belum").trim()
-        };
-      }
-    });
-
-    tbody.innerHTML = filteredJamaah.map((j, idx) => {
-      const nama = j.Nama_Lengkap || j.Nama;
-      const namaKey = String(nama).trim().toLowerCase();
-      const exData = existingStatusMap[namaKey] || { status: "Hadir", keterangan: "", karakter29: "Belum" };
-      const savedStatus = exData.status;
-      const savedKet = exData.keterangan;
-      const savedKarakter = exData.karakter29;
-
-      const isIzinChecked = (savedStatus === 'Izin');
-      const disabledKet = (isReadOnly || !isIzinChecked) ? "disabled" : "";
-      const disabledRadio = isReadOnly ? "disabled cursor-not-allowed opacity-80" : "cursor-pointer";
-
-      let caberawitExtraTd = "";
-      if (isCaberawit) {
-        caberawitExtraTd = `
-          <td class="px-2 py-3 text-center">
-            <select id="karakter-${idx}" ${isReadOnly ? 'disabled' : ''} class="text-[11px] px-2 py-1 rounded border border-slate-300 bg-white font-semibold ${savedKarakter === 'Sudah' ? 'text-emerald-700 bg-emerald-50' : 'text-slate-600'}">
-              <option value="Belum" ${savedKarakter === 'Belum' ? 'selected' : ''}>Belum</option>
-              <option value="Sudah" ${savedKarakter === 'Sudah' ? 'selected' : ''}>Sudah</option>
-            </select>
-          </td>
-        `;
-      }
-
-      return `
-        <tr class="bg-white border-b hover:bg-slate-50">
-          <td class="px-3 py-3 text-center text-xs font-semibold text-slate-500">${idx + 1}</td>
-          <td class="px-4 py-3 font-medium text-slate-800">
-            ${nama}
-            ${existingStatusMap[namaKey] ? `<span class="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200" title="Telah diabsen pada tanggal ${targetDate}">Tersimpan (${existingStatusMap[namaKey].status})</span>` : ''}
-          </td>
-          <td class="px-3 py-3 text-center">
-            <input type="radio" name="presensi-${idx}" value="Hadir" onchange="toggleKetInput(${idx})" ${savedStatus === 'Hadir' ? 'checked' : ''} ${disabledRadio} class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
-          </td>
-          <td class="px-3 py-3 text-center">
-            <input type="radio" name="presensi-${idx}" value="Izin" onchange="toggleKetInput(${idx})" ${savedStatus === 'Izin' ? 'checked' : ''} ${disabledRadio} class="w-4 h-4 text-amber-500 focus:ring-amber-500">
-          </td>
-          <td class="px-3 py-3 text-center">
-            <input type="radio" name="presensi-${idx}" value="Alfa" onchange="toggleKetInput(${idx})" ${savedStatus === 'Alfa' ? 'checked' : ''} ${disabledRadio} class="w-4 h-4 text-rose-600 focus:ring-rose-500">
-          </td>
-          ${caberawitExtraTd}
-          <td class="px-3 py-3">
-            <input type="text" id="ket-${idx}" value="${savedKet}" placeholder="${isReadOnly ? '-' : 'Alasan izin...'}" ${disabledKet} class="w-full text-xs px-2 py-1 border rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-amber-500 transition-all ${!isIzinChecked ? 'opacity-40' : ''}">
-          </td>
-        </tr>
-      `;
-    }).join("");
+    updateRekapHarian();
+    return;
   }
+
+  const selectedDateInput = document.getElementById("presensi-date");
+  const targetDate = selectedDateInput ? selectedDateInput.value : "";
+
+  let existingStatusMap = {};
+  presensiList.forEach(p => {
+    const rawNama = p.NamaJamaah || p.Nama || p.nama;
+    if (!p.Tanggal && !p.tanggal) return;
+    if (!rawNama) return;
+
+    const pKel = String(p.Kelompok || p.kelompok || "").trim().toLowerCase();
+    const pKls = String(p.Kelas || p.kelas || "Umum").trim().toLowerCase();
+    
+    const rawTgl = p.Tanggal || p.tanggal;
+    let pDateStr = "";
+    if (rawTgl instanceof Date) {
+      pDateStr = rawTgl.toISOString().split("T")[0];
+    } else {
+      pDateStr = String(rawTgl).substring(0, 10);
+    }
+
+    const checkKelas = (currentKelompok === "Caberawit" || currentKelompok === "ASAD")
+      ? (pKls === String(currentKelas).trim().toLowerCase())
+      : true;
+
+    if (pKel === String(currentKelompok).trim().toLowerCase() && checkKelas && pDateStr === targetDate) {
+      existingStatusMap[String(rawNama).trim().toLowerCase()] = {
+        status: String(p.StatusPresensi || p.Status || p.status || "Hadir").trim(),
+        keterangan: String(p.Keterangan || p.keterangan || "").trim(),
+        karakter29: String(p.Karakter29 || p.karakter29 || "Belum").trim()
+      };
+    }
+  });
+
+  tbody.innerHTML = filteredJamaah.map((j, idx) => {
+    const nama = j.Nama_Lengkap || j.Nama;
+    const namaKey = String(nama).trim().toLowerCase();
+    const isSaved = Boolean(existingStatusMap[namaKey]);
+    const exData = existingStatusMap[namaKey] || { status: "Hadir", keterangan: "", karakter29: "Belum" };
+    
+    const savedStatus = exData.status;
+    const savedKet = exData.keterangan;
+    const savedKarakter = exData.karakter29;
+
+    const isIzinChecked = (savedStatus === 'Izin');
+    const disabledKet = (isReadOnly || !isIzinChecked) ? "disabled" : "";
+    const disabledRadio = isReadOnly ? "disabled cursor-not-allowed opacity-80" : "cursor-pointer";
+
+    let caberawitExtraTd = "";
+    if (isCaberawit) {
+      caberawitExtraTd = `
+        <td class="px-2 py-3 text-center">
+          <select id="karakter-${idx}" ${isReadOnly ? 'disabled' : ''} class="text-[11px] px-2 py-1 rounded border border-slate-300 bg-white font-semibold ${savedKarakter === 'Sudah' ? 'text-emerald-700 bg-emerald-50 border-emerald-300' : 'text-slate-600'}">
+            <option value="Belum" ${savedKarakter === 'Belum' ? 'selected' : ''}>Belum</option>
+            <option value="Sudah" ${savedKarakter === 'Sudah' ? 'selected' : ''}>Sudah</option>
+          </select>
+        </td>
+      `;
+    }
+
+    const badgeTersimpan = isSaved
+      ? `<span class="ml-2 text-[10px] inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold border border-emerald-200" title="Telah diabsen pada tanggal ${targetDate}">
+          <i class="fa-solid fa-check"></i> Tersimpan (${savedStatus})
+         </span>`
+      : `<span class="ml-2 text-[10px] inline-flex items-center px-1.5 py-0.5 rounded text-slate-400 border border-dashed border-slate-200">Belum Disimpan</span>`;
+
+    return `
+      <tr class="bg-white border-b hover:bg-slate-50 transition-colors">
+        <td class="px-3 py-3 text-center text-xs font-semibold text-slate-500">${idx + 1}</td>
+        <td class="px-4 py-3 font-medium text-slate-800">
+          <span class="align-middle">${nama}</span>
+          ${badgeTersimpan}
+        </td>
+        <td class="px-3 py-3 text-center">
+          <input type="radio" name="presensi-${idx}" value="Hadir" onchange="toggleKetInput(${idx})" ${savedStatus === 'Hadir' ? 'checked' : ''} ${disabledRadio} class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
+        </td>
+        <td class="px-3 py-3 text-center">
+          <input type="radio" name="presensi-${idx}" value="Izin" onchange="toggleKetInput(${idx})" ${savedStatus === 'Izin' ? 'checked' : ''} ${disabledRadio} class="w-4 h-4 text-amber-500 focus:ring-amber-500">
+        </td>
+        <td class="px-3 py-3 text-center">
+          <input type="radio" name="presensi-${idx}" value="Alfa" onchange="toggleKetInput(${idx})" ${savedStatus === 'Alfa' ? 'checked' : ''} ${disabledRadio} class="w-4 h-4 text-rose-600 focus:ring-rose-500">
+        </td>
+        ${caberawitExtraTd}
+        <td class="px-3 py-3">
+          <input type="text" id="ket-${idx}" value="${savedKet}" placeholder="${isReadOnly ? '-' : 'Alasan izin...'}" ${disabledKet} class="w-full text-xs px-2 py-1 border rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-amber-500 transition-all ${!isIzinChecked ? 'opacity-40' : ''}">
+        </td>
+      </tr>
+    `;
+  }).join("");
 
   updateRekapHarian();
 }
@@ -1201,18 +1277,21 @@ function updateRekapHarian() {
   const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
 
   presensiList.forEach(p => {
-    if (!p.Tanggal || !p.NamaJamaah) return;
+    const rawNama = p.NamaJamaah || p.Nama || p.nama;
+    if (!p.Tanggal && !p.tanggal) return;
+    if (!rawNama) return;
 
-    const pKel = String(p.Kelompok || "").trim().toLowerCase();
+    const pKel = String(p.Kelompok || p.kelompok || "").trim().toLowerCase();
     const pKelTarget = String(currentKelompok).trim().toLowerCase();
-    const pKls = String(p.Kelas || "Umum").trim().toLowerCase();
+    const pKls = String(p.Kelas || p.kelas || "Umum").trim().toLowerCase();
     const pKlsTarget = String(currentKelas).trim().toLowerCase();
 
-    let pDateStr = (p.Tanggal instanceof Date) ? p.Tanggal.toISOString().split("T")[0] : String(p.Tanggal).split("T")[0].trim();
+    const rawTgl = p.Tanggal || p.tanggal;
+    let pDateStr = (rawTgl instanceof Date) ? rawTgl.toISOString().split("T")[0] : String(rawTgl).substring(0, 10);
     const checkKelas = (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? (pKls === pKlsTarget) : true;
 
     if (pKel === pKelTarget && checkKelas && pDateStr === targetDate) {
-      latestPresensiMap[String(p.NamaJamaah).trim().toLowerCase()] = String(p.StatusPresensi || "Hadir").trim();
+      latestPresensiMap[String(rawNama).trim().toLowerCase()] = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
     }
   });
 
@@ -1244,9 +1323,9 @@ async function submitPresensi() {
   const isCaberawit = (currentKelompok === "Caberawit");
   const targetKelas = (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? currentKelas : "Umum";
 
-  const jenisKegiatan = document.getElementById("presensi-jenis-kegiatan") ? document.getElementById("presensi-jenis-kegiatan").value : "";
-  const pemateri = document.getElementById("presensi-pemateri") ? document.getElementById("presensi-pemateri").value : "";
-  const kendala = document.getElementById("presensi-kendala") ? document.getElementById("presensi-kendala").value : "";
+  const jenisKegiatan = document.getElementById("presensi-jenis-kegiatan") ? document.getElementById("presensi-jenis-kegiatan").value : "Rutin";
+  const pemateri = document.getElementById("presensi-pemateri") ? document.getElementById("presensi-pemateri").value : "-";
+  const kendala = document.getElementById("presensi-kendala") ? document.getElementById("presensi-kendala").value : "-";
 
   let jurnalText = "";
   let materiCaberawitObj = null;
@@ -1267,7 +1346,7 @@ async function submitPresensi() {
     };
     jurnalText = `Akhlak: ${materiCaberawitObj.akhlak || '-'} | Tilawati: ${materiCaberawitObj.tilawati || '-'}`;
   } else {
-    jurnalText = document.getElementById("presensi-jurnal") ? document.getElementById("presensi-jurnal").value : "";
+    jurnalText = document.getElementById("presensi-jurnal") ? document.getElementById("presensi-jurnal").value : "-";
   }
 
   const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
@@ -1303,7 +1382,7 @@ async function submitPresensi() {
     return rawKelasUsiaLower === currentKelompok.trim().toLowerCase();
   });
 
-  if (filteredJamaah.length === 0) return alert("Tidak ada jamaah untuk disimpan.");
+  if (filteredJamaah.length === 0) return alert("Tidak ada data jamaah untuk disimpan.");
 
   const records = filteredJamaah.map((j, idx) => {
     const radios = document.getElementsByName(`presensi-${idx}`);
@@ -1320,18 +1399,18 @@ async function submitPresensi() {
       hari: day,
       nama: j.Nama_Lengkap || j.Nama,
       status: selectedStatus,
-      keterangan: ketInput ? ketInput.value : "",
+      keterangan: ketInput ? ketInput.value.trim() : "",
       karakter29: isCaberawit && karakterSelect ? karakterSelect.value : "Belum",
       jenisKegiatan: jenisKegiatan,
       pemateri: pemateri,
       jurnal: jurnalText,
       materiCaberawit: materiCaberawitObj ? JSON.stringify(materiCaberawitObj) : "",
       kendala: kendala,
-      admin: currentAdmin ? currentAdmin.nama : "Admin"
+      admin: currentAdmin ? (currentAdmin.nama || currentAdmin.username) : "Admin"
     };
   });
 
-  showMessage("Menyimpan presensi (memperbarui data tanpa duplikasi)...", "info");
+  showMessage("Menyimpan presensi ke database...", "info");
   try {
     const res = await fetch(SCRIPT_URL, {
       method: "POST",
@@ -1339,13 +1418,47 @@ async function submitPresensi() {
     });
     const json = await res.json();
     if (json.success) {
-      showMessage("Data presensi berhasil disimpan/diperbarui dengan sukses!", "success");
-      await loadAllData();
+      if (!Array.isArray(appData.presensi)) appData.presensi = [];
+
+      records.forEach(rec => {
+        const existIdx = appData.presensi.findIndex(p => {
+          const pNama = String(p.NamaJamaah || p.Nama || p.nama || "").trim().toLowerCase();
+          const pDate = String(p.Tanggal || p.tanggal || "").substring(0, 10);
+          const pKel = String(p.Kelompok || p.kelompok || "").trim().toLowerCase();
+          const pKls = String(p.Kelas || p.kelas || "Umum").trim().toLowerCase();
+          return pNama === rec.nama.trim().toLowerCase() && pDate === rec.tanggal && pKel === rec.kelompok.toLowerCase() && pKls === rec.kelas.toLowerCase();
+        });
+
+        const formattedRecord = {
+          Tanggal: rec.tanggal,
+          Hari: rec.hari,
+          Kelompok: rec.kelompok,
+          Kelas: rec.kelas,
+          NamaJamaah: rec.nama,
+          StatusPresensi: rec.status,
+          Keterangan: rec.keterangan,
+          Karakter29: rec.karakter29,
+          Jenis_Kegiatan: rec.jenisKegiatan,
+          Pemateri: rec.pemateri,
+          Admin: rec.admin
+        };
+
+        if (existIdx >= 0) {
+          appData.presensi[existIdx] = { ...appData.presensi[existIdx], ...formattedRecord };
+        } else {
+          appData.presensi.push(formattedRecord);
+        }
+      });
+
+      renderPresensiTable();
+      showMessage("Data presensi berhasil disimpan! Status tersimpan telah diperbarui.", "success");
+      loadAllData();
     } else {
-      showMessage("Gagal menyimpan: " + json.error, "error");
+      showMessage("Gagal menyimpan: " + (json.error || json.message), "error");
     }
   } catch (err) {
-    showMessage("Gagal terhubung ke jaringan saat menyimpan presensi.", "error");
+    console.error("Save Presensi Error:", err);
+    showMessage("Gagal terhubung ke server saat menyimpan presensi.", "error");
   }
 }
 
@@ -1402,8 +1515,9 @@ function renderMonitoringTable() {
   const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
 
   const filteredPresensi = presensiList.filter(p => {
-    if (!p.Tanggal) return false;
-    let pDateStr = (p.Tanggal instanceof Date) ? p.Tanggal.toISOString().split("T")[0] : String(p.Tanggal).split("T")[0].trim();
+    const rawTgl = p.Tanggal || p.tanggal;
+    if (!rawTgl) return false;
+    let pDateStr = (rawTgl instanceof Date) ? rawTgl.toISOString().split("T")[0] : String(rawTgl).substring(0, 10);
     if (startDateVal && pDateStr < startDateVal) return false;
     if (endDateVal && pDateStr > endDateVal) return false;
     return true;
@@ -1460,10 +1574,10 @@ function renderMonitoringTable() {
     let totalCaberawitPertemuan = 0;
 
     filteredPresensi.forEach(p => {
-      const pNama = String(p.NamaJamaah || "").trim().toLowerCase();
+      const pNama = String(p.NamaJamaah || p.Nama || p.nama || "").trim().toLowerCase();
       if (pNama === namaKey) {
-        const pKel = String(p.Kelompok || "").trim();
-        const st = String(p.StatusPresensi || "Hadir").trim();
+        const pKel = String(p.Kelompok || p.kelompok || "").trim();
+        const st = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
 
         if (pKel === "ASAD") {
           if (st === "Hadir") attendedAsad = true;
@@ -1471,7 +1585,8 @@ function renderMonitoringTable() {
           if (st === "Hadir") countHadir++;
           else if (st === "Izin") {
             countIzin++;
-            if (p.Keterangan && p.Keterangan.trim() !== "") izinReasons.push(p.Keterangan.trim());
+            const ketStr = String(p.Keterangan || p.keterangan || "").trim();
+            if (ketStr !== "") izinReasons.push(ketStr);
           } else if (st === "Alfa") {
             countAlfa++;
           }
@@ -1515,6 +1630,10 @@ function renderMonitoringTable() {
     `;
   }).join("");
 }
+
+// =========================================================================
+// MODUL PENYAPAAN WILAYAH
+// =========================================================================
 
 function buildLocalPenyapaanState() {
   const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
@@ -1758,8 +1877,7 @@ function renderPetaCards() {
               <div class="p-3.5 rounded-xl border flex flex-col justify-between space-y-2.5 transition-all ${k.is_dirty ? 'bg-amber-50/60 border-amber-300 shadow-xs' : (k.is_recommended ? 'bg-amber-50/25 border-amber-200 shadow-xs' : (k.total_penyapaan > 0 ? 'bg-emerald-50/30 border-emerald-200' : 'bg-slate-50/70 border-slate-200'))}">
                 <div>
                   <div class="flex items-start justify-between gap-1 mb-1">
-                    <p class="font-extrabold text-sm sm:text-base text-slate-900 leading-snug truncate" title="${k.nama_kelompok}">${k.nama_kelompok}</p>
-                    ${badgeHtml}
+                    <p class="font-extrabold text-sm sm:text-base text-slate-900 leading-snug truncate" title="${k.nama_kelompok}">${k.nama_kelompok}</p>${badgeHtml}
                   </div>
                   <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
                     ${rekomBadge}
