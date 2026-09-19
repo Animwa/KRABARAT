@@ -282,7 +282,6 @@ function switchTab(tabName) {
     }
   }
 
-  // Tampilkan bar pemilih wilayah khusus dan subnav saat tab Presensi aktif
   if (tabName === "kelompok") {
     if (presensiWilayahNav) presensiWilayahNav.classList.remove("hidden");
     if (subnav) subnav.classList.remove("hidden");
@@ -878,473 +877,8 @@ function editPengurus(id) { openModalForm("pengurus", id); }
 function editInventaris(id) { openModalForm("inventaris", id); }
 
 // =========================================================================
-// RENDERING VIEWS DENGAN TOMBOL TAMBAH DATA & MOBILE CARD LAYOUT
+// PRESENSI: SUBMIT PRESENSI MULTI-VARIABEL LENGKAP
 // =========================================================================
-
-function renderBerandaKegiatan() {
-  const container = document.getElementById("kegiatan-cards-container");
-  if (!container) return;
-
-  const kegiatanList = Array.isArray(appData.kegiatan) ? appData.kegiatan : [];
-
-  if (kegiatanList.length === 0) {
-    container.innerHTML = `
-      <div class="col-span-full bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 text-center text-slate-400">
-        <i class="fa-solid fa-calendar-xmark text-3xl sm:text-4xl mb-2 text-slate-300"></i>
-        <p class="text-xs sm:text-sm font-medium">Belum ada agenda kegiatan mendatang.</p>
-      </div>
-    `;
-  } else {
-    container.innerHTML = kegiatanList.map(k => `
-      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-3">
-        <div>
-          <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5 mb-2.5">
-            <span class="text-[11px] px-2.5 py-0.5 bg-emerald-50 text-emerald-700 font-bold rounded-full border border-emerald-200 flex items-center gap-1">
-              <i class="fa-solid fa-calendar-day"></i> ${k.Hari || '-'}, ${k.Tanggal ? String(k.Tanggal).split("T")[0] : '-'}
-            </span>
-            <span class="text-[11px] text-amber-600 font-bold flex items-center gap-1">
-              <i class="fa-solid fa-clock"></i> ${k.Jam || 'WIB'}
-            </span>
-          </div>
-          <h3 class="font-bold text-slate-800 text-sm sm:text-base mb-1">${k.Kegiatan || k.Nama_Kegiatan || '-'}</h3>
-          <p class="text-xs text-slate-600 flex items-center gap-1 mb-2">
-            <i class="fa-solid fa-user-tie text-teal-600"></i> <b>Pemateri:</b> ${k.Pemateri || '-'}
-          </p>
-          <p class="text-xs text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-            ${k.Keterangan || k.Target_Usia || 'Tidak ada catatan tambahan.'}
-          </p>
-        </div>
-        <div class="admin-only ${isSuperOrDaerah() ? '' : 'hidden'} flex justify-end gap-3 pt-2 border-t border-slate-100">
-          <button onclick="openModalForm('kegiatan', '${k.ID || k.ID_Kegiatan}')" class="text-amber-600 hover:text-amber-800 text-xs font-semibold flex items-center gap-1">
-            <i class="fa-solid fa-pen"></i> Edit
-          </button>
-          <button onclick="deleteRow('Kegiatan', '${k.ID || k.ID_Kegiatan}')" class="text-rose-600 hover:text-rose-800 text-xs font-semibold flex items-center gap-1">
-            <i class="fa-solid fa-trash"></i> Hapus
-          </button>
-        </div>
-      </div>
-    `).join("");
-  }
-}
-
-function renderPengurus() {
-  const tbody = document.getElementById("table-pengurus-body");
-  if (!tbody) return;
-
-  const data = Array.isArray(appData.pengurus) ? appData.pengurus : [];
-  const desaFilter = document.getElementById("global-filter-desa")?.value || "Semua";
-  const kelFilter = document.getElementById("global-filter-kelompok")?.value || "Semua";
-  const search = (document.getElementById("global-search-input")?.value || "").toLowerCase().trim();
-
-  const filtered = data.filter(p => {
-    const kel = String(p.Kelompok || p.Nama_Kelompok || "-").trim();
-    const desa = String((p.Desa && p.Desa !== "-") ? p.Desa : getDesaByKelompok(kel)).trim();
-    const matchDesa = (desaFilter === "Semua") || (desa.toLowerCase() === desaFilter.toLowerCase());
-    const matchKel = (kelFilter === "Semua") || (kel.toLowerCase() === kelFilter.toLowerCase());
-
-    const namaStr = String(p.Nama || "").toLowerCase();
-    const jabatanStr = String(p.Jabatan || "").toLowerCase();
-    const noHpStr = String(p.NoHP || "").toLowerCase();
-    const matchSearch = !search || namaStr.includes(search) || jabatanStr.includes(search) || noHpStr.includes(search);
-
-    return matchDesa && matchKel && matchSearch;
-  });
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 italic text-xs sm:text-sm">Tidak ada data pengurus yang sesuai kriteria.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = filtered.map(p => {
-    const kel = p.Kelompok || p.Nama_Kelompok || "-";
-    const desa = (p.Desa && p.Desa !== "-") ? p.Desa : getDesaByKelompok(kel);
-    const wilayahLabel = (desa !== "-" && kel !== "-") ? `${desa} - ${kel}` : (desa !== "-" ? desa : (kel !== "-" ? kel : "-"));
-
-    return `
-      <tr class="bg-white border-b hover:bg-slate-50 text-xs sm:text-sm">
-        <td class="px-3 sm:px-6 py-3 font-semibold text-slate-800">${p.Nama || '-'}</td>
-        <td class="px-3 sm:px-6 py-3 text-xs text-slate-600">${wilayahLabel}</td>
-        <td class="px-3 sm:px-6 py-3">${p.Jabatan || '-'}</td>
-        <td class="px-3 sm:px-6 py-3 whitespace-nowrap">${p.NoHP || '-'}</td>
-        <td class="px-3 sm:px-6 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${p.Status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${p.Status || 'Aktif'}</span></td>
-        <td class="px-3 sm:px-6 py-3 text-center admin-only ${isSuperOrDaerah() ? '' : 'hidden'} space-x-2 whitespace-nowrap">
-          <button onclick="openModalForm('pengurus', '${p.ID}')" class="text-amber-600 hover:text-amber-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
-          <button onclick="deleteRow('Pengurus', '${p.ID}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
-        </td>
-      </tr>
-    `;
-  }).join("");
-}
-
-function renderInventaris() {
-  const tbody = document.getElementById("table-inventaris-body");
-  if (!tbody) return;
-
-  const data = Array.isArray(appData.inventaris) ? appData.inventaris : [];
-  const desaFilter = document.getElementById("global-filter-desa")?.value || "Semua";
-  const kelFilter = document.getElementById("global-filter-kelompok")?.value || "Semua";
-  const search = (document.getElementById("global-search-input")?.value || "").toLowerCase().trim();
-
-  const filtered = data.filter(i => {
-    const kel = String(i.Kelompok || i.Nama_Kelompok || "-").trim();
-    const desa = String((i.Desa && i.Desa !== "-") ? i.Desa : getDesaByKelompok(kel)).trim();
-    const matchDesa = (desaFilter === "Semua") || (desa.toLowerCase() === desaFilter.toLowerCase());
-    const matchKel = (kelFilter === "Semua") || (kel.toLowerCase() === kelFilter.toLowerCase());
-
-    const namaBrg = String(i.NamaBarang || "").toLowerCase();
-    const kondisiStr = String(i.Kondisi || "").toLowerCase();
-    const ketStr = String(i.Keterangan || "").toLowerCase();
-    const matchSearch = !search || namaBrg.includes(search) || kondisiStr.includes(search) || ketStr.includes(search);
-
-    return matchDesa && matchKel && matchSearch;
-  });
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-6 text-center text-slate-400 italic text-xs sm:text-sm">Tidak ada data inventaris pada wilayah yang dipilih.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = filtered.map(i => {
-    const kel = i.Kelompok || i.Nama_Kelompok || "-";
-    const desa = (i.Desa && i.Desa !== "-") ? i.Desa : getDesaByKelompok(kel);
-
-    return `
-      <tr class="bg-white border-b hover:bg-slate-50 text-xs sm:text-sm">
-        <td class="px-3 sm:px-6 py-3 font-semibold text-slate-800">${i.NamaBarang || '-'}</td>
-        <td class="px-3 sm:px-4 py-3 text-xs text-slate-600">${desa}</td>
-        <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-700">${kel}</td>
-        <td class="px-3 sm:px-6 py-3 text-center font-bold">${i.Jumlah || 0}</td>
-        <td class="px-3 sm:px-6 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${i.Kondisi === 'Baik' ? 'bg-teal-100 text-teal-800' : 'bg-rose-100 text-rose-800'}">${i.Kondisi || 'Baik'}</span></td>
-        <td class="px-3 sm:px-6 py-3 whitespace-nowrap text-xs">${i.TanggalMasuk ? String(i.TanggalMasuk).split("T")[0] : '-'}</td>
-        <td class="px-3 sm:px-6 py-3 text-xs text-slate-500">${i.Keterangan || '-'}</td>
-        <td class="px-3 sm:px-6 py-3 text-center admin-only ${isSuperOrDaerah() ? '' : 'hidden'} space-x-2 whitespace-nowrap">
-          <button onclick="openModalForm('inventaris', '${i.ID}')" class="text-amber-600 hover:text-amber-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
-          <button onclick="deleteRow('Inventaris', '${i.ID}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
-        </td>
-      </tr>
-    `;
-  }).join("");
-}
-
-function renderJamaah() {
-  const tbody = document.getElementById("table-jamaah-body");
-  if (!tbody) return;
-
-  const data = Array.isArray(appData.jamaah) ? appData.jamaah : [];
-  const desaFilter = document.getElementById("global-filter-desa")?.value || "Semua";
-  const kelFilter = document.getElementById("global-filter-kelompok")?.value || "Semua";
-  const search = (document.getElementById("global-search-input")?.value || "").toLowerCase().trim();
-
-  const filtered = data.filter(j => {
-    const jKel = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
-    const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKel)).trim();
-    const matchDesa = (desaFilter === "Semua") || (jDesa.toLowerCase() === desaFilter.toLowerCase());
-    const matchKel = (kelFilter === "Semua") || (jKel.toLowerCase() === kelFilter.toLowerCase());
-
-    const namaStr = String(j.Nama_Lengkap || j.Nama || "").toLowerCase();
-    const alamatStr = String(j.Alamat || "").toLowerCase();
-    const idStr = String(j.ID_Jamaah || j.ID || "").toLowerCase();
-    const matchSearch = !search || namaStr.includes(search) || alamatStr.includes(search) || idStr.includes(search);
-
-    return matchDesa && matchKel && matchSearch;
-  });
-
-  const badgeCount = document.getElementById("jamaah-count-badge");
-  if (badgeCount) badgeCount.innerText = `${filtered.length} Jamaah`;
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="11" class="px-4 py-6 text-center text-slate-400 italic text-xs sm:text-sm">Tidak ada data jamaah yang sesuai.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = filtered.map(j => {
-    const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "Unassigned").trim();
-    let displayKelompok = rawKelasUsia;
-    let displayKelas = "-";
-
-    if (rawKelasUsia.toLowerCase().startsWith("caberawit")) {
-      displayKelompok = "Caberawit";
-      displayKelas = j.Kelas || rawKelasUsia;
-    }
-
-    const jKel = j.Nama_Kelompok || j.KelompokBinaan || '-';
-    const jDesa = (j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKel);
-
-    return `
-      <tr class="bg-white border-b hover:bg-slate-50 text-xs sm:text-sm">
-        <td class="px-3 sm:px-4 py-3 font-mono text-[11px] text-slate-400">${j.ID_Jamaah || j.ID || '-'}</td>
-        <td class="px-3 sm:px-4 py-3 font-semibold text-slate-800">${j.Nama_Lengkap || j.Nama || '-'}</td>
-        <td class="px-3 sm:px-4 py-3 text-xs text-slate-600">${jDesa}</td>
-        <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-800">${jKel}</td>
-        <td class="px-3 sm:px-4 py-3 whitespace-nowrap text-xs">${j.TanggalLahir ? String(j.TanggalLahir).split("T")[0] : '-'} <span class="text-[10px] text-emerald-600 font-bold">(${calculateAge(j.TanggalLahir)})</span></td>
-        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-0.5 rounded bg-teal-50 text-teal-700 font-semibold text-[11px]">${displayKelompok}</span></td>
-        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[11px]">${displayKelas}</span></td>
-        <td class="px-3 sm:px-4 py-3">${j.Gender || '-'}</td>
-        <td class="px-3 sm:px-4 py-3 text-slate-500">${j.Alamat || '-'}</td>
-        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${j.Keaktifan === 'Aktif' || j.Status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${j.Keaktifan || j.Status || 'Aktif'}</span></td>
-        <td class="px-3 sm:px-4 py-3 text-center admin-only space-x-2 ${isSuperOrDaerah() ? '' : 'hidden'} whitespace-nowrap">
-          <button onclick="editJamaah('${j.ID_Jamaah || j.ID}')" class="text-amber-600 hover:text-amber-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
-          <button onclick="deleteRow('Master_Jamaah', '${j.ID_Jamaah || j.ID}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
-        </td>
-      </tr>
-    `;
-  }).join("");
-}
-
-// =========================================================================
-// RENDER TABEL PRESENSI DENGAN FILTER WILAYAH
-// =========================================================================
-
-function getFilteredJamaahForPresensi() {
-  const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
-  const desaFilter = document.getElementById("presensi-filter-desa")?.value || "Semua";
-  const kelFilter = document.getElementById("presensi-filter-kelompok")?.value || "Semua";
-
-  return jamaahList.filter(j => {
-    const matchStatus = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
-    if (!matchStatus) return false;
-
-    // Filter Wilayah Presensi
-    const jKel = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
-    const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKel)).trim();
-
-    if (desaFilter !== "Semua" && jDesa.toLowerCase() !== desaFilter.toLowerCase()) return false;
-    if (kelFilter !== "Semua" && jKel.toLowerCase() !== kelFilter.toLowerCase()) return false;
-
-    // Filter Kelompok Usia / Kelas
-    const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "").trim();
-    const rawKelasUsiaLower = rawKelasUsia.toLowerCase();
-    const jGender = String(j.Gender || "").trim().toLowerCase();
-
-    const isItemCaberawit = rawKelasUsiaLower.startsWith("caberawit");
-    let detectedKelas = String(j.Kelas || "").trim().toLowerCase();
-    if (!detectedKelas && isItemCaberawit) detectedKelas = rawKelasUsiaLower;
-
-    if (currentKelompok === "ASAD") {
-      if (currentKelas === "Caberawit Laki-Laki") return isItemCaberawit && jGender === "laki-laki";
-      if (currentKelas === "Caberawit Perempuan") return isItemCaberawit && jGender === "perempuan";
-      if (currentKelas === "Laki-Laki") return !isItemCaberawit && jGender === "laki-laki";
-      if (currentKelas === "Perempuan") return !isItemCaberawit && jGender === "perempuan";
-    }
-
-    if (currentKelompok === "Caberawit") {
-      if (!isItemCaberawit) return false;
-      const targetKelas = currentKelas.trim().toLowerCase();
-      const targetSuffix = targetKelas.replace("caberawit", "").trim();
-      return detectedKelas === targetKelas || detectedKelas === targetSuffix || rawKelasUsiaLower === targetKelas;
-    }
-
-    return rawKelasUsiaLower === currentKelompok.trim().toLowerCase();
-  });
-}
-
-function renderPresensiTable() {
-  const isCaberawit = (currentKelompok === "Caberawit");
-  const theadTr = document.getElementById("presensi-table-header");
-
-  if (theadTr) {
-    if (isCaberawit) {
-      theadTr.innerHTML = `
-        <th scope="col" class="px-3 py-3 text-center w-12">NO</th>
-        <th scope="col" class="px-4 py-3 min-w-[140px]">NAMA JAMAAH</th>
-        <th scope="col" class="px-3 py-3 text-center w-14">HADIR</th>
-        <th scope="col" class="px-3 py-3 text-center w-14">IZIN</th>
-        <th scope="col" class="px-3 py-3 text-center w-14">ALFA</th>
-        <th scope="col" class="px-3 py-3 text-center w-28 text-teal-800">29 KARAKTER</th>
-        <th scope="col" class="px-3 py-3 text-left min-w-[160px]">KETERANGAN</th>
-      `;
-    } else {
-      theadTr.innerHTML = `
-        <th scope="col" class="px-3 py-3 text-center w-12">NO</th>
-        <th scope="col" class="px-4 py-3 min-w-[140px]">NAMA JAMAAH</th>
-        <th scope="col" class="px-3 py-3 text-center w-14">HADIR</th>
-        <th scope="col" class="px-3 py-3 text-center w-14">IZIN</th>
-        <th scope="col" class="px-3 py-3 text-center w-14">ALFA</th>
-        <th scope="col" class="px-3 py-3 text-left min-w-[160px]">KETERANGAN</th>
-      `;
-    }
-  }
-
-  const caberawitMateriBox = document.getElementById("caberawit-materi-container");
-  const regulerMateriBox = document.getElementById("reguler-materi-container");
-  if (caberawitMateriBox && regulerMateriBox) {
-    if (isCaberawit) {
-      caberawitMateriBox.classList.remove("hidden");
-      regulerMateriBox.classList.add("hidden");
-    } else {
-      caberawitMateriBox.classList.add("hidden");
-      regulerMateriBox.classList.remove("hidden");
-    }
-  }
-
-  const filteredJamaah = getFilteredJamaahForPresensi();
-  const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
-  const tbody = document.getElementById("table-presensi-body");
-  if (!tbody) return;
-
-  const isReadOnly = !currentAdmin;
-
-  if (filteredJamaah.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="${isCaberawit ? 7 : 6}" class="px-4 py-6 text-center text-slate-400 italic text-xs">
-          Belum ada jamaah yang terdaftar pada wilayah & kelompok ini.
-        </td>
-      </tr>
-    `;
-    updateRekapHarian();
-    return;
-  }
-
-  const selectedDateInput = document.getElementById("presensi-date");
-  const targetDate = selectedDateInput ? selectedDateInput.value : "";
-
-  let existingStatusMap = {};
-  presensiList.forEach(p => {
-    const rawNama = p.NamaJamaah || p.Nama || p.nama;
-    if (!p.Tanggal && !p.tanggal) return;
-    if (!rawNama) return;
-
-    const pKel = String(p.Kelompok || p.kelompok || "").trim().toLowerCase();
-    const pKls = String(p.Kelas || p.kelas || "Umum").trim().toLowerCase();
-    const rawTgl = p.Tanggal || p.tanggal;
-    let pDateStr = (rawTgl instanceof Date) ? rawTgl.toISOString().split("T")[0] : String(rawTgl).substring(0, 10);
-
-    const checkKelas = (currentKelompok === "Caberawit" || currentKelompok === "ASAD")
-      ? (pKls === String(currentKelas).trim().toLowerCase())
-      : true;
-
-    if (pKel === String(currentKelompok).trim().toLowerCase() && checkKelas && pDateStr === targetDate) {
-      existingStatusMap[String(rawNama).trim().toLowerCase()] = {
-        status: String(p.StatusPresensi || p.Status || p.status || "Hadir").trim(),
-        keterangan: String(p.Keterangan || p.keterangan || "").trim(),
-        karakter29: String(p.Karakter29 || p.karakter29 || "Belum").trim()
-      };
-    }
-  });
-
-  tbody.innerHTML = filteredJamaah.map((j, idx) => {
-    const nama = j.Nama_Lengkap || j.Nama;
-    const namaKey = String(nama).trim().toLowerCase();
-    const isSaved = Boolean(existingStatusMap[namaKey]);
-    const exData = existingStatusMap[namaKey] || { status: "Hadir", keterangan: "", karakter29: "Belum" };
-
-    const savedStatus = exData.status;
-    const savedKet = exData.keterangan;
-    const savedKarakter = exData.karakter29;
-
-    const isIzinChecked = (savedStatus === 'Izin');
-    const disabledKet = (isReadOnly || !isIzinChecked) ? "disabled" : "";
-    const disabledRadio = isReadOnly ? "disabled cursor-not-allowed opacity-80" : "cursor-pointer";
-
-    let caberawitExtraTd = "";
-    if (isCaberawit) {
-      caberawitExtraTd = `
-        <td class="px-2 py-3 text-center">
-          <select id="karakter-${idx}" ${isReadOnly ? 'disabled' : ''} class="text-[11px] px-1.5 py-1 rounded border border-slate-300 bg-white font-semibold ${savedKarakter === 'Sudah' ? 'text-emerald-700 bg-emerald-50 border-emerald-300' : 'text-slate-600'}">
-            <option value="Belum" ${savedKarakter === 'Belum' ? 'selected' : ''}>Belum</option>
-            <option value="Sudah" ${savedKarakter === 'Sudah' ? 'selected' : ''}>Sudah</option>
-          </select>
-        </td>
-      `;
-    }
-
-    const badgeTersimpan = isSaved
-      ? `<span class="mt-1 inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
-          <i class="fa-solid fa-check"></i> Tersimpan (${savedStatus})
-         </span>`
-      : `<span class="mt-1 inline-flex items-center text-[9px] px-1 py-0.5 rounded text-slate-400 border border-dashed border-slate-200">Belum Disimpan</span>`;
-
-    return `
-      <tr class="bg-white border-b hover:bg-slate-50 transition-colors text-xs sm:text-sm">
-        <td class="px-2 sm:px-3 py-3 text-center text-xs font-semibold text-slate-500">${idx + 1}</td>
-        <td class="px-3 sm:px-4 py-3 font-medium text-slate-800">
-          <div>${nama}</div>
-          ${badgeTersimpan}
-        </td>
-        <td class="px-2 sm:px-3 py-3 text-center">
-          <input type="radio" name="presensi-${idx}" value="Hadir" onchange="toggleKetInput(${idx})" ${savedStatus === 'Hadir' ? 'checked' : ''} ${disabledRadio} class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
-        </td>
-        <td class="px-2 sm:px-3 py-3 text-center">
-          <input type="radio" name="presensi-${idx}" value="Izin" onchange="toggleKetInput(${idx})" ${savedStatus === 'Izin' ? 'checked' : ''} ${disabledRadio} class="w-4 h-4 text-amber-500 focus:ring-amber-500">
-        </td>
-        <td class="px-2 sm:px-3 py-3 text-center">
-          <input type="radio" name="presensi-${idx}" value="Alfa" onchange="toggleKetInput(${idx})" ${savedStatus === 'Alfa' ? 'checked' : ''} ${disabledRadio} class="w-4 h-4 text-rose-600 focus:ring-rose-500">
-        </td>
-        ${caberawitExtraTd}
-        <td class="px-2 sm:px-3 py-3">
-          <input type="text" id="ket-${idx}" value="${savedKet}" placeholder="${isReadOnly ? '-' : 'Alasan...'}" ${disabledKet} class="w-full text-xs px-2 py-1 border rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-amber-500 transition-all ${!isIzinChecked ? 'opacity-40' : ''}">
-        </td>
-      </tr>
-    `;
-  }).join("");
-
-  updateRekapHarian();
-}
-
-function toggleKetInput(idx) {
-  const radios = document.getElementsByName(`presensi-${idx}`);
-  const ketInput = document.getElementById(`ket-${idx}`);
-  if (!ketInput || !radios) return;
-
-  let selected = "Hadir";
-  for (let r of radios) { if (r.checked) selected = r.value; }
-
-  if (selected === "Izin") {
-    ketInput.disabled = false;
-    ketInput.classList.remove("opacity-40");
-    ketInput.focus();
-  } else {
-    ketInput.value = "";
-    ketInput.disabled = true;
-    ketInput.classList.add("opacity-40");
-  }
-}
-
-function updateRekapHarian() {
-  const selectedDateInput = document.getElementById("presensi-date");
-  if (!selectedDateInput) return;
-  const targetDate = selectedDateInput.value;
-
-  let h = 0, i = 0, a = 0;
-  let latestPresensiMap = {};
-
-  const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
-
-  presensiList.forEach(p => {
-    const rawNama = p.NamaJamaah || p.Nama || p.nama;
-    if (!p.Tanggal && !p.tanggal) return;
-    if (!rawNama) return;
-
-    const pKel = String(p.Kelompok || p.kelompok || "").trim().toLowerCase();
-    const pKelTarget = String(currentKelompok).trim().toLowerCase();
-    const pKls = String(p.Kelas || p.kelas || "Umum").trim().toLowerCase();
-    const pKlsTarget = String(currentKelas).trim().toLowerCase();
-
-    const rawTgl = p.Tanggal || p.tanggal;
-    let pDateStr = (rawTgl instanceof Date) ? rawTgl.toISOString().split("T")[0] : String(rawTgl).substring(0, 10);
-    const checkKelas = (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? (pKls === pKlsTarget) : true;
-
-    if (pKel === pKelTarget && checkKelas && pDateStr === targetDate) {
-      latestPresensiMap[String(rawNama).trim().toLowerCase()] = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
-    }
-  });
-
-  Object.values(latestPresensiMap).forEach(status => {
-    if (status === "Hadir") h++;
-    else if (status === "Izin") i++;
-    else if (status === "Alfa") a++;
-  });
-
-  if (document.getElementById("stat-hadir")) document.getElementById("stat-hadir").innerText = h;
-  if (document.getElementById("stat-izin")) document.getElementById("stat-izin").innerText = i;
-  if (document.getElementById("stat-alfa")) document.getElementById("stat-alfa").innerText = a;
-
-  if (document.getElementById("rekap-mingguan-title")) {
-    const displayTitle = (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? `${currentKelompok} (${currentKelas})` : currentKelompok;
-    document.getElementById("rekap-mingguan-title").innerHTML = `<i class="fa-solid fa-calendar-day mr-1"></i> Rekapan: ${displayTitle}`;
-  }
-}
 
 async function submitPresensi() {
   if (!currentAdmin) return alert("Akses Admin diperlukan untuk menyimpan presensi!");
@@ -1434,7 +968,15 @@ async function submitPresensi() {
           const pDate = String(p.Tanggal || p.tanggal || "").substring(0, 10);
           const pKel = String(p.Kelompok || p.kelompok || "").trim().toLowerCase();
           const pKls = String(p.Kelas || p.kelas || "Umum").trim().toLowerCase();
-          return pNama === rec.nama.trim().toLowerCase() && pDate === rec.tanggal && pKel === rec.kelompok.toLowerCase() && pKls === rec.kelas.toLowerCase();
+          const pKelBinaan = String(p.KelompokBinaan || p.Nama_Kelompok || "").trim().toLowerCase();
+          const pDesa = String(p.Desa || p.desa || "").trim().toLowerCase();
+
+          return pNama === rec.nama.trim().toLowerCase() && 
+                 pDate === rec.tanggal && 
+                 pKel === rec.kelompok.toLowerCase() && 
+                 pKls === rec.kelas.toLowerCase() &&
+                 (pKelBinaan === "" || pKelBinaan === rec.kelompokBinaan.toLowerCase()) &&
+                 (pDesa === "" || pDesa === rec.desa.toLowerCase());
         });
 
         const formattedRecord = {
@@ -1473,7 +1015,7 @@ async function submitPresensi() {
 }
 
 // =========================================================================
-// MONITORING: VALIDASI NAMA + DESA + KELOMPOK
+// MONITORING: VALIDASI NAMA + DESA + KELOMPOK BINAAN + JENJANG/KELAS KETAT
 // =========================================================================
 
 function initMonitoringDateFilters() {
@@ -1560,7 +1102,7 @@ function renderMonitoringTable() {
   });
 
   if (targetJamaah.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="11" class="px-4 py-6 text-center text-slate-400 italic text-xs sm:text-sm">Tidak ada data jamaah yang sesuai.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="px-4 py-6 text-center text-slate-400 italic text-xs sm:text-sm">Tidak ada data jamaah yang sesuai kriteria.</td></tr>`;
     return;
   }
 
@@ -1572,8 +1114,10 @@ function renderMonitoringTable() {
     const jKelBinaan = j.Nama_Kelompok || j.KelompokBinaan || "-";
     const jDesa = (j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKelBinaan);
 
-    // Composite Key Validasi: Nama + Desa + Kelompok Binaan
-    const compositeKey = `${String(nama).trim().toLowerCase()}_${String(jDesa).trim().toLowerCase()}_${String(jKelBinaan).trim().toLowerCase()}`;
+    // Kunci komposit validasi identitas jamaah
+    const targetNamaClean = String(nama || "").trim().toLowerCase();
+    const targetDesaClean = String(jDesa || "").trim().toLowerCase();
+    const targetKelClean = String(jKelBinaan || "").trim().toLowerCase();
 
     let countHadir = 0, countIzin = 0, countAlfa = 0;
     let izinReasons = [];
@@ -1583,31 +1127,45 @@ function renderMonitoringTable() {
 
     filteredPresensi.forEach(p => {
       const pNama = String(p.NamaJamaah || p.Nama || p.nama || "").trim().toLowerCase();
+      if (pNama !== targetNamaClean) return;
+
+      // Validasi wilayah (Desa & Kelompok Binaan)
       const pKelBinaan = String(p.KelompokBinaan || p.Nama_Kelompok || getKelompokByNama(pNama)).trim().toLowerCase();
       const pDesa = String(p.Desa || p.desa || getDesaByKelompok(pKelBinaan)).trim().toLowerCase();
 
-      const pCompositeKey = `${pNama}_${pDesa}_${pKelBinaan}`;
-      const isMatch = (pCompositeKey === compositeKey) || (pNama === String(nama).trim().toLowerCase() && (!pDesa || pDesa === "-" || pDesa === jDesa.toLowerCase()));
+      if (pKelBinaan && pKelBinaan !== "-" && pKelBinaan !== targetKelClean) return;
+      if (pDesa && pDesa !== "-" && pDesa !== targetDesaClean) return;
 
-      if (isMatch) {
-        const pKel = String(p.Kelompok || p.kelompok || "").trim();
+      // Validasi jenjang usia / kelas
+      const pKel = String(p.Kelompok || p.kelompok || "").trim();
+      const pKls = String(p.Kelas || p.kelas || "Umum").trim().toLowerCase();
+
+      if (pKel === "ASAD") {
         const st = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
+        if (st === "Hadir") attendedAsad = true;
+      } else {
+        // Validasi kecocokan jenjang
+        const isMatchJenjang = isCaberawit 
+          ? (pKel.toLowerCase() === "caberawit" && (pKls === "umum" || pKls === String(j.Kelas || "").trim().toLowerCase() || pKls === rawKelasUsia.toLowerCase()))
+          : (pKel.toLowerCase() === rawKelasUsia.toLowerCase());
 
-        if (pKel === "ASAD") {
-          if (st === "Hadir") attendedAsad = true;
-        } else {
-          if (st === "Hadir") countHadir++;
-          else if (st === "Izin") {
-            countIzin++;
-            const ketStr = String(p.Keterangan || p.keterangan || "").trim();
-            if (ketStr !== "") izinReasons.push(ketStr);
-          } else if (st === "Alfa") {
-            countAlfa++;
-          }
+        if (!isMatchJenjang) return;
 
-          if (isCaberawit) {
-            totalCaberawitPertemuan++;
-            if (String(p.Karakter29 || p.karakter29 || "").trim().toLowerCase() === "sudah") sudahKarakterCount++;
+        const st = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
+        if (st === "Hadir") {
+          countHadir++;
+        } else if (st === "Izin") {
+          countIzin++;
+          const ketStr = String(p.Keterangan || p.keterangan || "").trim();
+          if (ketStr !== "") izinReasons.push(ketStr);
+        } else if (st === "Alfa") {
+          countAlfa++;
+        }
+
+        if (isCaberawit) {
+          totalCaberawitPertemuan++;
+          if (String(p.Karakter29 || p.karakter29 || "").trim().toLowerCase() === "sudah") {
+            sudahKarakterCount++;
           }
         }
       }
@@ -1646,7 +1204,7 @@ function renderMonitoringTable() {
 }
 
 // =========================================================================
-// DOWNLOAD / CETAK LEMBAR KERJA FORMAT LANSKAP
+// DOWNLOAD / CETAK LEMBAR KERJA FORMAT LANSKAP (DINAMIS REKAP L/P & RATA-RATA)
 // =========================================================================
 
 function downloadLembarKerja() {
@@ -1664,6 +1222,7 @@ function downloadLembarKerja() {
   const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
   const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
 
+  // Filter Jamaah Sesuai Kriteria Wilayah dan Jenjang
   const targetJamaah = jamaahList.filter(j => {
     const isAktif = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
     if (!isAktif) return false;
@@ -1687,30 +1246,116 @@ function downloadLembarKerja() {
 
   let countLaki = 0;
   let countPerempuan = 0;
+  const genderMap = {};
 
   targetJamaah.forEach(j => {
+    const namaKey = String(j.Nama_Lengkap || j.Nama || "").trim().toLowerCase();
     const g = String(j.Gender || "").trim().toLowerCase();
-    if (g === "laki-laki" || g === "l") countLaki++;
-    else if (g === "perempuan" || g === "p") countPerempuan++;
+    const isLaki = (g === "laki-laki" || g === "l");
+    genderMap[namaKey] = isLaki ? "L" : "P";
+
+    if (isLaki) countLaki++;
+    else countPerempuan++;
   });
 
   const totalJamaah = targetJamaah.length;
 
-  const relevantJurnal = [];
-  presensiList.forEach(p => {
-    if (startDateVal && p.Tanggal && String(p.Tanggal).substring(0, 10) < startDateVal) return;
-    if (endDateVal && p.Tanggal && String(p.Tanggal).substring(0, 10) > endDateVal) return;
+  // Bangun Map Jamaah yang valid dalam filter ini
+  const validJamaahKeys = new Set(targetJamaah.map(j => {
+    const namaClean = String(j.Nama_Lengkap || j.Nama || "").trim().toLowerCase();
+    const kelClean = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim().toLowerCase();
+    const desaClean = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(kelClean)).trim().toLowerCase();
+    return `${namaClean}_${desaClean}_${kelClean}`;
+  }));
 
+  // Filter Log Presensi yang cocok dan dalam rentang tanggal
+  const relevantJurnal = [];
+  const sessionPresenceMap = {}; // Key: "YYYY-MM-DD" -> { L: count, P: count }
+
+  presensiList.forEach(p => {
+    if (!p.Tanggal) return;
+    const dateStr = (p.Tanggal instanceof Date) ? p.Tanggal.toISOString().split("T")[0] : String(p.Tanggal).substring(0, 10);
+    if (startDateVal && dateStr < startDateVal) return;
+    if (endDateVal && dateStr > endDateVal) return;
+
+    const pNama = String(p.NamaJamaah || p.Nama || p.nama || "").trim().toLowerCase();
+    const pKelBinaan = String(p.KelompokBinaan || p.Nama_Kelompok || getKelompokByNama(pNama)).trim().toLowerCase();
+    const pDesa = String(p.Desa || p.desa || getDesaByKelompok(pKelBinaan)).trim().toLowerCase();
+
+    const compositeKey = `${pNama}_${pDesa}_${pKelBinaan}`;
+    if (!validJamaahKeys.has(compositeKey)) return;
+
+    // Catat Jurnal & Kendala
     const jText = String(p.Jurnal || p.jurnal || "").trim();
     const kendalaText = String(p.Kendala || p.kendala || "").trim();
-
     if (jText && jText !== "-" && !relevantJurnal.includes(jText)) {
       relevantJurnal.push(jText);
     }
     if (kendalaText && kendalaText !== "-" && !relevantJurnal.includes(kendalaText)) {
       relevantJurnal.push(`Kendala: ${kendalaText}`);
     }
+
+    // Hitung kehadiran Hadir L dan P
+    const st = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
+    if (st === "Hadir") {
+      if (!sessionPresenceMap[dateStr]) sessionPresenceMap[dateStr] = { L: 0, P: 0 };
+      const g = genderMap[pNama] || "L";
+      if (g === "L") sessionPresenceMap[dateStr].L++;
+      else sessionPresenceMap[dateStr].P++;
+    }
   });
+
+  // Tentukan tanggal acuan bulan untuk pengelompokan Minggu 1-5
+  let baseDate = new Date();
+  if (startDateVal) {
+    baseDate = new Date(startDateVal + "T00:00:00");
+  }
+  const year = baseDate.getFullYear();
+  const month = baseDate.getMonth();
+
+  // Matriks Kehadiran: Hari [0..6] (Senin..Minggu) x Minggu [0..4] (Minggu 1..5)
+  // Hari indeks: 0=Senin, 1=Selasa, ..., 6=Minggu
+  const gridAttendance = Array.from({ length: 7 }, () => Array.from({ length: 5 }, () => null));
+
+  Object.keys(sessionPresenceMap).forEach(dStr => {
+    const curD = new Date(dStr + "T00:00:00");
+    if (isNaN(curD.getTime())) return;
+    
+    // Hitung urutan minggu dalam bulan (0-indexed)
+    const dom = curD.getDate();
+    const weekIdx = Math.min(Math.floor((dom - 1) / 7), 4);
+
+    // Konversi getDay() JS (0=Minggu, 1=Senin..6=Sabtu) ke (0=Senin..6=Minggu)
+    const jsDay = curD.getDay();
+    const rowDay = (jsDay === 0) ? 6 : (jsDay - 1);
+
+    gridAttendance[rowDay][weekIdx] = sessionPresenceMap[dStr];
+  });
+
+  // Hitung RATA-RATA per Minggu (Minggu 1 - 5)
+  const weekAverages = [0, 1, 2, 3, 4].map(wIdx => {
+    let totalPresence = 0;
+    let activeDays = 0;
+    for (let r = 0; r < 7; r++) {
+      const cell = gridAttendance[r][wIdx];
+      if (cell) {
+        totalPresence += (cell.L + cell.P);
+        activeDays++;
+      }
+    }
+    return activeDays > 0 ? (totalPresence / activeDays).toFixed(1) : "-";
+  });
+
+  const hariLabels = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+  const tableRowsHtml = hariLabels.map((hari, rIdx) => {
+    const cols = [0, 1, 2, 3, 4].map(wIdx => {
+      const cell = gridAttendance[rIdx][wIdx];
+      return cell ? `<td>${cell.L} L / ${cell.P} P</td>` : `<td>-</td>`;
+    }).join("");
+    return `<tr><td class="hari-col">${hari}</td>${cols}</tr>`;
+  }).join("");
+
+  const rataRataColsHtml = weekAverages.map(avg => `<td>${avg}</td>`).join("");
 
   const subJudulWilayah = `Desa: ${desaFilter} | Kelompok: ${kelFilter} | Kelas: ${filterKelasUsia} | Periode: ${periodeText}`;
   const todayStr = formatTanggalIndo(new Date().toISOString().split("T")[0]);
@@ -1748,7 +1393,7 @@ function downloadLembarKerja() {
           cursor: pointer;
         }
         .title {
-          font-size: 17px;
+          font-size: 16px;
           font-weight: 800;
           color: #0f766e;
           margin: 0 0 4px 0;
@@ -1781,7 +1426,7 @@ function downloadLembarKerja() {
           width: 100%;
           border-collapse: collapse;
           font-size: 11px;
-          margin-bottom: 20px;
+          margin-bottom: 18px;
         }
         th, td {
           border: 1px solid #94a3b8;
@@ -1816,6 +1461,7 @@ function downloadLembarKerja() {
           border-bottom: 1px solid #cbd5e1;
           padding-bottom: 8px;
           margin-bottom: 25px;
+          min-height: 20px;
         }
         .footer-sign {
           display: flex;
@@ -1863,16 +1509,10 @@ function downloadLembarKerja() {
           </tr>
         </thead>
         <tbody>
-          <tr><td class="hari-col">Senin</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
-          <tr><td class="hari-col">Selasa</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
-          <tr><td class="hari-col">Rabu</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
-          <tr><td class="hari-col">Kamis</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
-          <tr><td class="hari-col">Jumat</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
-          <tr><td class="hari-col">Sabtu</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
-          <tr><td class="hari-col">Minggu</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+          ${tableRowsHtml}
           <tr class="rata-rata-row">
             <td>RATA-RATA</td>
-            <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+            ${rataRataColsHtml}
           </tr>
         </tbody>
       </table>
