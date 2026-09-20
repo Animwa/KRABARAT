@@ -2,7 +2,7 @@
 // FRONTEND LOGIC & REST API INTEGRATION (MOBILE OPTIMIZED & FULL CRUD)
 // =========================================================================
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyP1uSRib8zQ9SC6QFR_yAoYmrxqTMquMjyVroGY3Qs29UeUolDIe50-wWqGKBa2sGL/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyciPaqbNWgQMB-BrNDxTvixQvqUIjBwigqX_cU3W-gsiHXbUEGnjKgWWxXEnM62Qz9/exec";
 
 let appData = {
   pengurus: [],
@@ -70,8 +70,7 @@ function showMessage(text, type = "info") {
 
 function hideMessage() {
   const msgBox = document.getElementById("status-message");
-  if (!msgBox) return;
-  msgBox.classList.add("hidden");
+  if (msgBox) msgBox.classList.add("hidden");
 }
 
 function openLoginModal() {
@@ -1092,7 +1091,7 @@ function renderJamaah() {
 }
 
 // =========================================================================
-// RENDER TABEL PRESENSI DENGAN KUNCI [ID_JAMAAH & KELOMPOK BINAAN + NAMA]
+// RENDER TABEL PRESENSI DENGAN KUNCI [NAMA_KELOMPOK + NAMA JAMAAH]
 // =========================================================================
 
 function getFilteredJamaahForPresensi() {
@@ -1197,7 +1196,7 @@ function renderPresensiTable() {
   const selectedDateInput = document.getElementById("presensi-date");
   const targetDate = selectedDateInput ? selectedDateInput.value : "";
 
-  // 1. Peta presensi dengan Multi-Key: ID_Jamaah, KelompokBinaan + Nama, dan Nama
+  // Peta presensi dengan Kunci: Nama_Kelompok + Nama Jamaah
   let existingStatusMap = {};
   presensiList.forEach(p => {
     const rawNama = p.NamaJamaah || p.Nama || p.nama;
@@ -1208,9 +1207,8 @@ function renderPresensiTable() {
     let pDateStr = (rawTgl instanceof Date) ? rawTgl.toISOString().split("T")[0] : String(rawTgl).substring(0, 10);
 
     if (pDateStr === targetDate) {
-      const pId = String(p.ID_Jamaah || p.ID || p.idJamaah || "").trim().toLowerCase();
-      const pKelBinaan = String(p.KelompokBinaan || p.Nama_Kelompok || getKelompokByNama(rawNama)).trim().toLowerCase();
       const pNamaClean = String(rawNama).trim().toLowerCase();
+      const pKelBinaan = String(p.Nama_Kelompok || p.KelompokBinaan || getKelompokByNama(rawNama)).trim().toLowerCase();
 
       const statusData = {
         status: String(p.StatusPresensi || p.Status || p.status || "Hadir").trim(),
@@ -1218,7 +1216,7 @@ function renderPresensiTable() {
         karakter29: String(p.Karakter29 || p.karakter29 || "Belum").trim()
       };
 
-      if (pId) existingStatusMap[`id_${pId}`] = statusData;
+      // Simpan kunci kelompok binaan + nama, dan fallback nama saja
       existingStatusMap[`kel_${pKelBinaan}_${pNamaClean}`] = statusData;
       if (!existingStatusMap[`name_${pNamaClean}`]) {
         existingStatusMap[`name_${pNamaClean}`] = statusData;
@@ -1228,14 +1226,11 @@ function renderPresensiTable() {
 
   tbody.innerHTML = filteredJamaah.map((j, idx) => {
     const nama = j.Nama_Lengkap || j.Nama;
-    const jId = String(j.ID_Jamaah || j.ID || "").trim().toLowerCase();
     const jKel = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim().toLowerCase();
     const namaClean = String(nama).trim().toLowerCase();
 
-    // 2. Cocokkan: ID -> Kelompok Binaan + Nama -> Nama
-    const exData = (jId && existingStatusMap[`id_${jId}`])
-      ? existingStatusMap[`id_${jId}`]
-      : (existingStatusMap[`kel_${jKel}_${namaClean}`] || existingStatusMap[`name_${namaClean}`]);
+    // Cocokkan Nama_Kelompok + Nama, lalu fallback ke Nama saja
+    const exData = existingStatusMap[`kel_${jKel}_${namaClean}`] || existingStatusMap[`name_${namaClean}`];
 
     const isSaved = Boolean(exData);
     const savedStatus = exData ? exData.status : "Hadir";
@@ -1328,7 +1323,7 @@ function updateRekapHarian() {
     if (!p.Tanggal && !p.tanggal) return;
     if (!rawNama) return;
 
-    const pKelBinaan = String(p.KelompokBinaan || p.Nama_Kelompok || getKelompokByNama(rawNama)).trim();
+    const pKelBinaan = String(p.Nama_Kelompok || p.KelompokBinaan || getKelompokByNama(rawNama)).trim();
     const pDesa = String((p.Desa && p.Desa !== "-") ? p.Desa : getDesaByKelompok(pKelBinaan)).trim();
 
     if (desaFilter !== "Semua" && pDesa.toLowerCase() !== desaFilter.toLowerCase()) return;
@@ -1338,8 +1333,7 @@ function updateRekapHarian() {
     let pDateStr = (rawTgl instanceof Date) ? rawTgl.toISOString().split("T")[0] : String(rawTgl).substring(0, 10);
 
     if (pDateStr === targetDate) {
-      const pId = String(p.ID_Jamaah || p.ID || p.idJamaah || "").trim().toLowerCase();
-      const uniqueId = pId ? `id_${pId}` : `${String(pKelBinaan).trim().toLowerCase()}_${String(rawNama).trim().toLowerCase()}`;
+      const uniqueId = `${String(pKelBinaan).trim().toLowerCase()}_${String(rawNama).trim().toLowerCase()}`;
       latestPresensiMap[uniqueId] = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
     }
   });
@@ -1417,14 +1411,13 @@ async function submitPresensiBatch() {
     const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKelBinaan)).trim();
 
     return {
-      ID_Jamaah: j.ID_Jamaah || j.ID || `JAM-${idx}`,
       NamaJamaah: j.Nama_Lengkap || j.Nama,
       Tanggal: tanggalStr,
       Hari: hariStr,
       Kelompok: currentKelompok,
       Kelas: (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? currentKelas : "Umum",
-      KelompokBinaan: jKelBinaan,
       Nama_Kelompok: jKelBinaan,
+      KelompokBinaan: jKelBinaan,
       Desa: jDesa,
       StatusPresensi: status,
       Keterangan: keterangan,
@@ -1561,7 +1554,6 @@ function renderMonitoringTable() {
     const jKelBinaan = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
     const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKelBinaan)).trim();
 
-    const targetIdClean = String(j.ID_Jamaah || j.ID || "").trim().toLowerCase();
     const targetNamaClean = String(nama || "").trim().toLowerCase();
     const targetKelClean = jKelBinaan.toLowerCase();
 
@@ -1572,18 +1564,12 @@ function renderMonitoringTable() {
     let totalCaberawitPertemuan = 0;
 
     filteredPresensi.forEach(p => {
-      const pId = String(p.ID_Jamaah || p.ID || p.idJamaah || "").trim().toLowerCase();
       const pNama = String(p.NamaJamaah || p.Nama || p.nama || "").trim().toLowerCase();
+      if (pNama !== targetNamaClean) return;
 
-      // Cocokkan melalui ID Jamaah jika ada, atau fallback nama + kelompok binaan
-      const matchIdentity = (pId && targetIdClean)
-        ? (pId === targetIdClean)
-        : (pNama === targetNamaClean);
-
-      if (!matchIdentity) return;
-
-      const pKelBinaan = String(p.KelompokBinaan || p.Nama_Kelompok || getKelompokByNama(pNama)).trim().toLowerCase();
-      if (!pId && pKelBinaan && pKelBinaan !== "-" && targetKelClean !== "-" && pKelBinaan !== targetKelClean) {
+      const pKelBinaan = String(p.Nama_Kelompok || p.KelompokBinaan || getKelompokByNama(pNama)).trim().toLowerCase();
+      
+      if (pKelBinaan && pKelBinaan !== "-" && targetKelClean !== "-" && pKelBinaan !== targetKelClean) {
         return;
       }
 
@@ -2042,7 +2028,7 @@ function buildLocalPenyapaanState() {
 
 function calculateRekomendasi16Kelompok() {
   localPenyapaanData.forEach(k => k.is_recommended = false);
-  const desas = [...new Set(localPenyapaanData.map(k => k.nama_desa))];
+  const desas = [...new Set(localPenyapaanData.map(m => m.nama_desa))];
   desas.forEach(desa => {
     const kelompokInDesa = localPenyapaanData.filter(k => k.nama_desa === desa);
     if (kelompokInDesa.length === 0) return;
