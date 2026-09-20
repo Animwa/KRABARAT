@@ -102,7 +102,7 @@
   </div>
 </nav>
 
-<!-- BAR WILAYAH KHUSUS PRESENSI (DI ATAS JENJANG, DI BAWAH NAVBAR) -->
+<!-- BAR WILAYAH KHUSUS PRESENSI -->
 <div id="presensi-wilayah-nav" class="bg-emerald-900/90 text-white border-b border-emerald-800 hidden">
   <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
     <span class="font-bold text-emerald-200 shrink-0 flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
@@ -298,7 +298,6 @@
           <p class="text-xs text-slate-500">Tentukan tanggal kegiatan dan tandai presensi jamaah.</p>
         </div>
 
-        <!-- Form Kontrol Tanggal & Jenis Kegiatan (Wilayah sudah di bar atas) -->
         <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <div class="grow sm:grow-0">
             <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">Tanggal</label>
@@ -315,7 +314,7 @@
         </div>
       </div>
 
-      <!-- TABEL PRESENSI (RESPONSIF DENGAN HORIZONTAL SCROLL) -->
+      <!-- TABEL PRESENSI -->
       <div class="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
         <table class="w-full text-xs sm:text-sm text-left text-slate-600 min-w-[550px]">
           <thead class="text-xs text-slate-700 uppercase bg-slate-100">
@@ -336,28 +335,28 @@
           <input type="text" id="presensi-pemateri" placeholder="Nama Ustaz / Pemateri hari ini..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500">
         </div>
 
-        <!-- FORM MATERI KHUSUS CABERAWIT -->
+        <!-- FORM MATERI KHUSUS CABERAWIT (ID disesuaikan dengan app.js) -->
         <div id="caberawit-materi-container" class="hidden bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 space-y-3">
           <p class="text-xs font-bold text-emerald-800 border-b pb-1"><i class="fa-solid fa-list-check mr-1"></i> Rincian Capaian Materi Caberawit</p>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3 text-xs">
-            <div><label class="block font-semibold mb-0.5">Akhlakul Karimah</label><input type="text" id="mat-akhlak" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
-            <div><label class="block font-semibold mb-0.5">Peraga Tilawati</label><input type="text" id="mat-tilawati" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
-            <div><label class="block font-semibold mb-0.5">Bacaan</label><input type="text" id="mat-bacaan" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
-            <div><label class="block font-semibold mb-0.5">Tajwid</label><input type="text" id="mat-tajwid" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
-            <div><label class="block font-semibold mb-0.5">Makna Al-Qur'an</label><input type="text" id="mat-makna-quran" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
-            <div><label class="block font-semibold mb-0.5">Makna Al-Hadist</label><input type="text" id="mat-makna-hadist" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
-            <div><label class="block font-semibold mb-0.5">Hafalan Dalil</label><input type="text" id="mat-hafalan-dalil" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
-            <div><label class="block font-semibold mb-0.5">Hafalan Surat</label><input type="text" id="mat-hafalan-surat" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
-            <div><label class="block font-semibold mb-0.5">Hafalan Doa</label><input type="text" id="mat-hafalan-doa" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
-            <div><label class="block font-semibold mb-0.5">BCM</label><input type="text" id="mat-bcm" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
-            <div><label class="block font-semibold mb-0.5">Praktek</label><input type="text" id="mat-praktek" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
+            <div><label class="block font-semibold mb-0.5">Akhlakul Karimah</label><input type="text" id="materi-akhlak" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
+            <div><label class="block font-semibold mb-0.5">Peraga Tilawati</label><input type="text" id="materi-tilawati" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
+            <div><label class="block font-semibold mb-0.5">Bacaan</label><input type="text" id="materi-bacaan" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
+            <div><label class="block font-semibold mb-0.5">Tajwid</label><input type="text" id="materi-tajwid" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
+            <div><label class="block font-semibold mb-0.5">Makna Al-Qur'an</label><input type="text" id="materi-makna-quran" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
+            <div><label class="block font-semibold mb-0.5">Makna Al-Hadist</label><input type="text" id="materi-makna-hadist" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
+            <div><label class="block font-semibold mb-0.5">Hafalan Dalil</label><input type="text" id="materi-dalil" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
+            <div><label class="block font-semibold mb-0.5">Hafalan Surat</label><input type="text" id="materi-surat" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
+            <div><label class="block font-semibold mb-0.5">Hafalan Doa</label><input type="text" id="materi-doa" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
+            <div><label class="block font-semibold mb-0.5">BCM</label><input type="text" id="materi-bcm" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
+            <div><label class="block font-semibold mb-0.5">Praktek</label><input type="text" id="materi-praktek" class="w-full border rounded px-2.5 py-1.5 bg-white"></div>
           </div>
         </div>
 
-        <!-- FORM MATERI REGULER -->
+        <!-- FORM MATERI REGULER (ID disesuaikan dengan app.js) -->
         <div id="reguler-materi-container">
           <label class="block text-xs font-semibold text-slate-600 mb-1">Capaian Materi / Jurnal Pengajian</label>
-          <input type="text" id="presensi-jurnal" placeholder="Misal: Kitab Bab Thaharah..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500">
+          <input type="text" id="reguler-jurnal" placeholder="Misal: Kitab Bab Thaharah..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500">
         </div>
 
         <div>
@@ -365,8 +364,9 @@
           <textarea id="presensi-kendala" rows="2" placeholder="Tuliskan kendala saat KBM berlangsung..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500"></textarea>
         </div>
 
+        <!-- Tombol diperbaiki ke submitPresensiBatch() -->
         <div class="admin-only hidden flex justify-end pt-2">
-          <button onclick="submitPresensi()" class="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-md transition-all flex items-center justify-center space-x-2">
+          <button type="button" onclick="submitPresensiBatch()" class="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-md transition-all flex items-center justify-center space-x-2">
             <i class="fa-solid fa-floppy-disk"></i>
             <span>Simpan Presensi</span>
           </button>
@@ -586,6 +586,55 @@
       icon.className = "fa-solid fa-bars text-sm";
     } else {
       icon.className = "fa-solid fa-xmark text-sm";
+    }
+  }
+
+  function openAddAdminModal() {
+    const modal = document.getElementById("modal-add-admin");
+    if (modal) modal.classList.remove("hidden");
+  }
+
+  async function handleAddAdmin(event) {
+    event.preventDefault();
+    if (!currentAdmin || !isSuperOrDaerah()) {
+      alert("Hanya Super Admin / Admin Daerah yang dapat mendaftarkan admin baru!");
+      return;
+    }
+
+    const nama = document.getElementById("new-admin-nama")?.value.trim();
+    const pin = document.getElementById("new-admin-pin")?.value.trim();
+
+    if (!nama || !pin) return alert("Nama dan PIN wajib diisi!");
+
+    showMessage("Mendaftarkan admin baru...", "info");
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "save_user",
+          data: {
+            nama: nama,
+            username: nama.toLowerCase().replace(/\s+/g, "_"),
+            password: pin,
+            role: "Admin",
+            scopeDesa: "ALL",
+            scopeKelompok: "ALL"
+          }
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        showMessage("Admin baru berhasil didaftarkan!", "success");
+        closeModal("modal-add-admin");
+        document.getElementById("new-admin-nama").value = "";
+        document.getElementById("new-admin-pin").value = "";
+        await loadAllData();
+      } else {
+        showMessage("Gagal mendaftarkan admin: " + (json.error || json.message), "error");
+      }
+    } catch (err) {
+      console.error("Add Admin Error:", err);
+      showMessage("Terjadi kesalahan jaringan saat menambah admin.", "error");
     }
   }
 
