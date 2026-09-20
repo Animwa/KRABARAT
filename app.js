@@ -2,7 +2,7 @@
 // FRONTEND LOGIC & REST API INTEGRATION (MOBILE OPTIMIZED & FULL CRUD)
 // =========================================================================
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxmfjlA2enjojBqZil-htUNBHQOYZZ3qEEJ7ZY_TBBlzeTf9OM-Bq4qlui3stE6IL4/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyN0Ugl-qMFi7GPQp00y6kRbgpVH9sP82LsJKBSWNKVUQjsPGJ0prxtTgMmxasqmbpW/exec";
 
 let appData = {
   pengurus: [],
@@ -505,7 +505,7 @@ function onPresensiDesaChange() {
 }
 
 // =========================================================================
-// SISTEM MODAL FORM GENERATOR (ROBUST DOM INJECTION)
+// SISTEM MODAL FORM GENERATOR
 // =========================================================================
 
 function createDynamicModal() {
@@ -1091,7 +1091,7 @@ function renderJamaah() {
 }
 
 // =========================================================================
-// RENDER TABEL PRESENSI DENGAN FILTER WILAYAH
+// RENDER TABEL PRESENSI DENGAN KUNCI [KELOMPOK BINAAN + NAMA]
 // =========================================================================
 
 function getFilteredJamaahForPresensi() {
@@ -1103,14 +1103,12 @@ function getFilteredJamaahForPresensi() {
     const matchStatus = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
     if (!matchStatus) return false;
 
-    // Filter Wilayah Presensi
     const jKel = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
     const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKel)).trim();
 
     if (desaFilter !== "Semua" && jDesa.toLowerCase() !== desaFilter.toLowerCase()) return false;
     if (kelFilter !== "Semua" && jKel.toLowerCase() !== kelFilter.toLowerCase()) return false;
 
-    // Filter Kelompok Usia / Kelas
     const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "").trim();
     const rawKelasUsiaLower = rawKelasUsia.toLowerCase();
     const jGender = String(j.Gender || "").trim().toLowerCase();
@@ -1198,27 +1196,22 @@ function renderPresensiTable() {
   const selectedDateInput = document.getElementById("presensi-date");
   const targetDate = selectedDateInput ? selectedDateInput.value : "";
 
+  // 1. Peta presensi dengan Kunci: [Kelompok Binaan]_[Nama Jamaah]
   let existingStatusMap = {};
   presensiList.forEach(p => {
     const rawNama = p.NamaJamaah || p.Nama || p.nama;
     if (!p.Tanggal && !p.tanggal) return;
     if (!rawNama) return;
 
-    const pKel = String(p.Kelompok || p.kelompok || "").trim().toLowerCase();
-    const pKls = String(p.Kelas || p.kelas || "Umum").trim().toLowerCase();
-    const pKelBinaan = String(p.KelompokBinaan || p.Nama_Kelompok || getKelompokByNama(rawNama)).trim().toLowerCase();
-    const pDesa = String(p.Desa || p.desa || getDesaByKelompok(pKelBinaan)).trim().toLowerCase();
-
     const rawTgl = p.Tanggal || p.tanggal;
     let pDateStr = (rawTgl instanceof Date) ? rawTgl.toISOString().split("T")[0] : String(rawTgl).substring(0, 10);
 
-    const checkKelas = (currentKelompok === "Caberawit" || currentKelompok === "ASAD")
-      ? (pKls === String(currentKelas).trim().toLowerCase())
-      : true;
+    if (pDateStr === targetDate) {
+      const pKelBinaan = String(p.KelompokBinaan || p.Nama_Kelompok || getKelompokByNama(rawNama)).trim().toLowerCase();
+      const pNamaClean = String(rawNama).trim().toLowerCase();
 
-    if (pKel === String(currentKelompok).trim().toLowerCase() && checkKelas && pDateStr === targetDate) {
-      const compositeLookupKey = `${String(rawNama).trim().toLowerCase()}_${pDesa}_${pKelBinaan}`;
-      existingStatusMap[compositeLookupKey] = {
+      const lookupKey = `${pKelBinaan}_${pNamaClean}`;
+      existingStatusMap[lookupKey] = {
         status: String(p.StatusPresensi || p.Status || p.status || "Hadir").trim(),
         keterangan: String(p.Keterangan || p.keterangan || "").trim(),
         karakter29: String(p.Karakter29 || p.karakter29 || "Belum").trim()
@@ -1229,15 +1222,16 @@ function renderPresensiTable() {
   tbody.innerHTML = filteredJamaah.map((j, idx) => {
     const nama = j.Nama_Lengkap || j.Nama;
     const jKel = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim().toLowerCase();
-    const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKel)).trim().toLowerCase();
-    const compositeLookupKey = `${String(nama).trim().toLowerCase()}_${jDesa}_${jKel}`;
+    const namaClean = String(nama).trim().toLowerCase();
 
-    const isSaved = Boolean(existingStatusMap[compositeLookupKey]);
-    const exData = existingStatusMap[compositeLookupKey] || { status: "Hadir", keterangan: "", karakter29: "Belum" };
+    // 2. Cocokkan dengan kunci unik Kelompok Binaan + Nama
+    const lookupKey = `${jKel}_${namaClean}`;
+    const exData = existingStatusMap[lookupKey];
 
-    const savedStatus = exData.status;
-    const savedKet = exData.keterangan;
-    const savedKarakter = exData.karakter29;
+    const isSaved = Boolean(exData);
+    const savedStatus = exData ? exData.status : "Hadir";
+    const savedKet = exData ? exData.keterangan : "";
+    const savedKarakter = exData ? exData.karakter29 : "Belum";
 
     const isIzinChecked = (savedStatus === 'Izin');
     const disabledKet = (isReadOnly || !isIzinChecked) ? "disabled" : "";
@@ -1325,11 +1319,6 @@ function updateRekapHarian() {
     if (!p.Tanggal && !p.tanggal) return;
     if (!rawNama) return;
 
-    const pKel = String(p.Kelompok || p.kelompok || "").trim().toLowerCase();
-    const pKelTarget = String(currentKelompok).trim().toLowerCase();
-    const pKls = String(p.Kelas || p.kelas || "Umum").trim().toLowerCase();
-    const pKlsTarget = String(currentKelas).trim().toLowerCase();
-
     const pKelBinaan = String(p.KelompokBinaan || p.Nama_Kelompok || getKelompokByNama(rawNama)).trim();
     const pDesa = String((p.Desa && p.Desa !== "-") ? p.Desa : getDesaByKelompok(pKelBinaan)).trim();
 
@@ -1338,10 +1327,9 @@ function updateRekapHarian() {
 
     const rawTgl = p.Tanggal || p.tanggal;
     let pDateStr = (rawTgl instanceof Date) ? rawTgl.toISOString().split("T")[0] : String(rawTgl).substring(0, 10);
-    const checkKelas = (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? (pKls === pKlsTarget) : true;
 
-    if (pKel === pKelTarget && checkKelas && pDateStr === targetDate) {
-      const uniqueId = `${String(rawNama).trim().toLowerCase()}_${pDesa.toLowerCase()}_${pKelBinaan.toLowerCase()}`;
+    if (pDateStr === targetDate) {
+      const uniqueId = `${String(pKelBinaan).trim().toLowerCase()}_${String(rawNama).trim().toLowerCase()}`;
       latestPresensiMap[uniqueId] = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
     }
   });
@@ -1363,7 +1351,7 @@ function updateRekapHarian() {
 }
 
 // =========================================================================
-// PENGIRIMAN DATA PRESENSI KE BACKEND
+// PENGIRIMAN DATA PRESENSI KE BACKEND DENGAN SISTEM UPSERT
 // =========================================================================
 
 async function submitPresensiBatch() {
@@ -1452,7 +1440,7 @@ async function submitPresensiBatch() {
     const json = await res.json();
 
     if (json.success) {
-      showMessage("Presensi berhasil disimpan!", "success");
+      showMessage(json.message || "Presensi berhasil disimpan!", "success");
       await loadAllData();
     } else {
       showMessage("Gagal menyimpan presensi: " + (json.error || json.message), "error");
@@ -1464,7 +1452,7 @@ async function submitPresensiBatch() {
 }
 
 // =========================================================================
-// MONITORING: VALIDASI KETAT NAMA + DESA + KELOMPOK BINAAN + KELAS/JENJANG
+// MONITORING: VALIDASI NAMA + KELOMPOK BINAAN
 // =========================================================================
 
 function initMonitoringDateFilters() {
@@ -1564,9 +1552,7 @@ function renderMonitoringTable() {
     const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKelBinaan)).trim();
 
     const targetNamaClean = String(nama || "").trim().toLowerCase();
-    const targetDesaClean = jDesa.toLowerCase();
     const targetKelClean = jKelBinaan.toLowerCase();
-    const targetIdClean = String(j.ID_Jamaah || j.ID || "").trim().toLowerCase();
 
     let countHadir = 0, countIzin = 0, countAlfa = 0;
     let izinReasons = [];
@@ -1579,26 +1565,18 @@ function renderMonitoringTable() {
       if (pNama !== targetNamaClean) return;
 
       const pKelBinaan = String(p.KelompokBinaan || p.Nama_Kelompok || getKelompokByNama(pNama)).trim().toLowerCase();
-      const pDesa = String(p.Desa || p.desa || getDesaByKelompok(pKelBinaan)).trim().toLowerCase();
-      const pIdJamaah = String(p.ID_Jamaah || p.idJamaah || "").trim().toLowerCase();
-
-      if (pIdJamaah && targetIdClean && pIdJamaah !== targetIdClean) return;
-      if (pKelBinaan && pKelBinaan !== "-" && pKelBinaan !== targetKelClean) return;
-      if (pDesa && pDesa !== "-" && pDesa !== targetDesaClean) return;
+      
+      // Jika ada perbedaan kelompok binaan pada nama yang sama, lewati
+      if (pKelBinaan && pKelBinaan !== "-" && targetKelClean !== "-" && pKelBinaan !== targetKelClean) {
+        return;
+      }
 
       const pKel = String(p.Kelompok || p.kelompok || "").trim();
-      const pKls = String(p.Kelas || p.kelas || "Umum").trim().toLowerCase();
 
       if (pKel === "ASAD") {
         const st = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
         if (st === "Hadir") attendedAsad = true;
       } else {
-        const isMatchJenjang = isCaberawit 
-          ? (pKel.toLowerCase() === "caberawit" && (pKls === "umum" || pKls === String(j.Kelas || "").trim().toLowerCase() || pKls === rawKelasUsia.toLowerCase()))
-          : (pKel.toLowerCase() === rawKelasUsia.toLowerCase());
-
-        if (!isMatchJenjang) return;
-
         const st = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
         if (st === "Hadir") {
           countHadir++;
@@ -1652,7 +1630,7 @@ function renderMonitoringTable() {
 }
 
 // =========================================================================
-// DOWNLOAD / CETAK LEMBAR KERJA FORMAT LANSKAP (DATA DINAMIS LENGKAP)
+// DOWNLOAD / CETAK LEMBAR KERJA FORMAT LANSKAP
 // =========================================================================
 
 function downloadLembarKerja() {
