@@ -1363,6 +1363,100 @@ function updateRekapHarian() {
   }
 }
 
+async function submitPresensiBatch() {
+  if (!currentAdmin) return alert("Akses Admin diperlukan untuk menyimpan presensi!");
+
+  const filteredJamaah = getFilteredJamaahForPresensi();
+  if (filteredJamaah.length === 0) return alert("Tidak ada data jamaah untuk disimpan.");
+
+  const dateInput = document.getElementById("presensi-date");
+  const tanggalStr = dateInput ? dateInput.value : new Date().toISOString().split("T")[0];
+  const isCaberawit = (currentKelompok === "Caberawit");
+
+  // Ambil data materi / jurnal jika ada
+  let materiPayload = "";
+  let kendalaText = document.getElementById("presensi-kendala")?.value || "-";
+
+  if (isCaberawit) {
+    const materiObj = {
+      akhlak: document.getElementById("materi-akhlak")?.value || "",
+      tilawati: document.getElementById("materi-tilawati")?.value || "",
+      bacaan: document.getElementById("materi-bacaan")?.value || "",
+      tajwid: document.getElementById("materi-tajwid")?.value || "",
+      maknaQuran: document.getElementById("materi-makna-quran")?.value || "",
+      maknaHadist: document.getElementById("materi-makna-hadist")?.value || "",
+      hafalanDalil: document.getElementById("materi-dalil")?.value || "",
+      hafalanSurat: document.getElementById("materi-surat")?.value || "",
+      hafalanDoa: document.getElementById("materi-doa")?.value || "",
+      bcm: document.getElementById("materi-bcm")?.value || "",
+      praktek: document.getElementById("materi-praktek")?.value || ""
+    };
+    materiPayload = JSON.stringify(materiObj);
+  } else {
+    materiPayload = document.getElementById("reguler-jurnal")?.value || "-";
+  }
+
+  // Susun baris presensi setiap jamaah
+  const presensiItems = filteredJamaah.map((j, idx) => {
+    const radios = document.getElementsByName(`presensi-${idx}`);
+    let status = "Hadir";
+    for (let r of radios) {
+      if (r.checked) status = r.value;
+    }
+
+    const keterangan = (status === "Izin") 
+      ? (document.getElementById(`ket-${idx}`)?.value.trim() || "Izin") 
+      : "-";
+
+    const karakter29 = isCaberawit 
+      ? (document.getElementById(`karakter-${idx}`)?.value || "Belum") 
+      : "-";
+
+    const jKelBinaan = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
+    const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKelBinaan)).trim();
+
+    return {
+      ID_Jamaah: j.ID_Jamaah || j.ID || `JAM-${idx}`,
+      NamaJamaah: j.Nama_Lengkap || j.Nama,
+      Tanggal: tanggalStr,
+      Kelompok: currentKelompok,
+      Kelas: (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? currentKelas : "Umum",
+      KelompokBinaan: jKelBinaan,
+      Nama_Kelompok: jKelBinaan,
+      Desa: jDesa,
+      StatusPresensi: status,
+      Keterangan: keterangan,
+      Karakter29: karakter29,
+      MateriCaberawit: isCaberawit ? materiPayload : "-",
+      Jurnal: !isCaberawit ? materiPayload : "-",
+      Kendala: kendalaText
+    };
+  });
+
+  showMessage("Menyimpan presensi...", "info");
+
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "save_presensi_batch",
+        data: presensiItems
+      })
+    });
+    const json = await res.json();
+
+    if (json.success) {
+      showMessage("Presensi berhasil disimpan!", "success");
+      await loadAllData();
+    } else {
+      showMessage("Gagal menyimpan presensi: " + (json.error || json.message), "error");
+    }
+  } catch (err) {
+    console.error("Presensi Save Error:", err);
+    showMessage("Terjadi kesalahan jaringan saat menyimpan presensi.", "error");
+  }
+}
+
 // =========================================================================
 // MONITORING: VALIDASI KETAT NAMA + DESA + KELOMPOK BINAAN + KELAS/JENJANG
 // =========================================================================
