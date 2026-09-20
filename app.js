@@ -1,6 +1,5 @@
 // =========================================================================
 // FRONTEND LOGIC & REST API INTEGRATION (MOBILE OPTIMIZED & FULL CRUD)
-// Versi Diperbaiki: Integrasi Penuh dengan Code.gs Backend
 // =========================================================================
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvzVacUwrLqTMeU0wDmXkuWJNdGv2Nncd8au2qVQOx1Usp2IMV6CKA1cLeNERc2G6Y/exec";
@@ -11,12 +10,12 @@ let appData = {
   jamaah: [],
   presensi: [],
   kegiatan: [],
+  admins: [],
   master_kelompok: [],
   penyapaan: []
 };
 
 let currentAdmin = null;
-let authToken = null;
 let currentKelompok = "Caberawit";
 let currentKelas = "Caberawit A";
 let activeFormType = null;
@@ -28,16 +27,12 @@ let editingRecordId = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   const savedAdmin = sessionStorage.getItem("currentAdmin");
-  const savedToken = sessionStorage.getItem("authToken");
   if (savedAdmin) {
     try {
       currentAdmin = JSON.parse(savedAdmin);
     } catch (e) {
       currentAdmin = null;
     }
-  }
-  if (savedToken) {
-    authToken = savedToken;
   }
 
   setDefaultDate();
@@ -46,6 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
   switchTab("beranda");
 });
 
+// RBAC & AUTHENTICATION
 function getAdminRole() {
   if (!currentAdmin) return "guest";
   return String(currentAdmin.role || "").trim().toLowerCase();
@@ -68,7 +64,7 @@ function showMessage(text, type = "info") {
     type === "error" ? "bg-rose-50 text-rose-800 border-rose-200" :
     "bg-teal-50 text-teal-800 border-teal-200"
   }`;
-  msgBox.innerHTML = `<span>${escapeHtml(text)}</span>`;
+  msgBox.innerHTML = `<span>${text}</span>`;
   msgBox.classList.remove("hidden");
 }
 
@@ -112,11 +108,7 @@ async function handleLogin(event) {
 
     if (json.success && json.admin) {
       currentAdmin = json.admin;
-      authToken = json.token || null;
       sessionStorage.setItem("currentAdmin", JSON.stringify(currentAdmin));
-      if (authToken) {
-        sessionStorage.setItem("authToken", authToken);
-      }
       closeModal("modal-login");
       showMessage("Login berhasil! Selamat datang, " + (currentAdmin.nama || currentAdmin.username), "success");
       updateAdminUI();
@@ -134,9 +126,7 @@ async function handleLogin(event) {
 
 function logoutAdmin() {
   sessionStorage.removeItem("currentAdmin");
-  sessionStorage.removeItem("authToken");
   currentAdmin = null;
-  authToken = null;
   alert("Anda telah keluar (logout).");
   window.location.reload();
 }
@@ -219,9 +209,11 @@ async function loadAllData() {
         jamaah: Array.isArray(json.jamaah) ? json.jamaah : [],
         presensi: Array.isArray(json.presensi) ? json.presensi : [],
         kegiatan: Array.isArray(json.kegiatan) ? json.kegiatan : [],
+        admins: Array.isArray(json.admins || json.users) ? (json.admins || json.users) : [],
         master_kelompok: Array.isArray(json.master_kelompok) ? json.master_kelompok : [],
         penyapaan: Array.isArray(json.penyapaan) ? json.penyapaan : []
       };
+
       try {
         await loadPenyapaanAnalytics();
         initGlobalWilayahFilters();
@@ -401,6 +393,10 @@ function getKelompokByNama(nama) {
   return found ? (found.Nama_Kelompok || found.KelompokBinaan || "-") : "-";
 }
 
+// =========================================================================
+// INISIALISASI FILTER WILAYAH (GLOBAL & PRESENSI)
+// =========================================================================
+
 function initGlobalWilayahFilters() {
   const desaSelect = document.getElementById("global-filter-desa");
   if (!desaSelect) return;
@@ -416,7 +412,7 @@ function initGlobalWilayahFilters() {
   if (desas.size === 0) desas = new Set(["Desa 1", "Desa 2", "Desa 3", "Desa 4"]);
 
   desaSelect.innerHTML = `<option value="Semua">Semua Desa</option>` +
-    Array.from(desas).map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join("");
+    Array.from(desas).map(d => `<option value="${d}">${d}</option>`).join("");
 
   onGlobalDesaChange();
 }
@@ -442,7 +438,7 @@ function onGlobalDesaChange() {
   const uniqueKelompok = [...new Set(kelompokList)];
 
   kelSelect.innerHTML = `<option value="Semua">Semua Kelompok</option>` +
-    uniqueKelompok.map(k => `<option value="${escapeHtml(k)}">${escapeHtml(k)}</option>`).join("");
+    uniqueKelompok.map(k => `<option value="${k}">${k}</option>`).join("");
 
   onGlobalKelompokChange();
 }
@@ -477,7 +473,7 @@ function initPresensiWilayahFilters() {
   if (desas.size === 0) desas = new Set(["Desa 1", "Desa 2", "Desa 3", "Desa 4"]);
 
   desaSelect.innerHTML = `<option value="Semua">Semua Desa</option>` +
-    Array.from(desas).map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join("");
+    Array.from(desas).map(d => `<option value="${d}">${d}</option>`).join("");
 
   onPresensiDesaChange();
 }
@@ -503,10 +499,14 @@ function onPresensiDesaChange() {
   const uniqueKelompok = [...new Set(kelompokList)];
 
   kelSelect.innerHTML = `<option value="Semua">Semua Kelompok</option>` +
-    uniqueKelompok.map(k => `<option value="${escapeHtml(k)}">${escapeHtml(k)}</option>`).join("");
+    uniqueKelompok.map(k => `<option value="${k}">${k}</option>`).join("");
 
   renderPresensiTable();
 }
+
+// =========================================================================
+// SISTEM MODAL FORM GENERATOR (ROBUST DOM INJECTION)
+// =========================================================================
 
 function createDynamicModal() {
   let existing = document.getElementById("modal-dynamic-form");
@@ -558,12 +558,13 @@ function openModalForm(type, id = null) {
     title = id ? "Edit Agenda Kegiatan" : "Tambah Agenda Kegiatan Baru";
     const item = id ? (appData.kegiatan || []).find(x => String(x.ID || x.ID_Kegiatan) === String(id)) : {};
     const tglVal = item?.Tanggal ? String(item.Tanggal).split("T")[0] : new Date().toISOString().split("T")[0];
+
     formHtml = `
       <input type="hidden" id="form-kegiatan-id" value="${item?.ID || item?.ID_Kegiatan || ''}">
       <div class="space-y-3 text-xs sm:text-sm">
         <div>
           <label class="block font-bold text-slate-700 mb-1">Nama Kegiatan *</label>
-          <input type="text" id="form-kegiatan-nama" value="${escapeHtml(item?.Kegiatan || item?.Nama_Kegiatan || '')}" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500" placeholder="Misal: Pengajian Rutin Daerah">
+          <input type="text" id="form-kegiatan-nama" value="${item?.Kegiatan || item?.Nama_Kegiatan || ''}" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500" placeholder="Misal: Pengajian Rutin Daerah">
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -572,34 +573,34 @@ function openModalForm(type, id = null) {
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1">Hari</label>
-            <input type="text" id="form-kegiatan-hari" value="${escapeHtml(item?.Hari || 'Minggu')}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
+            <input type="text" id="form-kegiatan-hari" value="${item?.Hari || 'Minggu'}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
           </div>
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Jam / Waktu</label>
-          <input type="text" id="form-kegiatan-jam" value="${escapeHtml(item?.Jam || '19:30 - Selesai')}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
+          <input type="text" id="form-kegiatan-jam" value="${item?.Jam || '19:30 - Selesai'}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Pemateri</label>
-          <input type="text" id="form-kegiatan-pemateri" value="${escapeHtml(item?.Pemateri || '')}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500" placeholder="Nama Ustaz / Pemateri">
+          <input type="text" id="form-kegiatan-pemateri" value="${item?.Pemateri || ''}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500" placeholder="Nama Ustaz / Pemateri">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Keterangan / Lokasi</label>
-          <textarea id="form-kegiatan-ket" rows="2" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500" placeholder="Lokasi majelis atau detail agenda">${escapeHtml(item?.Keterangan || '')}</textarea>
+          <textarea id="form-kegiatan-ket" rows="2" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500" placeholder="Lokasi majelis atau detail agenda">${item?.Keterangan || ''}</textarea>
         </div>
       </div>
     `;
   } else if (type === "pengurus") {
     title = id ? "Edit Data Pengurus" : "Tambah Data Pengurus";
     const item = id ? (appData.pengurus || []).find(x => String(x.ID) === String(id)) : {};
-    const kelOptions = mkList.map(m => `<option value="${escapeHtml(m.Nama_Kelompok)}" ${item?.Kelompok === m.Nama_Kelompok || item?.Nama_Kelompok === m.Nama_Kelompok ? 'selected' : ''}>${escapeHtml(m.Nama_Desa)} - ${escapeHtml(m.Nama_Kelompok)}</option>`).join("");
+    const kelOptions = mkList.map(m => `<option value="${m.Nama_Kelompok}" ${item?.Kelompok === m.Nama_Kelompok || item?.Nama_Kelompok === m.Nama_Kelompok ? 'selected' : ''}>${m.Nama_Desa} - ${m.Nama_Kelompok}</option>`).join("");
 
     formHtml = `
       <input type="hidden" id="form-pengurus-id" value="${item?.ID || ''}">
       <div class="space-y-3 text-xs sm:text-sm">
         <div>
           <label class="block font-bold text-slate-700 mb-1">Nama Lengkap *</label>
-          <input type="text" id="form-pengurus-nama" value="${escapeHtml(item?.Nama || '')}" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
+          <input type="text" id="form-pengurus-nama" value="${item?.Nama || ''}" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Kelompok Wilayah</label>
@@ -609,11 +610,11 @@ function openModalForm(type, id = null) {
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Jabatan *</label>
-          <input type="text" id="form-pengurus-jabatan" value="${escapeHtml(item?.Jabatan || '')}" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500" placeholder="Contoh: Ketua, Sekretaris, Pembina">
+          <input type="text" id="form-pengurus-jabatan" value="${item?.Jabatan || ''}" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500" placeholder="Contoh: Ketua, Sekretaris, Pembina">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">No. HP</label>
-          <input type="text" id="form-pengurus-nohp" value="${escapeHtml(item?.NoHP || '')}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
+          <input type="text" id="form-pengurus-nohp" value="${item?.NoHP || ''}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Status</label>
@@ -628,14 +629,14 @@ function openModalForm(type, id = null) {
     title = id ? "Edit Inventaris Barang" : "Tambah Inventaris Barang";
     const item = id ? (appData.inventaris || []).find(x => String(x.ID) === String(id)) : {};
     const tglMasukVal = item?.TanggalMasuk ? String(item.TanggalMasuk).split("T")[0] : new Date().toISOString().split("T")[0];
-    const kelOptions = mkList.map(m => `<option value="${escapeHtml(m.Nama_Kelompok)}" ${item?.Kelompok === m.Nama_Kelompok || item?.Nama_Kelompok === m.Nama_Kelompok ? 'selected' : ''}>${escapeHtml(m.Nama_Desa)} - ${escapeHtml(m.Nama_Kelompok)}</option>`).join("");
+    const kelOptions = mkList.map(m => `<option value="${m.Nama_Kelompok}" ${item?.Kelompok === m.Nama_Kelompok || item?.Nama_Kelompok === m.Nama_Kelompok ? 'selected' : ''}>${m.Nama_Desa} - ${m.Nama_Kelompok}</option>`).join("");
 
     formHtml = `
       <input type="hidden" id="form-inventaris-id" value="${item?.ID || ''}">
       <div class="space-y-3 text-xs sm:text-sm">
         <div>
           <label class="block font-bold text-slate-700 mb-1">Nama Barang *</label>
-          <input type="text" id="form-inventaris-nama" value="${escapeHtml(item?.NamaBarang || '')}" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
+          <input type="text" id="form-inventaris-nama" value="${item?.NamaBarang || ''}" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Kelompok Lokasi</label>
@@ -662,7 +663,7 @@ function openModalForm(type, id = null) {
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Keterangan</label>
-          <textarea id="form-inventaris-ket" rows="2" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">${escapeHtml(item?.Keterangan || '')}</textarea>
+          <textarea id="form-inventaris-ket" rows="2" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">${item?.Keterangan || ''}</textarea>
         </div>
       </div>
     `;
@@ -670,14 +671,14 @@ function openModalForm(type, id = null) {
     title = id ? "Edit Data Jamaah" : "Tambah Data Jamaah";
     const item = id ? (appData.jamaah || []).find(x => String(x.ID_Jamaah || x.ID) === String(id)) : {};
     const tglLahirVal = item?.TanggalLahir ? String(item.TanggalLahir).split("T")[0] : "";
-    const kelOptions = mkList.map(m => `<option value="${escapeHtml(m.Nama_Kelompok)}" ${item?.Nama_Kelompok === m.Nama_Kelompok || item?.KelompokBinaan === m.Nama_Kelompok ? 'selected' : ''}>${escapeHtml(m.Nama_Desa)} - ${escapeHtml(m.Nama_Kelompok)}</option>`).join("");
+    const kelOptions = mkList.map(m => `<option value="${m.Nama_Kelompok}" ${item?.Nama_Kelompok === m.Nama_Kelompok || item?.KelompokBinaan === m.Nama_Kelompok ? 'selected' : ''}>${m.Nama_Desa} - ${m.Nama_Kelompok}</option>`).join("");
 
     formHtml = `
       <input type="hidden" id="form-jamaah-id" value="${item?.ID_Jamaah || item?.ID || ''}">
       <div class="space-y-3 text-xs sm:text-sm">
         <div>
           <label class="block font-bold text-slate-700 mb-1">Nama Lengkap *</label>
-          <input type="text" id="form-jamaah-nama" value="${escapeHtml(item?.Nama_Lengkap || item?.Nama || '')}" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
+          <input type="text" id="form-jamaah-nama" value="${item?.Nama_Lengkap || item?.Nama || ''}" required class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Tanggal Lahir</label>
@@ -721,7 +722,7 @@ function openModalForm(type, id = null) {
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Alamat</label>
-          <input type="text" id="form-jamaah-alamat" value="${escapeHtml(item?.Alamat || '')}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
+          <input type="text" id="form-jamaah-alamat" value="${item?.Alamat || ''}" class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-teal-500">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Status Keaktifan</label>
@@ -752,7 +753,7 @@ async function submitDynamicForm() {
     if (!nama || !tanggal) return alert("Nama kegiatan dan tanggal wajib diisi!");
 
     payloadData = {
-      ID: document.getElementById("form-kegiatan-id")?.value || "",
+      ID: document.getElementById("form-kegiatan-id")?.value || `KEG-${Date.now()}`,
       Kegiatan: nama,
       Nama_Kegiatan: nama,
       Tanggal: tanggal,
@@ -769,7 +770,7 @@ async function submitDynamicForm() {
     if (!nama || !jabatan) return alert("Nama pengurus dan jabatan wajib diisi!");
 
     payloadData = {
-      ID: document.getElementById("form-pengurus-id")?.value || "",
+      ID: document.getElementById("form-pengurus-id")?.value || `PGR-${Date.now()}`,
       Nama: nama,
       Jabatan: jabatan,
       Kelompok: kel,
@@ -785,7 +786,7 @@ async function submitDynamicForm() {
     if (!namaBarang) return alert("Nama barang inventaris wajib diisi!");
 
     payloadData = {
-      ID: document.getElementById("form-inventaris-id")?.value || "",
+      ID: document.getElementById("form-inventaris-id")?.value || `INV-${Date.now()}`,
       NamaBarang: namaBarang,
       Kelompok: kel,
       Nama_Kelompok: kel,
@@ -802,8 +803,8 @@ async function submitDynamicForm() {
     if (!nama) return alert("Nama lengkap jamaah wajib diisi!");
 
     payloadData = {
-      ID_Jamaah: document.getElementById("form-jamaah-id")?.value || "",
-      ID: document.getElementById("form-jamaah-id")?.value || "",
+      ID_Jamaah: document.getElementById("form-jamaah-id")?.value || `JAM-${Date.now()}`,
+      ID: document.getElementById("form-jamaah-id")?.value || `JAM-${Date.now()}`,
       Nama_Lengkap: nama,
       Nama: nama,
       TanggalLahir: document.getElementById("form-jamaah-tgl")?.value || "",
@@ -825,7 +826,6 @@ async function submitDynamicForm() {
       method: "POST",
       body: JSON.stringify({
         action: actionName,
-        token: authToken || "",
         data: payloadData
       })
     });
@@ -855,7 +855,6 @@ async function deleteRow(sheetName, id) {
       method: "POST",
       body: JSON.stringify({
         action: "delete_row",
-        token: authToken || "",
         sheetName: sheetName,
         id: id
       })
@@ -877,6 +876,10 @@ function editJamaah(id) { openModalForm("jamaah", id); }
 function editPengurus(id) { openModalForm("pengurus", id); }
 function editInventaris(id) { openModalForm("inventaris", id); }
 
+// =========================================================================
+// RENDERING VIEWS DENGAN TOMBOL TAMBAH DATA & MOBILE CARD LAYOUT
+// =========================================================================
+
 function renderBerandaKegiatan() {
   const container = document.getElementById("kegiatan-cards-container");
   if (!container) return;
@@ -896,25 +899,25 @@ function renderBerandaKegiatan() {
         <div>
           <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5 mb-2.5">
             <span class="text-[11px] px-2.5 py-0.5 bg-emerald-50 text-emerald-700 font-bold rounded-full border border-emerald-200 flex items-center gap-1">
-              <i class="fa-solid fa-calendar-day"></i> ${escapeHtml(k.Hari || '-')}, ${k.Tanggal ? String(k.Tanggal).split("T")[0] : '-'}
+              <i class="fa-solid fa-calendar-day"></i> ${k.Hari || '-'}, ${k.Tanggal ? String(k.Tanggal).split("T")[0] : '-'}
             </span>
             <span class="text-[11px] text-amber-600 font-bold flex items-center gap-1">
-              <i class="fa-solid fa-clock"></i> ${escapeHtml(k.Jam || 'WIB')}
+              <i class="fa-solid fa-clock"></i> ${k.Jam || 'WIB'}
             </span>
           </div>
-          <h3 class="font-bold text-slate-800 text-sm sm:text-base mb-1">${escapeHtml(k.Kegiatan || k.Nama_Kegiatan || '-')}</h3>
+          <h3 class="font-bold text-slate-800 text-sm sm:text-base mb-1">${k.Kegiatan || k.Nama_Kegiatan || '-'}</h3>
           <p class="text-xs text-slate-600 flex items-center gap-1 mb-2">
-            <i class="fa-solid fa-user-tie text-teal-600"></i> <b>Pemateri:</b> ${escapeHtml(k.Pemateri || '-')}
+            <i class="fa-solid fa-user-tie text-teal-600"></i> <b>Pemateri:</b> ${k.Pemateri || '-'}
           </p>
           <p class="text-xs text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-            ${escapeHtml(k.Keterangan || k.Target_Usia || 'Tidak ada catatan tambahan.')}
+            ${k.Keterangan || k.Target_Usia || 'Tidak ada catatan tambahan.'}
           </p>
         </div>
         <div class="admin-only ${isSuperOrDaerah() ? '' : 'hidden'} flex justify-end gap-3 pt-2 border-t border-slate-100">
-          <button onclick="openModalForm('kegiatan', '${escapeHtml(String(k.ID || k.ID_Kegiatan))}')" class="text-amber-600 hover:text-amber-800 text-xs font-semibold flex items-center gap-1">
+          <button onclick="openModalForm('kegiatan', '${k.ID || k.ID_Kegiatan}')" class="text-amber-600 hover:text-amber-800 text-xs font-semibold flex items-center gap-1">
             <i class="fa-solid fa-pen"></i> Edit
           </button>
-          <button onclick="deleteRow('Kegiatan', '${escapeHtml(String(k.ID || k.ID_Kegiatan))}')" class="text-rose-600 hover:text-rose-800 text-xs font-semibold flex items-center gap-1">
+          <button onclick="deleteRow('Kegiatan', '${k.ID || k.ID_Kegiatan}')" class="text-rose-600 hover:text-rose-800 text-xs font-semibold flex items-center gap-1">
             <i class="fa-solid fa-trash"></i> Hapus
           </button>
         </div>
@@ -937,6 +940,7 @@ function renderPengurus() {
     const desa = String((p.Desa && p.Desa !== "-") ? p.Desa : getDesaByKelompok(kel)).trim();
     const matchDesa = (desaFilter === "Semua") || (desa.toLowerCase() === desaFilter.toLowerCase());
     const matchKel = (kelFilter === "Semua") || (kel.toLowerCase() === kelFilter.toLowerCase());
+
     const namaStr = String(p.Nama || "").toLowerCase();
     const jabatanStr = String(p.Jabatan || "").toLowerCase();
     const noHpStr = String(p.NoHP || "").toLowerCase();
@@ -957,14 +961,14 @@ function renderPengurus() {
 
     return `
       <tr class="bg-white border-b hover:bg-slate-50 text-xs sm:text-sm">
-        <td class="px-3 sm:px-6 py-3 font-semibold text-slate-800">${escapeHtml(p.Nama || '-')}</td>
-        <td class="px-3 sm:px-6 py-3 text-xs text-slate-600">${escapeHtml(wilayahLabel)}</td>
-        <td class="px-3 sm:px-6 py-3">${escapeHtml(p.Jabatan || '-')}</td>
-        <td class="px-3 sm:px-6 py-3 whitespace-nowrap">${escapeHtml(p.NoHP || '-')}</td>
-        <td class="px-3 sm:px-6 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${p.Status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${escapeHtml(p.Status || 'Aktif')}</span></td>
+        <td class="px-3 sm:px-6 py-3 font-semibold text-slate-800">${p.Nama || '-'}</td>
+        <td class="px-3 sm:px-6 py-3 text-xs text-slate-600">${wilayahLabel}</td>
+        <td class="px-3 sm:px-6 py-3">${p.Jabatan || '-'}</td>
+        <td class="px-3 sm:px-6 py-3 whitespace-nowrap">${p.NoHP || '-'}</td>
+        <td class="px-3 sm:px-6 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${p.Status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${p.Status || 'Aktif'}</span></td>
         <td class="px-3 sm:px-6 py-3 text-center admin-only ${isSuperOrDaerah() ? '' : 'hidden'} space-x-2 whitespace-nowrap">
-          <button onclick="openModalForm('pengurus', '${escapeHtml(String(p.ID))}')" class="text-amber-600 hover:text-amber-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
-          <button onclick="deleteRow('Pengurus', '${escapeHtml(String(p.ID))}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
+          <button onclick="openModalForm('pengurus', '${p.ID}')" class="text-amber-600 hover:text-amber-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
+          <button onclick="deleteRow('Pengurus', '${p.ID}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>
     `;
@@ -1005,16 +1009,16 @@ function renderInventaris() {
 
     return `
       <tr class="bg-white border-b hover:bg-slate-50 text-xs sm:text-sm">
-        <td class="px-3 sm:px-6 py-3 font-semibold text-slate-800">${escapeHtml(i.NamaBarang || '-')}</td>
-        <td class="px-3 sm:px-4 py-3 text-xs text-slate-600">${escapeHtml(desa)}</td>
-        <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-700">${escapeHtml(kel)}</td>
+        <td class="px-3 sm:px-6 py-3 font-semibold text-slate-800">${i.NamaBarang || '-'}</td>
+        <td class="px-3 sm:px-4 py-3 text-xs text-slate-600">${desa}</td>
+        <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-700">${kel}</td>
         <td class="px-3 sm:px-6 py-3 text-center font-bold">${i.Jumlah || 0}</td>
-        <td class="px-3 sm:px-6 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${i.Kondisi === 'Baik' ? 'bg-teal-100 text-teal-800' : 'bg-rose-100 text-rose-800'}">${escapeHtml(i.Kondisi || 'Baik')}</span></td>
+        <td class="px-3 sm:px-6 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${i.Kondisi === 'Baik' ? 'bg-teal-100 text-teal-800' : 'bg-rose-100 text-rose-800'}">${i.Kondisi || 'Baik'}</span></td>
         <td class="px-3 sm:px-6 py-3 whitespace-nowrap text-xs">${i.TanggalMasuk ? String(i.TanggalMasuk).split("T")[0] : '-'}</td>
-        <td class="px-3 sm:px-6 py-3 text-xs text-slate-500">${escapeHtml(i.Keterangan || '-')}</td>
+        <td class="px-3 sm:px-6 py-3 text-xs text-slate-500">${i.Keterangan || '-'}</td>
         <td class="px-3 sm:px-6 py-3 text-center admin-only ${isSuperOrDaerah() ? '' : 'hidden'} space-x-2 whitespace-nowrap">
-          <button onclick="openModalForm('inventaris', '${escapeHtml(String(i.ID))}')" class="text-amber-600 hover:text-amber-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
-          <button onclick="deleteRow('Inventaris', '${escapeHtml(String(i.ID))}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
+          <button onclick="openModalForm('inventaris', '${i.ID}')" class="text-amber-600 hover:text-amber-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
+          <button onclick="deleteRow('Inventaris', '${i.ID}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>
     `;
@@ -1067,24 +1071,28 @@ function renderJamaah() {
 
     return `
       <tr class="bg-white border-b hover:bg-slate-50 text-xs sm:text-sm">
-        <td class="px-3 sm:px-4 py-3 font-mono text-[11px] text-slate-400">${escapeHtml(j.ID_Jamaah || j.ID || '-')}</td>
-        <td class="px-3 sm:px-4 py-3 font-semibold text-slate-800">${escapeHtml(j.Nama_Lengkap || j.Nama || '-')}</td>
-        <td class="px-3 sm:px-4 py-3 text-xs text-slate-600">${escapeHtml(jDesa)}</td>
-        <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-800">${escapeHtml(jKel)}</td>
+        <td class="px-3 sm:px-4 py-3 font-mono text-[11px] text-slate-400">${j.ID_Jamaah || j.ID || '-'}</td>
+        <td class="px-3 sm:px-4 py-3 font-semibold text-slate-800">${j.Nama_Lengkap || j.Nama || '-'}</td>
+        <td class="px-3 sm:px-4 py-3 text-xs text-slate-600">${jDesa}</td>
+        <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-800">${jKel}</td>
         <td class="px-3 sm:px-4 py-3 whitespace-nowrap text-xs">${j.TanggalLahir ? String(j.TanggalLahir).split("T")[0] : '-'} <span class="text-[10px] text-emerald-600 font-bold">(${calculateAge(j.TanggalLahir)})</span></td>
-        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-0.5 rounded bg-teal-50 text-teal-700 font-semibold text-[11px]">${escapeHtml(displayKelompok)}</span></td>
-        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[11px]">${escapeHtml(displayKelas)}</span></td>
-        <td class="px-3 sm:px-4 py-3">${escapeHtml(j.Gender || '-')}</td>
-        <td class="px-3 sm:px-4 py-3 text-slate-500">${escapeHtml(j.Alamat || '-')}</td>
-        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${j.Keaktifan === 'Aktif' || j.Status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${escapeHtml(j.Keaktifan || j.Status || 'Aktif')}</span></td>
+        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-0.5 rounded bg-teal-50 text-teal-700 font-semibold text-[11px]">${displayKelompok}</span></td>
+        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[11px]">${displayKelas}</span></td>
+        <td class="px-3 sm:px-4 py-3">${j.Gender || '-'}</td>
+        <td class="px-3 sm:px-4 py-3 text-slate-500">${j.Alamat || '-'}</td>
+        <td class="px-3 sm:px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${j.Keaktifan === 'Aktif' || j.Status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${j.Keaktifan || j.Status || 'Aktif'}</span></td>
         <td class="px-3 sm:px-4 py-3 text-center admin-only space-x-2 ${isSuperOrDaerah() ? '' : 'hidden'} whitespace-nowrap">
-          <button onclick="editJamaah('${escapeHtml(String(j.ID_Jamaah || j.ID))}')" class="text-amber-600 hover:text-amber-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
-          <button onclick="deleteRow('Master_Jamaah', '${escapeHtml(String(j.ID_Jamaah || j.ID))}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
+          <button onclick="editJamaah('${j.ID_Jamaah || j.ID}')" class="text-amber-600 hover:text-amber-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
+          <button onclick="deleteRow('Master_Jamaah', '${j.ID_Jamaah || j.ID}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>
     `;
   }).join("");
 }
+
+// =========================================================================
+// RENDER TABEL PRESENSI DENGAN FILTER WILAYAH
+// =========================================================================
 
 function getFilteredJamaahForPresensi() {
   const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
@@ -1095,12 +1103,14 @@ function getFilteredJamaahForPresensi() {
     const matchStatus = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
     if (!matchStatus) return false;
 
+    // Filter Wilayah Presensi
     const jKel = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
     const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKel)).trim();
 
     if (desaFilter !== "Semua" && jDesa.toLowerCase() !== desaFilter.toLowerCase()) return false;
     if (kelFilter !== "Semua" && jKel.toLowerCase() !== kelFilter.toLowerCase()) return false;
 
+    // Filter Kelompok Usia / Kelas
     const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "").trim();
     const rawKelasUsiaLower = rawKelasUsia.toLowerCase();
     const jGender = String(j.Gender || "").trim().toLowerCase();
@@ -1188,6 +1198,7 @@ function renderPresensiTable() {
   const selectedDateInput = document.getElementById("presensi-date");
   const targetDate = selectedDateInput ? selectedDateInput.value : "";
 
+  // Pemetaan presensi dengan composite key: nama + desa + kelompok binaan
   let existingStatusMap = {};
   presensiList.forEach(p => {
     const rawNama = p.NamaJamaah || p.Nama || p.nama;
@@ -1247,7 +1258,7 @@ function renderPresensiTable() {
 
     const badgeTersimpan = isSaved
       ? `<span class="mt-1 inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
-          <i class="fa-solid fa-check"></i> Tersimpan (${escapeHtml(savedStatus)})
+          <i class="fa-solid fa-check"></i> Tersimpan (${savedStatus})
          </span>`
       : `<span class="mt-1 inline-flex items-center text-[9px] px-1 py-0.5 rounded text-slate-400 border border-dashed border-slate-200">Belum Disimpan</span>`;
 
@@ -1255,7 +1266,7 @@ function renderPresensiTable() {
       <tr class="bg-white border-b hover:bg-slate-50 transition-colors text-xs sm:text-sm">
         <td class="px-2 sm:px-3 py-3 text-center text-xs font-semibold text-slate-500">${idx + 1}</td>
         <td class="px-3 sm:px-4 py-3 font-medium text-slate-800">
-          <div>${escapeHtml(nama)}</div>
+          <div>${nama}</div>
           ${badgeTersimpan}
         </td>
         <td class="px-2 sm:px-3 py-3 text-center">
@@ -1269,7 +1280,7 @@ function renderPresensiTable() {
         </td>
         ${caberawitExtraTd}
         <td class="px-2 sm:px-3 py-3">
-          <input type="text" id="ket-${idx}" value="${escapeHtml(savedKet)}" placeholder="${isReadOnly ? '-' : 'Alasan...'}" ${disabledKet} class="w-full text-xs px-2 py-1 border rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-amber-500 transition-all ${!isIzinChecked ? 'opacity-40' : ''}">
+          <input type="text" id="ket-${idx}" value="${savedKet}" placeholder="${isReadOnly ? '-' : 'Alasan...'}" ${disabledKet} class="w-full text-xs px-2 py-1 border rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-amber-500 transition-all ${!isIzinChecked ? 'opacity-40' : ''}">
         </td>
       </tr>
     `;
@@ -1348,7 +1359,7 @@ function updateRekapHarian() {
 
   if (document.getElementById("rekap-mingguan-title")) {
     const displayTitle = (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? `${currentKelompok} (${currentKelas})` : currentKelompok;
-    document.getElementById("rekap-mingguan-title").innerHTML = `<i class="fa-solid fa-calendar-day mr-1"></i> Rekapan: ${escapeHtml(displayTitle)}`;
+    document.getElementById("rekap-mingguan-title").innerHTML = `<i class="fa-solid fa-calendar-day mr-1"></i> Rekapan: ${displayTitle}`;
   }
 }
 
@@ -1362,10 +1373,7 @@ async function submitPresensiBatch() {
   const tanggalStr = dateInput ? dateInput.value : new Date().toISOString().split("T")[0];
   const isCaberawit = (currentKelompok === "Caberawit");
 
-  const tanggalObj = new Date(`${tanggalStr}T00:00:00`);
-  const daftarHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-  const hari = daftarHari[tanggalObj.getDay()];
-
+  // Ambil data materi / jurnal jika ada
   let materiPayload = "";
   let kendalaText = document.getElementById("presensi-kendala")?.value || "-";
 
@@ -1388,6 +1396,7 @@ async function submitPresensiBatch() {
     materiPayload = document.getElementById("reguler-jurnal")?.value || "-";
   }
 
+  // Susun baris presensi setiap jamaah
   const presensiItems = filteredJamaah.map((j, idx) => {
     const radios = document.getElementsByName(`presensi-${idx}`);
     let status = "Hadir";
@@ -1407,39 +1416,20 @@ async function submitPresensiBatch() {
     const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKelBinaan)).trim();
 
     return {
-      idJamaah: j.ID_Jamaah || j.ID || "",
-      nama: j.Nama_Lengkap || j.Nama,
+      ID_Jamaah: j.ID_Jamaah || j.ID || `JAM-${idx}`,
       NamaJamaah: j.Nama_Lengkap || j.Nama,
-      tanggal: tanggalStr,
       Tanggal: tanggalStr,
-      hari: hari,
-      Hari: hari,
-      desa: jDesa,
-      Desa: jDesa,
-      kelompokBinaan: jKelBinaan,
-      KelompokBinaan: jKelBinaan,
-      kelompok: currentKelompok,
       Kelompok: currentKelompok,
-      kelas: (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? currentKelas : "Umum",
       Kelas: (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? currentKelas : "Umum",
-      status: status,
+      KelompokBinaan: jKelBinaan,
+      Nama_Kelompok: jKelBinaan,
+      Desa: jDesa,
       StatusPresensi: status,
-      keterangan: keterangan,
       Keterangan: keterangan,
-      karakter29: karakter29,
       Karakter29: karakter29,
-      jenisKegiatan: currentKelompok,
-      JenisKegiatan: currentKelompok,
-      pemateri: "-",
-      Pemateri: "-",
-      materiCaberawit: isCaberawit ? materiPayload : "-",
       MateriCaberawit: isCaberawit ? materiPayload : "-",
-      jurnal: !isCaberawit ? materiPayload : "-",
       Jurnal: !isCaberawit ? materiPayload : "-",
-      kendala: kendalaText,
-      Kendala: kendalaText,
-      admin: currentAdmin?.nama || currentAdmin?.username || "Admin",
-      Admin: currentAdmin?.nama || currentAdmin?.username || "Admin"
+      Kendala: kendalaText
     };
   });
 
@@ -1450,7 +1440,6 @@ async function submitPresensiBatch() {
       method: "POST",
       body: JSON.stringify({
         action: "save_presensi_batch",
-        token: authToken || "",
         data: presensiItems
       })
     });
@@ -1467,6 +1456,10 @@ async function submitPresensiBatch() {
     showMessage("Terjadi kesalahan jaringan saat menyimpan presensi.", "error");
   }
 }
+
+// =========================================================================
+// MONITORING: VALIDASI KETAT NAMA + DESA + KELOMPOK BINAAN + KELAS/JENJANG
+// =========================================================================
 
 function initMonitoringDateFilters() {
   const startDateInput = document.getElementById("monitoring-date-start");
@@ -1518,6 +1511,7 @@ function renderMonitoringTable() {
   const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
   const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
 
+  // Filter tanggal log presensi
   const filteredPresensi = presensiList.filter(p => {
     const rawTgl = p.Tanggal || p.tanggal;
     if (!rawTgl) return false;
@@ -1527,6 +1521,7 @@ function renderMonitoringTable() {
     return true;
   });
 
+  // Filter jamaah target sesuai desa, kelompok, dan kelas usia
   const targetJamaah = jamaahList.filter(j => {
     const isAktif = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
     if (!isAktif) return false;
@@ -1583,6 +1578,7 @@ function renderMonitoringTable() {
       const pDesa = String(p.Desa || p.desa || getDesaByKelompok(pKelBinaan)).trim().toLowerCase();
       const pIdJamaah = String(p.ID_Jamaah || p.idJamaah || "").trim().toLowerCase();
 
+      // Validasi ketat nama + desa + kelompok binaan
       if (pIdJamaah && targetIdClean && pIdJamaah !== targetIdClean) return;
       if (pKelBinaan && pKelBinaan !== "-" && pKelBinaan !== targetKelClean) return;
       if (pDesa && pDesa !== "-" && pDesa !== targetDesaClean) return;
@@ -1594,6 +1590,7 @@ function renderMonitoringTable() {
         const st = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
         if (st === "Hadir") attendedAsad = true;
       } else {
+        // Validasi kecocokan jenjang/kelas
         const isMatchJenjang = isCaberawit 
           ? (pKel.toLowerCase() === "caberawit" && (pKls === "umum" || pKls === String(j.Kelas || "").trim().toLowerCase() || pKls === rawKelasUsia.toLowerCase()))
           : (pKel.toLowerCase() === rawKelasUsia.toLowerCase());
@@ -1637,20 +1634,23 @@ function renderMonitoringTable() {
     return `
       <tr class="bg-white border-b hover:bg-slate-50 text-xs sm:text-sm">
         <td class="px-2 sm:px-3 py-3 text-center font-semibold text-slate-500">${idx + 1}</td>
-        <td class="px-3 sm:px-4 py-3 font-semibold text-slate-800">${escapeHtml(nama)}</td>
-        <td class="px-2 sm:px-3 py-3 text-xs text-slate-600">${escapeHtml(jDesa)}</td>
-        <td class="px-2 sm:px-3 py-3 text-xs font-semibold text-slate-700">${escapeHtml(jKelBinaan)}</td>
-        <td class="px-2 sm:px-3 py-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-slate-100 font-medium text-[11px]">${escapeHtml(displayKelas)}</span></td>
+        <td class="px-3 sm:px-4 py-3 font-semibold text-slate-800">${nama}</td>
+        <td class="px-2 sm:px-3 py-3 text-xs text-slate-600">${jDesa}</td>
+        <td class="px-2 sm:px-3 py-3 text-xs font-semibold text-slate-700">${jKelBinaan}</td>
+        <td class="px-2 sm:px-3 py-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-slate-100 font-medium text-[11px]">${displayKelas}</span></td>
         <td class="px-2 py-3 text-center font-bold text-emerald-600">${countHadir}</td>
         <td class="px-2 py-3 text-center font-bold text-amber-600">${countIzin}</td>
         <td class="px-2 py-3 text-center font-bold text-rose-600">${countAlfa}</td>
-        <td class="px-3 py-3 text-xs text-slate-500 max-w-[150px] truncate" title="${escapeHtml(reasonsText)}">${escapeHtml(reasonsText)}</td>
+        <td class="px-3 py-3 text-xs text-slate-500 max-w-[150px] truncate" title="${reasonsText}">${reasonsText}</td>
         <td class="px-2 py-3 text-center whitespace-nowrap">${asadBadge}</td>
         <td class="px-2 py-3 text-center whitespace-nowrap">${karakterStatusBadge}</td>
       </tr>
     `;
   }).join("");
 }
+// =========================================================================
+// DOWNLOAD / CETAK LEMBAR KERJA FORMAT LANSKAP (DATA DINAMIS LENGKAP)
+// =========================================================================
 
 function downloadLembarKerja() {
   const filterKelasUsia = document.getElementById("monitoring-filter-kelompok")?.value || "Semua";
@@ -1667,6 +1667,7 @@ function downloadLembarKerja() {
   const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
   const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
 
+  // 1. Filter Daftar Jamaah yang Berada pada Wilayah & Jenjang Terpilih
   const targetJamaah = jamaahList.filter(j => {
     const isAktif = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
     if (!isAktif) return false;
@@ -1707,8 +1708,9 @@ function downloadLembarKerja() {
 
   const totalJamaah = targetJamaah.length;
 
+  // 2. Ekstraksi Kehadiran L/P & Seluruh Rincian Materi/Kendala
   const relevantJurnal = new Set();
-  const sessionPresenceMap = {};
+  const sessionPresenceMap = {}; // Key: "YYYY-MM-DD" -> { L: 0, P: 0 }
 
   presensiList.forEach(p => {
     if (!p.Tanggal && !p.tanggal) return;
@@ -1723,6 +1725,7 @@ function downloadLembarKerja() {
     const pKel = String(p.Kelompok || p.kelompok || "").trim().toLowerCase();
     const pKls = String(p.Kelas || p.kelas || "Umum").trim().toLowerCase();
 
+    // Validasi kecocokan jenjang/kelas usia
     if (filterKelasUsia !== "Semua") {
       const fLower = filterKelasUsia.toLowerCase();
       if (fLower === "caberawit" && pKel !== "caberawit") return;
@@ -1730,212 +1733,703 @@ function downloadLembarKerja() {
       if (!fLower.startsWith("caberawit") && pKel !== fLower) return;
     }
 
+    // Validasi apakah jamaah termasuk dalam wilayah yang difilter
     if (validNamaSet.size > 0 && !validNamaSet.has(pNama)) return;
 
+    // --- Ekstraksi Materi Pembelajaran & Catatan Kendala ---
     const tglLabel = formatTanggalIndo(dateStr);
 
+    // a. Materi reguler / jurnal umum
     const jText = String(p.Jurnal || p.jurnal || "").trim();
     if (jText && jText !== "-" && jText !== "null" && jText !== "undefined") {
-      relevantJurnal.add(`<b>[${tglLabel}]</b> ${escapeHtml(jText)}`);
+      relevantJurnal.add(`<b>[${tglLabel}]</b> ${jText}`);
     }
 
+    // b. Materi khusus Caberawit (JSON)
     const rawCaberawit = p.MateriCaberawit || p.materiCaberawit;
     if (rawCaberawit && String(rawCaberawit).trim() !== "" && String(rawCaberawit) !== "-") {
       try {
         const matObj = (typeof rawCaberawit === "object") ? rawCaberawit : JSON.parse(rawCaberawit);
         const rincian = [];
-        if (matObj.akhlak) rincian.push(`Akhlak: ${escapeHtml(matObj.akhlak)}`);
-        if (matObj.tilawati) rincian.push(`Tilawati: ${escapeHtml(matObj.tilawati)}`);
-        if (matObj.bacaan) rincian.push(`Bacaan: ${escapeHtml(matObj.bacaan)}`);
-        if (matObj.tajwid) rincian.push(`Tajwid: ${escapeHtml(matObj.tajwid)}`);
-        if (matObj.maknaQuran) rincian.push(`Al-Qur'an: ${escapeHtml(matObj.maknaQuran)}`);
-        if (matObj.maknaHadist) rincian.push(`Al-Hadist: ${escapeHtml(matObj.maknaHadist)}`);
-        if (matObj.hafalanDalil) rincian.push(`Dalil: ${escapeHtml(matObj.hafalanDalil)}`);
-        if (matObj.hafalanSurat) rincian.push(`Surat: ${escapeHtml(matObj.hafalanSurat)}`);
-        if (matObj.hafalanDoa) rincian.push(`Doa: ${escapeHtml(matObj.hafalanDoa)}`);
-        if (matObj.bcm) rincian.push(`BCM: ${escapeHtml(matObj.bcm)}`);
-        if (matObj.praktek) rincian.push(`Praktek: ${escapeHtml(matObj.praktek)}`);
+        if (matObj.akhlak) rincian.push(`Akhlak: ${matObj.akhlak}`);
+        if (matObj.tilawati) rincian.push(`Tilawati: ${matObj.tilawati}`);
+        if (matObj.bacaan) rincian.push(`Bacaan: ${matObj.bacaan}`);
+        if (matObj.tajwid) rincian.push(`Tajwid: ${matObj.tajwid}`);
+        if (matObj.maknaQuran) rincian.push(`Al-Qur'an: ${matObj.maknaQuran}`);
+        if (matObj.maknaHadist) rincian.push(`Al-Hadist: ${matObj.maknaHadist}`);
+        if (matObj.hafalanDalil) rincian.push(`Dalil: ${matObj.hafalanDalil}`);
+        if (matObj.hafalanSurat) rincian.push(`Surat: ${matObj.hafalanSurat}`);
+        if (matObj.hafalanDoa) rincian.push(`Doa: ${matObj.hafalanDoa}`);
+        if (matObj.bcm) rincian.push(`BCM: ${matObj.bcm}`);
+        if (matObj.praktek) rincian.push(`Praktek: ${matObj.praktek}`);
 
         if (rincian.length > 0) {
-          relevantJurnal.add(`<b>[${tglLabel}]</b> ${rincian.join("; ")}`);
+          relevantJurnal.add(`<b>[${tglLabel} - Capaian Caberawit]</b> ${rincian.join(" | ")}`);
         }
-      } catch (e) {}
+      } catch (e) {
+        relevantJurnal.add(`<b>[${tglLabel}]</b> ${rawCaberawit}`);
+      }
+    }
+
+    // c. Catatan kendala KBM
+    const kendalaText = String(p.Kendala || p.kendala || "").trim();
+    if (kendalaText && kendalaText !== "-" && kendalaText !== "null" && kendalaText !== "undefined") {
+      relevantJurnal.add(`<b>[${tglLabel} - Kendala KBM]</b> ${kendalaText}`);
+    }
+
+    // --- Rekap Kehadiran Hadir L dan P ---
+    const st = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
+    if (st === "Hadir") {
+      if (!sessionPresenceMap[dateStr]) sessionPresenceMap[dateStr] = { L: 0, P: 0 };
+      const g = genderMap[pNama] || "L";
+      if (g === "L") sessionPresenceMap[dateStr].L++;
+      else sessionPresenceMap[dateStr].P++;
     }
   });
 
-  let htmlContent = `
-    <html>
+  // 3. Matriks Hari x Minggu 1-5
+  const gridAttendance = Array.from({ length: 7 }, () => Array.from({ length: 5 }, () => null));
+
+  Object.keys(sessionPresenceMap).forEach(dStr => {
+    const curD = new Date(dStr + "T00:00:00");
+    if (isNaN(curD.getTime())) return;
+
+    const dom = curD.getDate();
+    const weekIdx = Math.min(Math.floor((dom - 1) / 7), 4);
+
+    const jsDay = curD.getDay(); // 0=Minggu, 1=Senin..6=Sabtu
+    const rowDay = (jsDay === 0) ? 6 : (jsDay - 1); // 0=Senin..6=Minggu
+
+    gridAttendance[rowDay][weekIdx] = sessionPresenceMap[dStr];
+  });
+
+  // Hitung Nilai Rata-rata Mingguan
+  const weekAverages = [0, 1, 2, 3, 4].map(wIdx => {
+    let totalHadir = 0;
+    let activeDays = 0;
+    for (let r = 0; r < 7; r++) {
+      const cell = gridAttendance[r][wIdx];
+      if (cell) {
+        totalHadir += (cell.L + cell.P);
+        activeDays++;
+      }
+    }
+    return activeDays > 0 ? (totalHadir / activeDays).toFixed(1) : "-";
+  });
+
+  const hariLabels = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+  const tableRowsHtml = hariLabels.map((hari, rIdx) => {
+    const cols = [0, 1, 2, 3, 4].map(wIdx => {
+      const cell = gridAttendance[rIdx][wIdx];
+      return cell ? `<td>${cell.L} L / ${cell.P} P</td>` : `<td>-</td>`;
+    }).join("");
+    return `<tr><td class="hari-col">${hari}</td>${cols}</tr>`;
+  }).join("");
+
+  const rataRataColsHtml = weekAverages.map(avg => `<td>${avg}</td>`).join("");
+  const subJudulWilayah = `Desa: ${desaFilter} | Kelompok: ${kelFilter} | Kelas: ${filterKelasUsia} | Periode: ${periodeText}`;
+  const todayStr = formatTanggalIndo(new Date().toISOString().split("T")[0]);
+
+  const listMateriHtml = relevantJurnal.size > 0 
+    ? Array.from(relevantJurnal).map(item => `<div style="margin-bottom: 5px;">• ${item}</div>`).join("")
+    : "Belum ada catatan materi pembelajaran pada periode ini.";
+
+  // 4. Output Pop-up Dokumen Cetak Lanskap
+  const printWindow = window.open("", "_blank");
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="id">
     <head>
       <meta charset="UTF-8">
-      <title>Lembar Kerja Monitoring</title>
+      <title>Cetak Lembar Kerja Presensi</title>
       <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        h1 { text-align: center; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; font-size: 12px; }
-        th { background: #0F766E; color: white; }
-        .summary { margin-top: 20px; }
-        .jurnal { margin-top: 20px; }
+        @page {
+          size: A4 landscape;
+          margin: 10mm 12mm;
+        }
+        body {
+          font-family: Arial, Helvetica, sans-serif;
+          color: #1e293b;
+          margin: 0;
+          padding: 10px;
+          background: #ffffff;
+        }
+        .no-print {
+          margin-bottom: 12px;
+        }
+        .btn-print {
+          background-color: #0f766e;
+          color: #ffffff;
+          font-size: 13px;
+          font-weight: bold;
+          padding: 8px 16px;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+        }
+        .title {
+          font-size: 16px;
+          font-weight: 800;
+          color: #0f766e;
+          margin: 0 0 3px 0;
+          text-transform: uppercase;
+        }
+        .subtitle {
+          font-size: 11px;
+          color: #475569;
+          font-weight: 600;
+          margin: 0 0 10px 0;
+        }
+        .badge-group {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        .badge {
+          border: 1px solid #cbd5e1;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: bold;
+        }
+        .badge-total {
+          background-color: #ccfbf1;
+          border-color: #5eead4;
+          color: #0f766e;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 11px;
+          margin-bottom: 16px;
+        }
+        th, td {
+          border: 1px solid #94a3b8;
+          padding: 6px 8px;
+          text-align: center;
+        }
+        th {
+          background-color: #f8fafc;
+          font-weight: 800;
+          text-transform: uppercase;
+        }
+        td.hari-col {
+          font-weight: bold;
+          text-align: left;
+          width: 110px;
+        }
+        tr.rata-rata-row {
+          font-weight: bold;
+          background-color: #f1f5f9;
+        }
+        .section-title {
+          font-size: 12px;
+          font-weight: 800;
+          color: #0f766e;
+          margin-bottom: 6px;
+          text-transform: uppercase;
+        }
+        .jurnal-box {
+          font-size: 11px;
+          color: #334155;
+          border: 1px solid #cbd5e1;
+          background-color: #f8fafc;
+          border-radius: 6px;
+          padding: 8px 12px;
+          margin-bottom: 20px;
+          line-height: 1.5;
+        }
+        .footer-sign {
+          display: flex;
+          justify-content: space-between;
+          font-size: 11px;
+          font-weight: bold;
+          margin-top: 15px;
+        }
+        .sign-col {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          height: 75px;
+        }
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+        }
       </style>
     </head>
     <body>
-      <h1>Lembar Kerja Monitoring</h1>
-      <p><b>Periode:</b> ${periodeText}</p>
-      <p><b>Desa:</b> ${desaFilter === "Semua" ? "Semua Desa" : desaFilter}</p>
-      <p><b>Kelompok:</b> ${kelFilter === "Semua" ? "Semua Kelompok" : kelFilter}</p>
-      <p><b>Jenjang:</b> ${filterKelasUsia === "Semua" ? "Semua Jenjang" : filterKelasUsia}</p>
+      <div class="no-print">
+        <button class="btn-print" onclick="window.print()">🖨️ Cetak / Simpan sebagai PDF (Lanskap)</button>
+      </div>
 
-      <div class="summary">
-        <h3>Ringkasan</h3>
-        <p>Total Jamaah: ${totalJamaah} (Laki-laki: ${countLaki}, Perempuan: ${countPerempuan})</p>
+      <div class="title">LEMBAR KERJA PRESENSI & CAPAIAN PEMBELAJARAN</div>
+      <div class="subtitle">${subJudulWilayah}</div>
+
+      <div class="badge-group">
+        <div class="badge">Laki-Laki (L): ${countLaki} Org</div>
+        <div class="badge">Perempuan (P): ${countPerempuan} Org</div>
+        <div class="badge badge-total">Total Jamaah: ${totalJamaah} Org</div>
       </div>
 
       <table>
         <thead>
           <tr>
-            <th>No</th>
-            <th>Nama</th>
-            <th>L/P</th>
-            <th>Kelompok</th>
-            <th>Jenjang</th>
-            <th>Hadir</th>
-            <th>Izin</th>
-            <th>Alfa</th>
+            <th>HARI</th>
+            <th>MINGGU 1</th>
+            <th>MINGGU 2</th>
+            <th>MINGGU 3</th>
+            <th>MINGGU 4</th>
+            <th>MINGGU 5</th>
           </tr>
         </thead>
         <tbody>
-  `;
-
-  targetJamaah.forEach((j, idx) => {
-    const nama = j.Nama_Lengkap || j.Nama;
-    const jKelBinaan = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
-    const rawKelasUsia = String(j.Kelas_Usia || j.Kelompok || "").trim();
-    const displayKelas = rawKelasUsia.toLowerCase().startsWith("caberawit")
-      ? `Caberawit (${j.Kelas || rawKelasUsia})`
-      : rawKelasUsia;
-
-    const targetNamaClean = String(nama || "").trim().toLowerCase();
-
-    let countHadir = 0, countIzin = 0, countAlfa = 0;
-
-    presensiList.forEach(p => {
-      const pNama = String(p.NamaJamaah || p.Nama || p.nama || "").trim().toLowerCase();
-      if (pNama !== targetNamaClean) return;
-
-      const rawTgl = p.Tanggal || p.tanggal;
-      if (!rawTgl) return;
-      const dateStr = (rawTgl instanceof Date) ? rawTgl.toISOString().split("T")[0] : String(rawTgl).substring(0, 10);
-
-      if (startDateVal && dateStr < startDateVal) return;
-      if (endDateVal && dateStr > endDateVal) return;
-
-      const st = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
-      if (st === "Hadir") countHadir++;
-      else if (st === "Izin") countIzin++;
-      else if (st === "Alfa") countAlfa++;
-    });
-
-    const lp = genderMap[targetNamaClean] || "-";
-
-    htmlContent += `
-      <tr>
-        <td>${idx + 1}</td>
-        <td>${escapeHtml(nama)}</td>
-        <td>${lp}</td>
-        <td>${escapeHtml(jKelBinaan)}</td>
-        <td>${escapeHtml(displayKelas)}</td>
-        <td>${countHadir}</td>
-        <td>${countIzin}</td>
-        <td>${countAlfa}</td>
-      </tr>
-    `;
-  });
-
-  htmlContent += `
+          ${tableRowsHtml}
+          <tr class="rata-rata-row">
+            <td>RATA-RATA</td>
+            ${rataRataColsHtml}
+          </tr>
         </tbody>
       </table>
 
-      <div class="jurnal">
-        <h3>Riwayat Materi & Catatan</h3>
-        <ul>
-          ${Array.from(relevantJurnal).map(j => `<li>${j}</li>`).join("")}
-        </ul>
+      <div class="section-title">REKAPITULASI CAPAIAN MATERI & KENDALA KBM</div>
+      <div class="jurnal-box">
+        ${listMateriHtml}
+      </div>
+
+      <div class="footer-sign">
+        <div class="sign-col">
+          <span>Mengetahui,</span>
+          <span>Ketua Pengurus</span>
+        </div>
+        <div class="sign-col" style="text-align: right;">
+          <span>Dicetak Pada: ${todayStr}</span>
+          <span>Pengajar / Admin</span>
+        </div>
       </div>
     </body>
     </html>
-  `;
-
-  const blob = new Blob([htmlContent], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `Lembar_Kerja_${new Date().toISOString().split("T")[0]}.html`;
-  a.click();
-  URL.revokeObjectURL(url);
+  `);
+  printWindow.document.close();
 }
 
-function formatTanggalIndo(dateStr) {
-  const d = new Date(dateStr + "T00:00:00");
+// =========================================================================
+// MODUL PENYAPAAN WILAYAH
+// =========================================================================
+
+function buildLocalPenyapaanState() {
+  const mk = Array.isArray(appData.master_kelompok) ? appData.master_kelompok : [];
+  const sapaanList = Array.isArray(appData.penyapaan) ? appData.penyapaan : [];
+
+  const freqMap = {};
+  const lastDateMap = {};
+
+  sapaanList.forEach(s => {
+    const kId = String(s.ID_Kelompok || "").trim();
+    if (!kId) return;
+    freqMap[kId] = (freqMap[kId] || 0) + 1;
+    const curDate = new Date(s.Tanggal);
+    if (!lastDateMap[kId] || curDate > new Date(lastDateMap[kId])) {
+      lastDateMap[kId] = s.Tanggal;
+    }
+  });
+
+  localPenyapaanData = mk.map(k => {
+    const kId = String(k.ID_Kelompok || "").trim();
+    const totalCount = freqMap[kId] || 0;
+    return {
+      id: kId,
+      nama_desa: String(k.Nama_Desa || "-").trim(),
+      nama_kelompok: String(k.Nama_Kelompok || "-").trim(),
+      total_penyapaan: totalCount,
+      base_total: totalCount,
+      status_sapa: false,
+      status_belum_sapa: false,
+      is_dirty: false,
+      tanggal_terakhir: lastDateMap[kId] || "-",
+      is_recommended: false
+    };
+  });
+
+  calculateRekomendasi16Kelompok();
+}
+
+function calculateRekomendasi16Kelompok() {
+  localPenyapaanData.forEach(k => k.is_recommended = false);
+  const desas = [...new Set(localPenyapaanData.map(k => k.nama_desa))];
+  desas.forEach(desa => {
+    const kelompokInDesa = localPenyapaanData.filter(k => k.nama_desa === desa);
+    if (kelompokInDesa.length === 0) return;
+    kelompokInDesa.sort((a, b) => parseInt(a.total_penyapaan || 0, 10) - parseInt(b.total_penyapaan || 0, 10));
+    const lowest4 = kelompokInDesa.slice(0, 4);
+    lowest4.forEach(item => { item.is_recommended = true; });
+  });
+}
+
+function toggleLocalSapa(idKelompok, actionType) {
+  if (!canWritePenyapaan()) {
+    alert("Akun Admin Desa / Admin Kelompok bersifat Read-Only pada modul penyapaan!");
+    renderPetaCards();
+    return;
+  }
+
+  const item = localPenyapaanData.find(k => String(k.id) === String(idKelompok));
+  if (!item) return;
+
+  if (actionType === "sapa") {
+    item.status_sapa = !item.status_sapa;
+    if (item.status_sapa) item.status_belum_sapa = false;
+  } else if (actionType === "belum_sapa") {
+    item.status_belum_sapa = !item.status_belum_sapa;
+    if (item.status_belum_sapa) item.status_sapa = false;
+  }
+
+  item.total_penyapaan = item.base_total + (item.status_sapa ? 1 : 0);
+  item.is_dirty = (item.status_sapa || item.status_belum_sapa);
+
+  calculateRekomendasi16Kelompok();
+  renderPetaCards();
+}
+
+async function simpanBatchPenyapaanGrid() {
+  if (!canWritePenyapaan()) {
+    return alert("Akses ditolak: Admin Desa & Kelompok hanya dapat melihat riwayat penyapaan.");
+  }
+
+  const dirtyItems = localPenyapaanData.filter(k => k.is_dirty && k.status_sapa);
+  if (dirtyItems.length === 0) {
+    return alert("Belum ada kelompok yang ditandai 'Sapa' untuk disimpan.");
+  }
+
+  const dateInput = document.getElementById("sapaan-batch-date");
+  const agendaInput = document.getElementById("sapaan-batch-agenda");
+
+  const tanggalStr = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().split("T")[0];
+  const agendaStr = agendaInput && agendaInput.value.trim() ? agendaInput.value.trim() : "Kunjungan & Evaluasi Pembinaan Rutin";
+
+  showMessage("Menyimpan data penyapaan...", "info");
+
+  try {
+    for (const item of dirtyItems) {
+      const payload = {
+        action: "add_penyapaan",
+        tanggal: tanggalStr,
+        idKelompok: item.id,
+        namaKelompok: item.nama_kelompok,
+        namaDesa: item.nama_desa,
+        namaPetugas: currentAdmin.nama || currentAdmin.username || "Admin Daerah",
+        jenisKegiatan: agendaStr,
+        catatan: `Disapa pada kegiatan: ${agendaStr}`
+      };
+
+      await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+    }
+
+    showMessage("Data penyapaan berhasil disimpan ke database!", "success");
+    await loadAllData();
+  } catch (err) {
+    showMessage("Gagal menyimpan penyapaan: " + err, "error");
+  }
+}
+
+function switchPenyapaanSubTab(subTabName) {
+  ["status-peta", "rekap-riwayat"].forEach(name => {
+    const el = document.getElementById(`subtab-${name}`);
+    const btn = document.getElementById(`subtab-btn-${name}`);
+    if (el) el.classList.add("hidden");
+    if (btn) btn.classList.remove("active", "bg-teal-700", "text-white");
+  });
+
+  const activeEl = document.getElementById(`subtab-${subTabName}`);
+  const activeBtn = document.getElementById(`subtab-btn-${subTabName}`);
+  if (activeEl) activeEl.classList.remove("hidden");
+  if (activeBtn) activeBtn.classList.add("active", "bg-teal-700", "text-white");
+}
+
+function renderPenyapaanModule() {
+  const badge = document.getElementById("badge-total-sapaan");
+  const total = (analyticsPenyapaan && analyticsPenyapaan.totalSapaan) 
+    ? analyticsPenyapaan.totalSapaan 
+    : (Array.isArray(appData.penyapaan) ? appData.penyapaan.length : 0);
+  if (badge) badge.innerText = total;
+
+  renderPetaCards();
+  renderRiwayatPenyapaanTable();
+}
+
+function filterPetaCards(filter) {
+  currentPetaFilter = filter;
+  ["all", "sudah", "belum"].forEach(f => {
+    const btn = document.getElementById(`peta-filter-${f}`);
+    if (btn) {
+      if (f === filter) {
+        btn.className = "px-2.5 py-1 text-[11px] rounded bg-teal-600 text-white font-semibold";
+      } else {
+        btn.className = "px-2.5 py-1 text-[11px] rounded bg-white border border-slate-300 font-semibold text-slate-600 hover:bg-slate-100";
+      }
+    }
+  });
+  renderPetaCards();
+}
+
+function renderPetaCards() {
+  const container = document.getElementById("peta-desa-grid");
+  if (!container) return;
+
+  if (!localPenyapaanData || localPenyapaanData.length === 0) {
+    buildLocalPenyapaanState();
+  }
+
+  const desas = [...new Set(localPenyapaanData.map(m => m.nama_desa))];
+  const hasDirty = localPenyapaanData.some(k => k.is_dirty);
+  const writeAccess = canWritePenyapaan();
+  const selectedSapaDate = document.getElementById("sapaan-batch-date")?.value || new Date().toISOString().split("T")[0];
+
+  container.innerHTML = desas.map(desa => {
+    let list = localPenyapaanData.filter(k => k.nama_desa === desa);
+
+    if (currentPetaFilter === "sudah") list = list.filter(k => k.total_penyapaan > 0 || k.status_sapa);
+    if (currentPetaFilter === "belum") list = list.filter(k => k.total_penyapaan === 0 && !k.status_sapa);
+
+    list.sort((a, b) => {
+      if (a.is_recommended && !b.is_recommended) return -1;
+      if (!a.is_recommended && b.is_recommended) return 1;
+      return parseInt(a.total_penyapaan || 0, 10) - parseInt(b.total_penyapaan || 0, 10);
+    });
+
+    return `
+      <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+        <div class="border-b pb-2 flex justify-between items-center">
+          <h4 class="font-bold text-slate-800 text-xs sm:text-sm uppercase flex items-center gap-1.5">
+            <i class="fa-solid fa-location-dot text-emerald-600"></i> ${desa}
+          </h4>
+          <span class="text-[11px] text-slate-500 font-semibold">${list.length} Kelompok</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+          ${list.map(k => {
+            const isSapaChecked = k.status_sapa;
+            const isBelumChecked = k.status_belum_sapa;
+
+            const sapaanList = Array.isArray(appData.penyapaan) ? appData.penyapaan : [];
+            const isAlreadySapaToday = sapaanList.some(s => {
+              const sDate = s.Tanggal ? String(s.Tanggal).split("T")[0] : "";
+              return String(s.ID_Kelompok || "").trim() === String(k.id).trim() && sDate === selectedSapaDate;
+            });
+
+            let badgeHtml = "";
+            if (isAlreadySapaToday) {
+              badgeHtml = `<span class="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-emerald-300">Tersimpan</span>`;
+            } else if (k.is_dirty) {
+              badgeHtml = `<span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-amber-300">Draf</span>`;
+            } else if (k.total_penyapaan > 0) {
+              badgeHtml = `<span class="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-emerald-300">${k.total_penyapaan}x Disapa</span>`;
+            } else {
+              badgeHtml = `<span class="bg-slate-100 text-slate-500 text-[9px] font-semibold px-1.5 py-0.5 rounded">Belum</span>`;
+            }
+
+            let rekomBadge = "";
+            if (k.is_recommended) {
+              rekomBadge = `
+                <span class="text-[9px] font-black bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded flex items-center gap-1">
+                  <i class="fa-solid fa-star text-amber-500 text-[8px]"></i> Rekomendasi
+                </span>
+              `;
+            }
+
+            const inputDisabledAttr = writeAccess ? '' : 'disabled';
+            const cursorClass = writeAccess ? 'cursor-pointer' : 'cursor-not-allowed opacity-60';
+
+            return `
+              <div class="p-3 rounded-xl border flex flex-col justify-between space-y-2 ${k.is_dirty ? 'bg-amber-50/60 border-amber-300' : (k.is_recommended ? 'bg-amber-50/20 border-amber-200' : (k.total_penyapaan > 0 ? 'bg-emerald-50/30 border-emerald-200' : 'bg-slate-50/70 border-slate-200'))}">
+                <div>
+                  <div class="flex items-start justify-between gap-1 mb-1">
+                    <p class="font-extrabold text-xs sm:text-sm text-slate-900 leading-snug truncate" title="${k.nama_kelompok}">${k.nama_kelompok}</p>${badgeHtml}
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    ${rekomBadge}
+                    <span class="text-[9px] text-slate-400 font-medium">Terakhir: ${k.tanggal_terakhir !== '-' ? String(k.tanggal_terakhir).split('T')[0] : '-'}</span>
+                  </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-200/80 flex items-center justify-between">
+                  <div class="flex items-center gap-2.5">
+                    <label class="flex items-center gap-1 ${cursorClass}">
+                      <input type="checkbox" ${isSapaChecked ? 'checked' : ''} ${inputDisabledAttr} onchange="toggleLocalSapa('${k.id}', 'sapa')" class="rounded text-teal-600 focus:ring-teal-500 w-3.5 h-3.5">
+                      <span class="text-xs font-bold text-slate-800">Sapa</span>
+                    </label>
+
+                    <label class="flex items-center gap-1 ${cursorClass}">
+                      <input type="checkbox" ${isBelumChecked ? 'checked' : ''} ${inputDisabledAttr} onchange="toggleLocalSapa('${k.id}', 'belum_sapa')" class="rounded text-rose-600 focus:ring-rose-500 w-3.5 h-3.5">
+                      <span class="text-xs font-bold text-slate-500">Belum</span>
+                    </label>
+                  </div>
+
+                  <div class="text-right pl-1">
+                    <span class="text-[8px] text-slate-400 block font-bold uppercase tracking-wider">Total</span>
+                    <span class="text-sm font-black text-teal-950">${k.total_penyapaan}x</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  if (writeAccess && hasDirty) {
+    container.innerHTML += `
+      <div class="col-span-full bg-amber-50 border border-amber-300 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md sticky bottom-3 z-20">
+        <div class="flex items-center gap-2 text-xs font-semibold text-amber-900 text-center sm:text-left">
+          <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm"></i>
+          <span>Perubahan tanda sapaan berstatus <b>Draf</b>. Klik simpan untuk mencatat ke server.</span>
+        </div>
+        <button onclick="simpanBatchPenyapaanGrid()" class="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
+          <i class="fa-solid fa-floppy-disk"></i> Simpan Sapaan
+        </button>
+      </div>
+    `;
+  }
+}
+
+function renderRiwayatPenyapaanTable() {
+  const container = document.getElementById("subtab-rekap-riwayat");
+  if (!container || !analyticsPenyapaan) return;
+
+  let wrapper = document.getElementById("riwayat-cards-grid-wrapper");
+  if (!wrapper) {
+    container.innerHTML = `
+      <div class="bg-white p-3 sm:p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row justify-between gap-3 mb-4">
+        <input type="text" id="search-riwayat" oninput="renderRiwayatPenyapaanTable()" placeholder="Cari kegiatan atau kelompok..." class="border rounded-lg px-3 py-1.5 text-xs w-full sm:w-80 focus:ring-1 focus:ring-teal-500 outline-none">
+        <select id="filter-riwayat-desa" onchange="renderRiwayatPenyapaanTable()" class="border rounded-lg px-2.5 py-1.5 text-xs bg-white font-semibold text-slate-700">
+          <option value="ALL">Semua Desa</option>
+        </select>
+      </div>
+      <div id="riwayat-cards-grid-wrapper" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    `;
+    wrapper = document.getElementById("riwayat-cards-grid-wrapper");
+  }
+
+  const search = (document.getElementById("search-riwayat")?.value || "").toLowerCase().trim();
+  const desaFilter = document.getElementById("filter-riwayat-desa")?.value || "ALL";
+
+  let list = analyticsPenyapaan.riwayat || [];
+  const sessionsMap = {};
+
+  list.forEach(r => {
+    const agenda = String(r.Jenis_Kegiatan_Sapaan || "Penyapaan Rutin").trim();
+    const tanggal = r.Tanggal ? String(r.Tanggal).split("T")[0] : "-";
+    const key = `${agenda}_${tanggal}`;
+
+    if (!sessionsMap[key]) {
+      sessionsMap[key] = {
+        nama_kegiatan: agenda,
+        tanggal: tanggal,
+        kelompok_disapa: []
+      };
+    }
+
+    sessionsMap[key].kelompok_disapa.push({
+      desa: String(r.Nama_Desa || "-").trim(),
+      nama_kelompok: String(r.Nama_Kelompok || "-").trim()
+    });
+  });
+
+  let sessionsArray = Object.values(sessionsMap);
+
+  if (search) {
+    sessionsArray = sessionsArray.filter(s => {
+      const matchAgenda = s.nama_kegiatan.toLowerCase().includes(search);
+      const matchKelompok = s.kelompok_disapa.some(k => k.nama_kelompok.toLowerCase().includes(search) || k.desa.toLowerCase().includes(search));
+      return matchAgenda || matchKelompok;
+    });
+  }
+
+  if (desaFilter !== "ALL") {
+    sessionsArray = sessionsArray.filter(s => {
+      return s.kelompok_disapa.some(k => k.desa.toLowerCase() === desaFilter.toLowerCase());
+    });
+  }
+
+  if (sessionsArray.length === 0) {
+    wrapper.innerHTML = `<div class="col-span-full bg-white p-6 text-center text-slate-400 italic rounded-xl border border-slate-200 text-xs">Tidak ada riwayat penyapaan ditemukan.</div>`;
+    return;
+  }
+
+  const desas = ["Banjarharjo", "Kaling", "Karangmojo", "Jaten"];
+
+  wrapper.innerHTML = sessionsArray.map(session => {
+    const totalDisapa = session.kelompok_disapa.length;
+
+    const desaHtmlList = desas.map(desa => {
+      const items = session.kelompok_disapa.filter(d => d.desa.toLowerCase() === desa.toLowerCase());
+      if (items.length === 0) return '';
+
+      const namesHtml = items.map(i => `
+        <span class="inline-block bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md text-[11px] font-semibold">
+          ${i.nama_kelompok}
+        </span>
+      `).join(' ');
+
+      return `
+        <div class="space-y-1">
+          <p class="text-xs font-bold text-slate-700">Desa ${desa} (${items.length}):</p>
+          <div class="flex flex-wrap gap-1.5">${namesHtml}</div>
+        </div>
+      `;
+    }).join('');
+
+    const formattedDateText = formatTanggalIndo(session.tanggal);
+
+    return `
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-5 space-y-3 flex flex-col justify-between">
+        <div class="flex justify-between items-start border-b border-slate-100 pb-3 gap-2">
+          <div>
+            <h3 class="font-bold text-sm sm:text-base text-slate-900 leading-snug uppercase">${session.nama_kegiatan}</h3>
+            <p class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+              <i class="fa-solid fa-calendar-days text-teal-600"></i>
+              <span class="font-semibold text-slate-700">${formattedDateText}</span>
+            </p>
+          </div>
+          <div class="bg-teal-50 border border-teal-100 text-teal-800 px-2.5 py-1 rounded-xl text-right shrink-0">
+            <span class="text-sm sm:text-base font-black">${totalDisapa}</span>
+            <span class="text-[10px] font-bold block sm:inline"> Kelompok</span>
+          </div>
+        </div>
+
+        <div class="space-y-2.5 pt-1">
+          ${desaHtmlList || '<p class="text-xs text-slate-400 italic">Belum ada kelompok yang disapa.</p>'}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function formatTanggalIndo(dateString) {
+  if (!dateString || dateString === "-") return "-";
+  const cleanDate = dateString.substring(0, 10);
+  const parts = cleanDate.split('-');
+  if (parts.length !== 3) return dateString;
+
+  const year = parseInt(parts[0], 10);
+  const monthIdx = parseInt(parts[1], 10) - 1;
+  const dayNum = parseInt(parts[2], 10);
+
   const months = [
-    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni", 
     "Juli", "Agustus", "September", "Oktober", "November", "Desember"
   ];
-  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-}
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+  const dateObj = new Date(year, monthIdx, dayNum);
+  if (isNaN(dateObj.getTime())) return dateString;
 
-function initGlobalEventListeners() {
-  const loginForm = document.getElementById("login-form");
-  if (loginForm) {
-    loginForm.addEventListener("submit", handleLogin);
-  }
+  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const dayName = days[dateObj.getDay()];
+  const monthName = months[monthIdx];
 
-  const presensiDateInput = document.getElementById("presensi-date");
-  if (presensiDateInput) {
-    presensiDateInput.addEventListener("change", updateDayLabel);
-  }
-
-  const sapaanDateInput = document.getElementById("sapaan-batch-date");
-  if (sapaanDateInput) {
-    sapaanDateInput.addEventListener("change", updateSapaanDayLabel);
-  }
-
-  const desaSelect = document.getElementById("global-filter-desa");
-  if (desaSelect) {
-    desaSelect.addEventListener("change", onGlobalDesaChange);
-  }
-
-  const kelSelect = document.getElementById("global-filter-kelompok");
-  if (kelSelect) {
-    kelSelect.addEventListener("change", onGlobalKelompokChange);
-  }
-
-  const searchInput = document.getElementById("global-search-input");
-  if (searchInput) {
-    searchInput.addEventListener("input", onGlobalSearchInput);
-  }
-
-  const presensiDesaSelect = document.getElementById("presensi-filter-desa");
-  if (presensiDesaSelect) {
-    presensiDesaSelect.addEventListener("change", onPresensiDesaChange);
-  }
-
-  const monitoringStart = document.getElementById("monitoring-date-start");
-  const monitoringEnd = document.getElementById("monitoring-date-end");
-  if (monitoringStart) monitoringStart.addEventListener("change", onMonitoringFilterChange);
-  if (monitoringEnd) monitoringEnd.addEventListener("change", onMonitoringFilterChange);
-}
-
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initGlobalEventListeners);
-} else {
-  initGlobalEventListeners();
+  return `${dayName}, ${dayNum} ${monthName} ${year}`;
 }
