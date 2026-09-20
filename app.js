@@ -2,7 +2,7 @@
 // FRONTEND LOGIC & REST API INTEGRATION (MOBILE OPTIMIZED & FULL CRUD)
 // =========================================================================
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvzVacUwrLqTMeU0wDmXkuWJNdGv2Nncd8au2qVQOx1Usp2IMV6CKA1cLeNERc2G6Y/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxsNTYsLxmaCcwEWLYC323dmqvK7tYR3v7Wiq5AGh64yxj-6SMuvNq_MTyanNCNkerO/exec";
 
 let appData = {
   pengurus: [],
@@ -1198,7 +1198,6 @@ function renderPresensiTable() {
   const selectedDateInput = document.getElementById("presensi-date");
   const targetDate = selectedDateInput ? selectedDateInput.value : "";
 
-  // Pemetaan presensi dengan composite key: nama + desa + kelompok binaan
   let existingStatusMap = {};
   presensiList.forEach(p => {
     const rawNama = p.NamaJamaah || p.Nama || p.nama;
@@ -1363,6 +1362,10 @@ function updateRekapHarian() {
   }
 }
 
+// =========================================================================
+// PENGIRIMAN DATA PRESENSI KE BACKEND
+// =========================================================================
+
 async function submitPresensiBatch() {
   if (!currentAdmin) return alert("Akses Admin diperlukan untuk menyimpan presensi!");
 
@@ -1370,10 +1373,11 @@ async function submitPresensiBatch() {
   if (filteredJamaah.length === 0) return alert("Tidak ada data jamaah untuk disimpan.");
 
   const dateInput = document.getElementById("presensi-date");
-  const tanggalStr = dateInput ? dateInput.value : new Date().toISOString().split("T")[0];
+  const dayInput = document.getElementById("presensi-day");
+  const tanggalStr = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().split("T")[0];
+  const hariStr = dayInput && dayInput.value ? dayInput.value : "-";
   const isCaberawit = (currentKelompok === "Caberawit");
 
-  // Ambil data materi / jurnal jika ada
   let materiPayload = "";
   let kendalaText = document.getElementById("presensi-kendala")?.value || "-";
 
@@ -1396,7 +1400,6 @@ async function submitPresensiBatch() {
     materiPayload = document.getElementById("reguler-jurnal")?.value || "-";
   }
 
-  // Susun baris presensi setiap jamaah
   const presensiItems = filteredJamaah.map((j, idx) => {
     const radios = document.getElementsByName(`presensi-${idx}`);
     let status = "Hadir";
@@ -1419,6 +1422,7 @@ async function submitPresensiBatch() {
       ID_Jamaah: j.ID_Jamaah || j.ID || `JAM-${idx}`,
       NamaJamaah: j.Nama_Lengkap || j.Nama,
       Tanggal: tanggalStr,
+      Hari: hariStr,
       Kelompok: currentKelompok,
       Kelas: (currentKelompok === "Caberawit" || currentKelompok === "ASAD") ? currentKelas : "Umum",
       KelompokBinaan: jKelBinaan,
@@ -1429,7 +1433,8 @@ async function submitPresensiBatch() {
       Karakter29: karakter29,
       MateriCaberawit: isCaberawit ? materiPayload : "-",
       Jurnal: !isCaberawit ? materiPayload : "-",
-      Kendala: kendalaText
+      Kendala: kendalaText,
+      Admin: currentAdmin.nama || currentAdmin.username || "Admin"
     };
   });
 
@@ -1440,7 +1445,8 @@ async function submitPresensiBatch() {
       method: "POST",
       body: JSON.stringify({
         action: "save_presensi_batch",
-        data: presensiItems
+        data: presensiItems,
+        admin: currentAdmin
       })
     });
     const json = await res.json();
@@ -1511,7 +1517,6 @@ function renderMonitoringTable() {
   const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
   const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
 
-  // Filter tanggal log presensi
   const filteredPresensi = presensiList.filter(p => {
     const rawTgl = p.Tanggal || p.tanggal;
     if (!rawTgl) return false;
@@ -1521,7 +1526,6 @@ function renderMonitoringTable() {
     return true;
   });
 
-  // Filter jamaah target sesuai desa, kelompok, dan kelas usia
   const targetJamaah = jamaahList.filter(j => {
     const isAktif = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
     if (!isAktif) return false;
@@ -1578,7 +1582,6 @@ function renderMonitoringTable() {
       const pDesa = String(p.Desa || p.desa || getDesaByKelompok(pKelBinaan)).trim().toLowerCase();
       const pIdJamaah = String(p.ID_Jamaah || p.idJamaah || "").trim().toLowerCase();
 
-      // Validasi ketat nama + desa + kelompok binaan
       if (pIdJamaah && targetIdClean && pIdJamaah !== targetIdClean) return;
       if (pKelBinaan && pKelBinaan !== "-" && pKelBinaan !== targetKelClean) return;
       if (pDesa && pDesa !== "-" && pDesa !== targetDesaClean) return;
@@ -1590,7 +1593,6 @@ function renderMonitoringTable() {
         const st = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
         if (st === "Hadir") attendedAsad = true;
       } else {
-        // Validasi kecocokan jenjang/kelas
         const isMatchJenjang = isCaberawit 
           ? (pKel.toLowerCase() === "caberawit" && (pKls === "umum" || pKls === String(j.Kelas || "").trim().toLowerCase() || pKls === rawKelasUsia.toLowerCase()))
           : (pKel.toLowerCase() === rawKelasUsia.toLowerCase());
@@ -1648,6 +1650,7 @@ function renderMonitoringTable() {
     `;
   }).join("");
 }
+
 // =========================================================================
 // DOWNLOAD / CETAK LEMBAR KERJA FORMAT LANSKAP (DATA DINAMIS LENGKAP)
 // =========================================================================
@@ -1667,7 +1670,6 @@ function downloadLembarKerja() {
   const jamaahList = Array.isArray(appData.jamaah) ? appData.jamaah : [];
   const presensiList = Array.isArray(appData.presensi) ? appData.presensi : [];
 
-  // 1. Filter Daftar Jamaah yang Berada pada Wilayah & Jenjang Terpilih
   const targetJamaah = jamaahList.filter(j => {
     const isAktif = String(j.Keaktifan || j.Status || "Aktif").trim().toLowerCase() === "aktif";
     if (!isAktif) return false;
@@ -1708,9 +1710,8 @@ function downloadLembarKerja() {
 
   const totalJamaah = targetJamaah.length;
 
-  // 2. Ekstraksi Kehadiran L/P & Seluruh Rincian Materi/Kendala
   const relevantJurnal = new Set();
-  const sessionPresenceMap = {}; // Key: "YYYY-MM-DD" -> { L: 0, P: 0 }
+  const sessionPresenceMap = {};
 
   presensiList.forEach(p => {
     if (!p.Tanggal && !p.tanggal) return;
@@ -1725,7 +1726,6 @@ function downloadLembarKerja() {
     const pKel = String(p.Kelompok || p.kelompok || "").trim().toLowerCase();
     const pKls = String(p.Kelas || p.kelas || "Umum").trim().toLowerCase();
 
-    // Validasi kecocokan jenjang/kelas usia
     if (filterKelasUsia !== "Semua") {
       const fLower = filterKelasUsia.toLowerCase();
       if (fLower === "caberawit" && pKel !== "caberawit") return;
@@ -1733,19 +1733,15 @@ function downloadLembarKerja() {
       if (!fLower.startsWith("caberawit") && pKel !== fLower) return;
     }
 
-    // Validasi apakah jamaah termasuk dalam wilayah yang difilter
     if (validNamaSet.size > 0 && !validNamaSet.has(pNama)) return;
 
-    // --- Ekstraksi Materi Pembelajaran & Catatan Kendala ---
     const tglLabel = formatTanggalIndo(dateStr);
 
-    // a. Materi reguler / jurnal umum
     const jText = String(p.Jurnal || p.jurnal || "").trim();
     if (jText && jText !== "-" && jText !== "null" && jText !== "undefined") {
       relevantJurnal.add(`<b>[${tglLabel}]</b> ${jText}`);
     }
 
-    // b. Materi khusus Caberawit (JSON)
     const rawCaberawit = p.MateriCaberawit || p.materiCaberawit;
     if (rawCaberawit && String(rawCaberawit).trim() !== "" && String(rawCaberawit) !== "-") {
       try {
@@ -1771,13 +1767,11 @@ function downloadLembarKerja() {
       }
     }
 
-    // c. Catatan kendala KBM
     const kendalaText = String(p.Kendala || p.kendala || "").trim();
     if (kendalaText && kendalaText !== "-" && kendalaText !== "null" && kendalaText !== "undefined") {
       relevantJurnal.add(`<b>[${tglLabel} - Kendala KBM]</b> ${kendalaText}`);
     }
 
-    // --- Rekap Kehadiran Hadir L dan P ---
     const st = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
     if (st === "Hadir") {
       if (!sessionPresenceMap[dateStr]) sessionPresenceMap[dateStr] = { L: 0, P: 0 };
@@ -1787,7 +1781,6 @@ function downloadLembarKerja() {
     }
   });
 
-  // 3. Matriks Hari x Minggu 1-5
   const gridAttendance = Array.from({ length: 7 }, () => Array.from({ length: 5 }, () => null));
 
   Object.keys(sessionPresenceMap).forEach(dStr => {
@@ -1797,13 +1790,12 @@ function downloadLembarKerja() {
     const dom = curD.getDate();
     const weekIdx = Math.min(Math.floor((dom - 1) / 7), 4);
 
-    const jsDay = curD.getDay(); // 0=Minggu, 1=Senin..6=Sabtu
-    const rowDay = (jsDay === 0) ? 6 : (jsDay - 1); // 0=Senin..6=Minggu
+    const jsDay = curD.getDay();
+    const rowDay = (jsDay === 0) ? 6 : (jsDay - 1);
 
     gridAttendance[rowDay][weekIdx] = sessionPresenceMap[dStr];
   });
 
-  // Hitung Nilai Rata-rata Mingguan
   const weekAverages = [0, 1, 2, 3, 4].map(wIdx => {
     let totalHadir = 0;
     let activeDays = 0;
@@ -1834,7 +1826,6 @@ function downloadLembarKerja() {
     ? Array.from(relevantJurnal).map(item => `<div style="margin-bottom: 5px;">• ${item}</div>`).join("")
     : "Belum ada catatan materi pembelajaran pada periode ini.";
 
-  // 4. Output Pop-up Dokumen Cetak Lanskap
   const printWindow = window.open("", "_blank");
   printWindow.document.write(`
     <!DOCTYPE html>
