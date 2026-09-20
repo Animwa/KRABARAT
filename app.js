@@ -2,7 +2,7 @@
 // FRONTEND LOGIC & REST API INTEGRATION (MOBILE OPTIMIZED & FULL CRUD)
 // =========================================================================
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzDFdRUFQQWy4wnF8x0hklZXP-bRIDPvAHYLpsGBBfIJ9VN_pqbWh89ZqBaKX7DyhoG/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwtspslRAaJMOj6EGG6l-DGvjEj8RZxXksgt3y53akTUwy3FAsVS1NxzEpa9CgFZRvj/exec";
 
 let appData = {
   pengurus: [],
