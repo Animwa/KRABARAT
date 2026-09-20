@@ -70,7 +70,8 @@ function showMessage(text, type = "info") {
 
 function hideMessage() {
   const msgBox = document.getElementById("status-message");
-  if (msgBox) msgBox.classList.add("hidden");
+  if (!msgBox) return;
+  msgBox.classList.add("hidden");
 }
 
 function openLoginModal() {
@@ -1091,7 +1092,7 @@ function renderJamaah() {
 }
 
 // =========================================================================
-// RENDER TABEL PRESENSI DENGAN KUNCI [KELOMPOK BINAAN + NAMA]
+// RENDER TABEL PRESENSI DENGAN KUNCI [ID_JAMAAH & KELOMPOK BINAAN + NAMA]
 // =========================================================================
 
 function getFilteredJamaahForPresensi() {
@@ -1196,7 +1197,7 @@ function renderPresensiTable() {
   const selectedDateInput = document.getElementById("presensi-date");
   const targetDate = selectedDateInput ? selectedDateInput.value : "";
 
-  // 1. Peta presensi dengan Kunci: [Kelompok Binaan]_[Nama Jamaah]
+  // 1. Peta presensi dengan Multi-Key: ID_Jamaah, KelompokBinaan + Nama, dan Nama
   let existingStatusMap = {};
   presensiList.forEach(p => {
     const rawNama = p.NamaJamaah || p.Nama || p.nama;
@@ -1207,26 +1208,34 @@ function renderPresensiTable() {
     let pDateStr = (rawTgl instanceof Date) ? rawTgl.toISOString().split("T")[0] : String(rawTgl).substring(0, 10);
 
     if (pDateStr === targetDate) {
+      const pId = String(p.ID_Jamaah || p.ID || p.idJamaah || "").trim().toLowerCase();
       const pKelBinaan = String(p.KelompokBinaan || p.Nama_Kelompok || getKelompokByNama(rawNama)).trim().toLowerCase();
       const pNamaClean = String(rawNama).trim().toLowerCase();
 
-      const lookupKey = `${pKelBinaan}_${pNamaClean}`;
-      existingStatusMap[lookupKey] = {
+      const statusData = {
         status: String(p.StatusPresensi || p.Status || p.status || "Hadir").trim(),
         keterangan: String(p.Keterangan || p.keterangan || "").trim(),
         karakter29: String(p.Karakter29 || p.karakter29 || "Belum").trim()
       };
+
+      if (pId) existingStatusMap[`id_${pId}`] = statusData;
+      existingStatusMap[`kel_${pKelBinaan}_${pNamaClean}`] = statusData;
+      if (!existingStatusMap[`name_${pNamaClean}`]) {
+        existingStatusMap[`name_${pNamaClean}`] = statusData;
+      }
     }
   });
 
   tbody.innerHTML = filteredJamaah.map((j, idx) => {
     const nama = j.Nama_Lengkap || j.Nama;
+    const jId = String(j.ID_Jamaah || j.ID || "").trim().toLowerCase();
     const jKel = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim().toLowerCase();
     const namaClean = String(nama).trim().toLowerCase();
 
-    // 2. Cocokkan dengan kunci unik Kelompok Binaan + Nama
-    const lookupKey = `${jKel}_${namaClean}`;
-    const exData = existingStatusMap[lookupKey];
+    // 2. Cocokkan: ID -> Kelompok Binaan + Nama -> Nama
+    const exData = (jId && existingStatusMap[`id_${jId}`])
+      ? existingStatusMap[`id_${jId}`]
+      : (existingStatusMap[`kel_${jKel}_${namaClean}`] || existingStatusMap[`name_${namaClean}`]);
 
     const isSaved = Boolean(exData);
     const savedStatus = exData ? exData.status : "Hadir";
@@ -1329,7 +1338,8 @@ function updateRekapHarian() {
     let pDateStr = (rawTgl instanceof Date) ? rawTgl.toISOString().split("T")[0] : String(rawTgl).substring(0, 10);
 
     if (pDateStr === targetDate) {
-      const uniqueId = `${String(pKelBinaan).trim().toLowerCase()}_${String(rawNama).trim().toLowerCase()}`;
+      const pId = String(p.ID_Jamaah || p.ID || p.idJamaah || "").trim().toLowerCase();
+      const uniqueId = pId ? `id_${pId}` : `${String(pKelBinaan).trim().toLowerCase()}_${String(rawNama).trim().toLowerCase()}`;
       latestPresensiMap[uniqueId] = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
     }
   });
@@ -1551,6 +1561,7 @@ function renderMonitoringTable() {
     const jKelBinaan = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim();
     const jDesa = String((j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKelBinaan)).trim();
 
+    const targetIdClean = String(j.ID_Jamaah || j.ID || "").trim().toLowerCase();
     const targetNamaClean = String(nama || "").trim().toLowerCase();
     const targetKelClean = jKelBinaan.toLowerCase();
 
@@ -1561,13 +1572,18 @@ function renderMonitoringTable() {
     let totalCaberawitPertemuan = 0;
 
     filteredPresensi.forEach(p => {
+      const pId = String(p.ID_Jamaah || p.ID || p.idJamaah || "").trim().toLowerCase();
       const pNama = String(p.NamaJamaah || p.Nama || p.nama || "").trim().toLowerCase();
-      if (pNama !== targetNamaClean) return;
+
+      // Cocokkan melalui ID Jamaah jika ada, atau fallback nama + kelompok binaan
+      const matchIdentity = (pId && targetIdClean)
+        ? (pId === targetIdClean)
+        : (pNama === targetNamaClean);
+
+      if (!matchIdentity) return;
 
       const pKelBinaan = String(p.KelompokBinaan || p.Nama_Kelompok || getKelompokByNama(pNama)).trim().toLowerCase();
-      
-      // Jika ada perbedaan kelompok binaan pada nama yang sama, lewati
-      if (pKelBinaan && pKelBinaan !== "-" && targetKelClean !== "-" && pKelBinaan !== targetKelClean) {
+      if (!pId && pKelBinaan && pKelBinaan !== "-" && targetKelClean !== "-" && pKelBinaan !== targetKelClean) {
         return;
       }
 
