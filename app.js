@@ -1069,13 +1069,28 @@ function renderJamaah() {
     const jKel = j.Nama_Kelompok || j.KelompokBinaan || '-';
     const jDesa = (j.Desa && j.Desa !== "-") ? j.Desa : getDesaByKelompok(jKel);
 
+    // Hitung usia secara dinamis dari TanggalLahir, atau gunakan kolom Usia bawaan spreadsheet
+    let displayUsia = "-";
+    if (j.TanggalLahir) {
+      displayUsia = calculateAge(j.TanggalLahir);
+    } else if (j.Usia && j.Usia !== "-") {
+      displayUsia = String(j.Usia).includes("Thn") ? j.Usia : `${j.Usia} Thn`;
+    }
+
     return `
       <tr class="bg-white border-b hover:bg-slate-50 text-xs sm:text-sm">
         <td class="px-3 sm:px-4 py-3 font-mono text-[11px] text-slate-400">${j.ID_Jamaah || j.ID || '-'}</td>
         <td class="px-3 sm:px-4 py-3 font-semibold text-slate-800">${j.Nama_Lengkap || j.Nama || '-'}</td>
         <td class="px-3 sm:px-4 py-3 text-xs text-slate-600">${jDesa}</td>
         <td class="px-3 sm:px-4 py-3 text-xs font-semibold text-slate-800">${jKel}</td>
-        <td class="px-3 sm:px-4 py-3 whitespace-nowrap text-xs">${j.TanggalLahir ? String(j.TanggalLahir).split("T")[0] : '-'} <span class="text-[10px] text-emerald-600 font-bold">(${calculateAge(j.TanggalLahir)})</span></td>
+        
+        <!-- HANYA MENAMPILKAN UMUR (Tanggal Lahir disembunyikan dari tabel) -->
+        <td class="px-3 sm:px-4 py-3 text-center whitespace-nowrap text-xs">
+          <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+            ${displayUsia}
+          </span>
+        </td>
+
         <td class="px-3 sm:px-4 py-3"><span class="px-2 py-0.5 rounded bg-teal-50 text-teal-700 font-semibold text-[11px]">${displayKelompok}</span></td>
         <td class="px-3 sm:px-4 py-3"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[11px]">${displayKelas}</span></td>
         <td class="px-3 sm:px-4 py-3">${j.Gender || '-'}</td>
