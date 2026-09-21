@@ -2,7 +2,7 @@
 // FRONTEND LOGIC & REST API INTEGRATION (MOBILE OPTIMIZED & FULL CRUD)
 // =========================================================================
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyciPaqbNWgQMB-BrNDxTvixQvqUIjBwigqX_cU3W-gsiHXbUEGnjKgWWxXEnM62Qz9/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw4liHkM7yeYVkitI2jZ3UN8Y0tR033ytbPP-Ygo0aMfj8Mh6auDkCGyYCkRWuXzpc/exec";
 
 let appData = {
   pengurus: [],
@@ -1091,7 +1091,7 @@ function renderJamaah() {
 }
 
 // =========================================================================
-// RENDER TABEL PRESENSI DENGAN KUNCI [NAMA_KELOMPOK + NAMA JAMAAH]
+// RENDER TABEL PRESENSI DENGAN KUNCI [JENJANG + KELOMPOK BINAAN + NAMA]
 // =========================================================================
 
 function getFilteredJamaahForPresensi() {
@@ -1195,8 +1195,9 @@ function renderPresensiTable() {
 
   const selectedDateInput = document.getElementById("presensi-date");
   const targetDate = selectedDateInput ? selectedDateInput.value : "";
+  const targetJenjang = currentKelompok.trim().toLowerCase();
 
-  // Peta presensi dengan Kunci: Nama_Kelompok + Nama Jamaah
+  // Kunci Presensi KETAT: Tanggal + Jenjang + Kelompok Binaan + Nama Jamaah
   let existingStatusMap = {};
   presensiList.forEach(p => {
     const rawNama = p.NamaJamaah || p.Nama || p.nama;
@@ -1208,7 +1209,8 @@ function renderPresensiTable() {
 
     if (pDateStr === targetDate) {
       const pNamaClean = String(rawNama).trim().toLowerCase();
-      const pKelBinaan = String(p.Nama_Kelompok || p.KelompokBinaan || getKelompokByNama(rawNama)).trim().toLowerCase();
+      const pJenjang = String(p.Kelompok || p.kelompok || p.Jenjang || "").trim().toLowerCase();
+      const pKelBinaan = String(p.Nama_Kelompok || p.KelompokBinaan || getKelompokByNama(rawNama) || "").trim().toLowerCase();
 
       const statusData = {
         status: String(p.StatusPresensi || p.Status || p.status || "Hadir").trim(),
@@ -1216,21 +1218,20 @@ function renderPresensiTable() {
         karakter29: String(p.Karakter29 || p.karakter29 || "Belum").trim()
       };
 
-      // Simpan kunci kelompok binaan + nama, dan fallback nama saja
-      existingStatusMap[`kel_${pKelBinaan}_${pNamaClean}`] = statusData;
-      if (!existingStatusMap[`name_${pNamaClean}`]) {
-        existingStatusMap[`name_${pNamaClean}`] = statusData;
-      }
+      // Kunci spesifik: TIDAK LAGI menggunakan fallback nama global
+      const compositeKey = `${pJenjang}_${pKelBinaan}_${pNamaClean}`;
+      existingStatusMap[compositeKey] = statusData;
     }
   });
 
   tbody.innerHTML = filteredJamaah.map((j, idx) => {
     const nama = j.Nama_Lengkap || j.Nama;
-    const jKel = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim().toLowerCase();
+    const jKelBinaan = String(j.Nama_Kelompok || j.KelompokBinaan || "-").trim().toLowerCase();
     const namaClean = String(nama).trim().toLowerCase();
 
-    // Cocokkan Nama_Kelompok + Nama, lalu fallback ke Nama saja
-    const exData = existingStatusMap[`kel_${jKel}_${namaClean}`] || existingStatusMap[`name_${namaClean}`];
+    // Cocokkan persis Jenjang Kegiatan + Kelompok Binaan + Nama
+    const searchKey = `${targetJenjang}_${jKelBinaan}_${namaClean}`;
+    const exData = existingStatusMap[searchKey];
 
     const isSaved = Boolean(exData);
     const savedStatus = exData ? exData.status : "Hadir";
@@ -1312,6 +1313,7 @@ function updateRekapHarian() {
 
   const desaFilter = document.getElementById("presensi-filter-desa")?.value || "Semua";
   const kelFilter = document.getElementById("presensi-filter-kelompok")?.value || "Semua";
+  const targetJenjang = currentKelompok.trim().toLowerCase();
 
   let h = 0, i = 0, a = 0;
   let latestPresensiMap = {};
@@ -1323,7 +1325,11 @@ function updateRekapHarian() {
     if (!p.Tanggal && !p.tanggal) return;
     if (!rawNama) return;
 
-    const pKelBinaan = String(p.Nama_Kelompok || p.KelompokBinaan || getKelompokByNama(rawNama)).trim();
+    // Filter jenjang yang aktif
+    const pJenjang = String(p.Kelompok || p.kelompok || p.Jenjang || "").trim().toLowerCase();
+    if (pJenjang !== targetJenjang) return;
+
+    const pKelBinaan = String(p.Nama_Kelompok || p.KelompokBinaan || getKelompokByNama(rawNama) || "").trim();
     const pDesa = String((p.Desa && p.Desa !== "-") ? p.Desa : getDesaByKelompok(pKelBinaan)).trim();
 
     if (desaFilter !== "Semua" && pDesa.toLowerCase() !== desaFilter.toLowerCase()) return;
@@ -1333,7 +1339,7 @@ function updateRekapHarian() {
     let pDateStr = (rawTgl instanceof Date) ? rawTgl.toISOString().split("T")[0] : String(rawTgl).substring(0, 10);
 
     if (pDateStr === targetDate) {
-      const uniqueId = `${String(pKelBinaan).trim().toLowerCase()}_${String(rawNama).trim().toLowerCase()}`;
+      const uniqueId = `${pJenjang}_${pKelBinaan.toLowerCase()}_${String(rawNama).trim().toLowerCase()}`;
       latestPresensiMap[uniqueId] = String(p.StatusPresensi || p.Status || p.status || "Hadir").trim();
     }
   });
